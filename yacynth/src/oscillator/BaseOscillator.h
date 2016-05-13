@@ -1,0 +1,218 @@
+#pragma once
+
+/*
+ * Copyright (C) 2016 Istvan Simon
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ */
+
+/*
+ * File:   BaseOscillator.h
+ * Author: Istvan Simon
+ *
+ * Created on March 26, 2016, 10:37 AM
+ */
+#include    "../oscillator/Tables.h"
+#include    "../utils/Primes.h"
+#include    "../utils/Fastsincos.h"
+
+#include    <cstdint>
+#include    <cmath>
+
+
+// TODO
+//  - call with phase -> multiphase osc
+//  - direct float sin -> 18 bit index
+
+using namespace tables;
+
+namespace yacynth {
+
+class IntegratorOscillator {
+public:
+    static constexpr int cycle = 6;
+    static constexpr int phaseCount = 16;
+
+    IntegratorOscillator();
+
+    int64_t     mod( const int64_t in );
+
+
+protected:
+    int64_t     amplDelta;
+    int64_t     amplDecay;
+    int64_t     retAmpl;
+
+    int16_t     phase;
+    uint16_t    decay;
+    const Primes&   phaseDeltaRef;
+
+    uint16_t    phaseDelta;
+    uint8_t     quarter;
+    uint8_t     depth;      // current amplitude >> depth
+};
+
+
+class BaseOscillatorFunction {
+public:
+    static constexpr uint32_t phase1    = 1 << (14+16);
+    static constexpr uint32_t phase2    = 1 << (15+16);
+    static constexpr float    frange    = 1.0 / (1<<30);
+    static constexpr float    franges   = 1.0 / (1<<15);
+    static constexpr float    frangesu  = 1.0 / (1<<16);
+
+    static constexpr float    frange1e2 = 1.13 / (1<<16);
+    static constexpr float    frange1h2 = 3.0 / (1<<17);
+    static constexpr float    frange1q2 = 3.6 / (1<<17);
+    static constexpr uint32_t uOffs     = 0x1FFFFFFF;
+
+    BaseOscillatorFunction()
+    {};
+    inline void reset(void) {
+        phase = 0;
+    };
+    inline void phase0( const uint32_t phaseP ) {
+        phase  = phaseP;
+    };
+    inline void inc( const uint32_t phaseDelta ) {
+        phase  += phaseDelta;
+    };
+    inline uint32_t getPhase(void)  const {return phase;};
+
+    // 16 bit out
+    inline int32_t sin16(void)      const {return tables::waveSinTable[ uint16_t(  phase >>16 ) ];};
+    inline float   fsin(void)       const {return float(sin16()) * franges; };
+    inline int32_t cos16(void)      const {return tables::waveSinTable[ uint16_t(( phase + phase1 ) >>16 ) ];};
+    inline float   fcos(void)       const {return float(cos16()) * franges;  };
+
+    inline int32_t sin16u(void)     const {return 0x7FFF + tables::waveSinTable[ uint16_t(  phase >>16 )];};
+    inline float   fsinu(void)      const {return float(sin16u()) * frangesu; };
+    inline int32_t cos16u(void)     const {return 0x7FFF+ tables::waveSinTable[ uint16_t(( phase + phase1 ) >>16 )];};
+    inline float   fcosu(void)      const {return float(cos16u()) * frangesu;};
+
+    // normalized to 30 bit
+    inline int32_t sin(void)        const {return tables::waveSinTable[ uint16_t(  phase >>16 ) ]<<15;};
+    inline int32_t cos(void)        const {return tables::waveSinTable[ uint16_t(( phase + phase1 ) >>16 ) ]<<15;};
+    inline int32_t sinu(void)       const {return uOffs + (tables::waveSinTable[ uint16_t(  phase >>16 ) ]<<15);};
+    inline int32_t cosu(void)       const {return uOffs + (tables::waveSinTable[ uint16_t(( phase + phase1 ) >>16 ) ]<<15);};
+
+    inline int32_t saw(void)        const {return int32_t(phase) >> 1;};
+    inline float   fsaw(void)       const {return float(saw()) * frange;};
+    inline int32_t sawu(void)       const {return uOffs + (int32_t(phase) >> 2);};
+    inline float   fsawu(void)      const {return float(sawu()) * frange;};
+
+    // shifted by PI/2 ==> cos
+    inline int32_t sawc(void)       const {return int32_t(phase+phase1) >> 1;};
+    inline float   fsawc(void)      const {return float(sawc()) * frange;};
+    inline int32_t sawcu(void)      const {return uOffs + (int32_t(phase+phase1) >> 2);};
+    inline float   fsawcu(void)     const {return float(sawcu()) * frange;};
+
+    inline int32_t square(void)     const {return (( int32_t(phase) >> 31 ) | 1 ) << 30;};
+    inline float   fsquare(void)    const {return float(square()) * frange;};
+    inline int32_t squareu(void)    const {return uOffs + ((( int32_t(phase) >> 31 ) | 1 ) << 29);};
+    inline float   fsquareu(void)   const {return float(squareu()) * frange;};
+
+    // shifted by PI/2 ==> cos
+    inline int32_t squarec(void)    const {return (( int32_t(phase+phase1) >> 31 ) | 1 ) << 30;};
+    inline float   fsquarec(void)   const {return float(squarec()) * frange;};
+    inline int32_t squarecu(void)   const {return uOffs + ((( int32_t(phase+phase1) >> 31 ) | 1 ) << 29);};
+    inline float   fsquarecu(void)  const {return float(squarecu()) * frange;};
+
+    // triangle -> sometimes called sawtooth
+    inline int32_t angle3(void)     const {return (( int32_t(phase+phase1) | 1 ) ^ ( int32_t(phase+phase1) >> 31 )) - 0x3FFFFFFF;};
+    inline float   ftangle3(void)   const {return float(angle3()) * frange;};
+    inline int32_t angle3u(void)    const {return (( int32_t(phase+phase1) | 1 ) ^ ( int32_t(phase+phase1) >> 31 ))>>1;};
+    inline float   fangle3u(void)   const {return float(angle3u()) * frange;};
+
+    // shifted by PI/2 ==> cos
+    inline int32_t angle3c(void)    const {return -((( int32_t(phase) | 1 ) ^ ( int32_t(phase) >> 31 )) - 0x3FFFFFFF);};
+    inline float   fangle3c(void)   const {return float(angle3c()) * frange;};
+    inline int32_t angle3cu(void)   const {return ((( int32_t(phase) | 1 ) ^ ( int32_t(phase) >> 31 ))>>1);};
+    inline float   fangle3cu(void)  const {return float(angle3cu()) * frange;};
+
+    // phase distorsion sin(sin) series
+    //
+    inline int32_t pd00ssin(void)   const {return tables::waveSinTable[ uint16_t((tables::waveSinTable[phase >>16])    + (phase >>16))]<<15;};
+    inline float   fpd00ssin(void)  const {return float(pd00ssin()) * frange;};
+
+    inline int32_t pd01ssin(void)   const {return tables::waveSinTable[ uint16_t((tables::waveSinTable[phase >>16]>>1) + (phase >>16))]<<15;};
+    inline float   fpd01ssin(void)  const {return float(pd01ssin()) * frange;};
+    inline int32_t pd02ssin(void)   const {return tables::waveSinTable[ uint16_t((tables::waveSinTable[phase >>16]>>2) + (phase >>16))]<<15;};
+    inline float   fpd02ssin(void)  const {return float(pd02ssin()) * frange;};
+    inline int32_t pd03ssin(void)   const {return tables::waveSinTable[ uint16_t((tables::waveSinTable[phase >>16]>>3) + (phase >>16))]<<15;};
+    inline float   fpd03ssin(void)  const {return float(pd03ssin()) * frange;};
+
+    inline int32_t pd10ssin(void)   const {return tables::waveSinTable[ uint16_t((tables::waveSinTable[phase >>16]<<1) + (phase >>16))]<<15;};
+    inline float   fpd10ssin(void)  const {return float(pd10ssin()) * frange;};
+    inline int32_t pd20ssin(void)   const {return tables::waveSinTable[ uint16_t((tables::waveSinTable[phase >>16]<<2) + (phase >>16))]<<15;};
+    inline float   fpd20ssin(void)  const {return float(pd20ssin()) * frange;};
+    inline int32_t pd30ssin(void)   const {return tables::waveSinTable[ uint16_t((tables::waveSinTable[phase >>16]<<2) + (phase >>16))]<<15;};
+    inline float   fpd30ssin(void)  const {return float(pd30ssin()) * frange;};
+
+    inline int32_t pd0qssin(void)   const {return tables::waveSinTable[ uint16_t( tables::waveSinTable[phase >>16] )]<<15;};
+    inline float   fpdq0ssin(void)  const {return float(pd0qssin()) * frange;};
+    // pair sin 1+2
+    //
+    inline int32_t psin1e2(void)    const {return (tables::waveSinTable[uint16_t(phase>>16)]+(tables::waveSinTable[uint16_t(phase>>15)]));};
+    inline float   fpsin1e2(void)   const {return float(psin1e2()) * frange1e2;};
+    inline int32_t psin1h2(void)    const {return (tables::waveSinTable[uint16_t(phase>>16)]+(tables::waveSinTable[uint16_t(phase>>15)]>>1));};
+    inline float   fpsin1h2(void)   const {return float(psin1h2()) * frange1h2;};
+    inline int32_t psin1q2(void)    const {return (tables::waveSinTable[uint16_t(phase>>16)]+(tables::waveSinTable[uint16_t(phase>>15)]>>2));};
+    inline float   fpsin1q2(void)   const {return float(psin1q2()) * frange1q2;};
+
+protected:
+    uint32_t    phase;
+}; // end class BaseOscillator
+
+
+class BaseOscillator : public BaseOscillatorFunction {
+public:
+    BaseOscillator()
+    :   phaseDelta(0)
+    {};
+    BaseOscillator( const uint32_t delta  )
+    :   phaseDelta( delta )
+    {};
+    inline void set( const uint32_t delta ) {
+        phaseDelta = delta;
+    };
+    inline void inc( const uint32_t phaseDeltaP ) {
+        phaseDelta = phaseDeltaP;
+        phase  += phaseDelta;
+    };
+    inline void inc(void) {
+        phase  += phaseDelta;
+    };
+    // 0 or 1
+    inline int32_t trigger(void)    const {return (phase-phaseDelta) > phase;};
+    inline float   ftrigger(void)   const {return float(trigger());};
+
+protected:
+    uint32_t    phaseDelta; // freq
+}; // end class BaseOscillatorInt
+
+
+/*
+
+         case SAW_SOFT: {
+            const int64_t res = lastSaw;
+            lastSaw = (( ( int64_t(dphase) << rangeExp ) + lastSaw*255 ) >> 8) ;
+            return res -  ( 195LL<<(rangeExp+18) ); // DC offset - need more testing
+            }
+
+
+
+ */
+} // end namespace yacynth
