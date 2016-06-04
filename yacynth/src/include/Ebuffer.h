@@ -78,15 +78,20 @@ inline float noisefloor( const float val )
 // possible oversampling rate 1<<EffectOversamplingRateExp
 //
 
+// remove template !
 using EDataType  = float;
 // --------------------------------------------------------------------
 
-struct EbufferPar {
+struct EbufferPar {    
     static constexpr std::size_t EffectFrameSizeExp          = 6;
     static constexpr std::size_t EffectOversamplingRateExp   = 0;
     static constexpr std::size_t sectionSizeExp     = EffectFrameSizeExp+EffectOversamplingRateExp;
-    static constexpr std::size_t sectionSize        = (1<<sectionSizeExp);
+    static constexpr std::size_t sectionSize        = 1<<sectionSizeExp;
     static constexpr std::size_t sectionSizeMask    = sectionSize-1;
+    static constexpr std::size_t vsectionSizeExp    = sectionSizeExp-2;    
+    static constexpr std::size_t vsectionSize       = 1<<vsectionSizeExp;    
+    static constexpr std::size_t vsectionSizeMask   = vsectionSize-1;    
+    
     static constexpr std::size_t chA                = 0;
     static constexpr std::size_t chB                = 1;
 
@@ -102,22 +107,18 @@ struct EbufferPar {
 
 // --------------------------------------------------------------------
 // Effect stage IO buffer
+// this will be only float
 template< typename Tstore >
 struct EIObufferT : public EbufferPar {
+    typedef Tstore value_type;
     EIObufferT()
     { clear(); };
 
     void clear(void)
     {
         for( auto& ichn : channel ) memset( ichn, 0, sectionSize*sizeof(Tstore) );
-//        amplitudeSumm = 0;
         channelGain = 1.0f;
     }
-    // ----------------------------------------------------------------------
-//    inline int64_t envelopeFilter( int64_t& state ) const
-//    {
-//        return state = (( amplitudeSumm >> 3 ) + state * 511 ) >> 9;
-//    }
 
     inline void copyMono2Stereo( const EIObufferT& inp )
     {
@@ -201,7 +202,7 @@ struct EIObufferT : public EbufferPar {
 
 //    union {
     union alignas(16) {
-        v4sf    v[ channelCount*sectionSize / 4 ];
+        v4sf    vchannel[ channelCount ][ vsectionSize ];
         Tstore  channel[ channelCount ][ sectionSize ];
         struct {
             Tstore  channelA[ sectionSize ];
@@ -488,8 +489,8 @@ struct EDelayLineT : public EbufferPar {
 // --------------------------------------------------------------------
 // --------------------------------------------------------------------
 using EIObuffer         = EIObufferT<EDataType>;
-using EIObufferInt      = EIObufferT<int32_t>;
-using EIObufferFloat    = EIObufferT<float>;
+//using EIObufferInt      = EIObufferT<int32_t>;
+//using EIObufferFloat    = EIObufferT<float>;
 
 using EDelayLine        = EDelayLineT<EDataType>;
 // --------------------------------------------------------------------

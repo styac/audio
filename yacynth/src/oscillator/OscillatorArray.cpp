@@ -66,6 +66,7 @@ void OscillatorArray::generate( OscillatorOut& out, Statistics& stat )
     stat.cycleCounter[Statistics::COUNTER_SUSTAIN]       = 0;
     stat.cycleCounter[Statistics::COUNTER_OUTER_LOOP]    = 0;
     ++stat.cycleCounter[Statistics::COUNTER_ARRAY];
+    Oscillator::fillWhiteNoise();  // static
     for( auto voiceNr = minVoice; voiceNr < maxVoice; voiceNr++ ) {
         auto& oscillator   = array[ voiceNr ];
         if( oscillator.generate( oscillatorParamGenerate, out, stat ) ) {

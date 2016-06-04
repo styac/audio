@@ -35,87 +35,51 @@
 using namespace limiter;
 using namespace tables;
 
+typedef int v4si __attribute__((mode(SI)))  __attribute__ ((vector_size(16),aligned(16)));
+
 namespace filter {
 
 // --------------------------------------------------------------------
-//
-// simple fast 4 pole filter
-//
-class Filter4PoleIntegerBase : public FilterBase {
+
+template< std::size_t channelCountExp >
+class Filter4PoleInteger : public FilterBase {
 public:
-    static constexpr uint16_t   oversamplingRate= 1;
-    static constexpr float      rangeO          = 1.0 / (1LL<<31);
-    static constexpr float      rangeI          = 1LL << 30;
-    static constexpr int        rangeOExp       = 2;
-    static constexpr int64_t    clipTuning      = 300000;
+    static constexpr uint8_t  channelCount      = 1<<channelCountExp;
+    static constexpr uint8_t  channelCountMask  = channelCount-1;
+    static constexpr uint8_t  stateCount        = 4;
 
-    static constexpr int16_t    fNormExp        = 32;
-    static constexpr int16_t    qNormExp        = 24;
-    static constexpr int64_t    fcontrolMin     = (1LL<<fNormExp) * std::exp(-PI2*fcMin);
-    static constexpr int64_t    fcontrolMax     = (1LL<<fNormExp) * std::exp(-PI2*fcMax);
-    static constexpr int64_t    qcontrolMin     = 0;
-    static constexpr int64_t    qcontrolMax     = 4 * (1<<qNormExp); // ????
+    // state indices -> A,B,C,D
+    static constexpr std::size_t    SA  = 0;
+    static constexpr std::size_t    SB  = 1;
+    static constexpr std::size_t    SC  = 2;
+    static constexpr std::size_t    SD  = 3;
 
-    static constexpr int        qRateExp        = 48;
-
-    enum FilterType {
-        LOWPASS,
-        BANDPASS1,
-        BANDPASS2,
-        BANDPASS3,
-    };
+    static constexpr int32_t  fMin              = 0x1e000000; // octave 30.5 -- 16 khz
+    static constexpr int32_t  fMax              = 0x16100000; // octave 21  -- 45 Hz
+    static constexpr int32_t  fcontrolMin       = std::exp(-PI2*fcMin) * (1L<<31);
+    static constexpr int32_t  fcontrolMax       = std::exp(-PI2*fcMax) * (1L<<31);
+    static constexpr int32_t  qcontrolMin       = 0;
+    static constexpr int32_t  qcontrolMax       = 3.995 * (1L<<24);
 
     struct alignas(16) Channel {
-        int64_t     y0a;
-        int64_t     y0b;
-        int64_t     y0c;
-        int64_t     y0d;
-    };
-
-    struct Param {
-        int64_t         fgain;
-        int64_t         qgain;
-        FilterType      type;
-    };
-    inline void setType( const FilterType t ) { param1.type=t; };
-
-    float checkF( const int32_t fv )
-    {
-        return fcontrolMin <= fv  ? fcontrolMin : fcontrolMax >= fv  ? fcontrolMax : fv;
-    };
-
-    void limitQ( void )
-    {
-        if( param1.qgain < qcontrolMin ) {
-            param1.qgain = qcontrolMin;
-            return;
+        void clear(void)
+        {
+            for( auto i=0; i < stateCount; ++i )
+                for( auto j=0; j < channelCount; ++j )
+                    s[i][j] = 0;
         }
-        // experimental
-//        if( param1.fgain < 0.17f  )
-//            param1.qgain = std::min( param1.qgain, 3.0f );
-//        else if( param1.qgain > qcontrolMax )
-//            param1.qgain = qcontrolMax;
+        union {
+            v4si        v4[channelCount];
+            int32_t     s[stateCount][channelCount];
+        };
+        struct {
+            int32_t fmul[channelCount];
+            int32_t qmul[channelCount];
+            int32_t gmul[channelCount];
+        };
     };
 
 
-    inline void setF( const uint32_t fv )
-    {
-        param1.fgain = checkF( fv );
-        limitQ();
-    };
-
-    inline void setQ( const uint32_t qv = 0 )
-    {
-        param1.qgain = qv;
-        limitQ();
-    };
-
-protected:
-    Param       param1;
-};
-// --------------------------------------------------------------------
-class Filter4PoleInteger : public Filter4PoleIntegerBase {
-public:
     Filter4PoleInteger()
     {
         clear();
@@ -123,182 +87,75 @@ public:
 
     void clear(void)
     {
-        channelA        = {0};
-        param1          = {0};
-        param1.fgain    = fcontrolMax;
-        param1.qgain    = qcontrolMin;
+        channel.clear();
     };
-/*
- --------------- timer 1006
- ---------------- timer 994
- ---------------- timer 1000
- ---------------- timer 1002
- ---------------- timer 992
- ---------------- timer 1002
- ---------------- timer 991
- ---------------- timer 997
- ---------------- timer 987
- ---------------- timer 997
- ---------------- timer 995
- ---------------- timer 998
- ---------------- timer 988
- */
-    // INPUT MUST NOT OVERFLOW : float input abs(in) <= 1.0 !!!!!!!!!!!!!
-    //     anyway -- this is only for testing
-    inline void getA( const float inA, float& outA  )
+
+    inline void setGain( const uint8_t ind, const int32_t gn )
     {
-        doFeedbackA( inA * rangeI );
-        switch( param1.type ) {
-        case LOWPASS:
-            outA = float( channelA.y0d ) * rangeO;
-            return;
-        case BANDPASS1:
-            outA = float( channelA.y0d - channelA.y0a ) * rangeO;
-            return;
-        case BANDPASS2:
-            outA = float( channelA.y0d - channelA.y0b ) * rangeO;
-            return;
-        case BANDPASS3:
-            outA = float( channelA.y0d - channelA.y0c ) * rangeO;
-            return;
+        channel.gmul[ ind & channelCountMask ] = gn;
+    }
+
+    inline void setFreq( const uint8_t ind, const int32_t fv )
+    {
+        const int32_t freq = ftableExp2Pi.getInt( fv );
+        channel.fmul[ ind & channelCountMask ] = std::max( fcontrolMax, std::min( fcontrolMin, freq ));
+
+  std::cout << "ind " << uint16_t(ind)  << " f " << channel.fmul[ ind & channelCountMask ] << std::endl;
+    };
+
+    // 24 bit -> 1.0
+    inline void setQ( const uint8_t ind, const int32_t qv )
+    {
+        channel.qmul[ ind & channelCountMask ] = std::max( qcontrolMin, std::min( qcontrolMax, qv ));
+
+  std::cout << "ind " << uint16_t(ind) << " q "  << channel.qmul[ ind & channelCountMask ] << std::endl;
+    };
+
+    // safer
+    // all bandpass
+    template< std::size_t S1, std::size_t S2, std::size_t N0, std::size_t L >
+    inline int32_t getBP(void) const
+    {
+        static_assert((N0+L) <= channelCount, "channel count too small" );
+        int32_t s = (( channel.s[S1][N0] - channel.s[S2][N0] ) * channel.gmul[N0]) >> 32;
+        for( auto i=1u; i < L; ++i ) {
+            s += (( channel.s[S1][N0+i] - channel.s[S2][N0+i] ) * channel.gmul[N0+i]) >> 32;
+        }
+        return s;
+    }
+
+    // N0 - lowpass
+    // N0+1,... bandpass
+    template< std::size_t S1, std::size_t S2, std::size_t N0, std::size_t L >
+    inline int32_t getLBP(void) const
+    {
+        static_assert((N0+L) <= channelCount, "channel count too small" );
+        int32_t s = ( channel.s[S1][N0] * channel.gmul[N0] ) >> 32;
+        for( auto i=1u; i<L; ++i ) {
+            s += (( channel.s[S1][N0+i] - channel.s[S2][N0+i] ) * channel.gmul[N0+i] ) >> 32;
+        }
+        return s;
+    }
+
+    // safer
+    template< std::size_t count >
+    inline void set( const int32_t in )
+    {
+        static_assert( count <= channelCount, "count greater then channel count" );
+        static_assert( count > 0, "count == zero" );
+        for( auto i=0u; i < count; ++i ) {
+            const int64_t inx = in - (( channel.s[SD][i] * int64_t(channel.qmul[i]) ) >> 24 );
+            channel.s[SA][i]  = ((( channel.s[SA][i] - inx ) * int64_t(channel.fmul[i])) >> 32 ) + inx;
+            channel.s[SB][i]  = ((( channel.s[SB][i] - channel.s[SA][i] ) * int64_t(channel.fmul[i]) ) >> 32 ) + channel.s[SA][i];
+            channel.s[SC][i]  = ((( channel.s[SC][i] - channel.s[SB][i] ) * int64_t(channel.fmul[i]) ) >> 32 ) + channel.s[SB][i];
+            channel.s[SD][i]  = ((( channel.s[SD][i] - channel.s[SC][i] ) * int64_t(channel.fmul[i]) ) >> 32 ) + channel.s[SC][i];
         }
     };
 
-    inline void getA( const int32_t inA, int32_t& outA )
-    {
-        doFeedbackA( inA * rangeI );
-        switch( param1.type ) {
-        case LOWPASS:
-            outA = channelA.y0d >> rangeOExp;
-            return;
-        case BANDPASS1:
-            outA = ( channelA.y0d - channelA.y0a ) >> rangeOExp;
-            return;
-        case BANDPASS2:
-            outA = ( channelA.y0d - channelA.y0b ) >> rangeOExp;
-            return;
-        case BANDPASS3:
-            outA = ( channelA.y0d - channelA.y0c ) >> rangeOExp;
-            return;
-        }
-    };
-    inline int32_t getLowpass( const int32_t inA )
-    {
-        doFeedbackA( inA * rangeI );
-        return channelA.y0d >> rangeOExp;
-    };
-    inline int32_t getBandpass1( const int32_t inA )
-    {
-        doFeedbackA( inA * rangeI );
-        return (channelA.y0d - channelA.y0a) >> rangeOExp;
-    };
-    inline int32_t getBandpass2( const int32_t inA )
-    {
-        doFeedbackA( inA * rangeI );
-        return (channelA.y0d - channelA.y0b) >> rangeOExp;
-    };
-    inline int32_t getBandpass3( const int32_t inA )
-    {
-        doFeedbackA( inA * rangeI );
-        return (channelA.y0d - channelA.y0c) >> rangeOExp;
-    };
-
-private:
-    inline void doFeedbackA( const int32_t inA )
-    {
-        const int64_t xA = inA - ( limitx3hard<1>( channelA.y0d ) * param1.qgain ) >> qNormExp;
-//        const int64_t xA = inA - ( i64LimitClip<clipTuning>( channelA.y0d ) * param1.qgain )>>qNormExp;
-        channelA.y0a = ((( channelA.y0a - xA           ) * param1.fgain ) >> fNormExp ) + xA;
-        channelA.y0b = ((( channelA.y0b - channelA.y0a ) * param1.fgain ) >> fNormExp ) + channelA.y0a;
-        channelA.y0c = ((( channelA.y0c - channelA.y0b ) * param1.fgain ) >> fNormExp ) + channelA.y0b;
-        channelA.y0d = ((( channelA.y0d - channelA.y0c ) * param1.fgain ) >> fNormExp ) + channelA.y0c;
-    };
-    Channel     channelA;
+protected:
+    Channel channel;
 }; // end Filter4PoleInteger
-// --------------------------------------------------------------------
-#if 0
 
-class Filter4PoleIntegerStereo : public Filter4PoleIntegerBase {
-public:
-    Filter4PoleIntegerStereo()
-    {
-        clear();
-    };
-    void clear(void)
-    {
-        channelA    = {0};
-        channelB    = {0};
-        param1      = {0};
-//        setF();
-        setQ();
-    };
-
-    // INPUT MUST NOT OVERFLOW : float input abs(in) <= 1.0 !!!!!!!!!!!!!
-    //     anyway -- this is only for testing
-    inline void get( const float inA, const float inB, float& outA, float& outB )
-    {
-        doFeedback( inA * rangeI, inB * rangeI );
-        switch( param1.type ) {
-        case LOWPASS:
-            outA = float( channelA.y0d ) * rangeO;
-            outB = float( channelB.y0d ) * rangeO;
-            return;
-        case BANDPASS1:
-            outA = float( channelA.y0d - channelA.y0a ) * rangeO;
-            outB = float( channelB.y0d - channelB.y0a ) * rangeO;
-            return;
-        case BANDPASS2:
-            outA = float( channelA.y0d - channelA.y0b ) * rangeO;
-            outB = float( channelB.y0d - channelB.y0b ) * rangeO;
-            return;
-        case BANDPASS3:
-            outA = float( channelA.y0d - channelA.y0c ) * rangeO;
-            outB = float( channelB.y0d - channelB.y0c ) * rangeO;;
-            return;
-        }
-    };
-
-    inline void get( const int32_t inA, const int32_t inB, int32_t& outA, int32_t& outB )
-    {
-        doFeedback( inA * rangeI, inB * rangeI );
-        switch( param1.type ) {
-        case LOWPASS:
-            outA = channelA.y0d >> rangeOExp;
-            outB = channelB.y0d >> rangeOExp;
-            return;
-        case BANDPASS1:
-            outA = ( channelA.y0d - channelA.y0a ) >> rangeOExp;
-            outB = ( channelB.y0d - channelB.y0a ) >> rangeOExp;
-            return;
-        case BANDPASS2:
-            outA = ( channelA.y0d - channelA.y0b ) >> rangeOExp;
-            outB = ( channelB.y0d - channelB.y0b ) >> rangeOExp;
-            return;
-        case BANDPASS3:
-            outA = ( channelA.y0d - channelA.y0c ) >> rangeOExp;
-            outB = ( channelB.y0d - channelB.y0c ) >> rangeOExp;
-            return;
-        }
-    };
-
-private:
-    inline void doFeedback( const int32_t inA, const int32_t inB )
-    {
-        const int64_t xA = inA - ( i64LimitClip<clipTuning>( channelA.y0d ) * param1.qgain );
-        const int64_t xB = inB - ( i64LimitClip<clipTuning>( channelB.y0d ) * param1.qgain );
-        channelA.y0a    = ((( channelA.y0a - xA ) * param1.fcurrent ) >> 32 ) + xA;
-        channelB.y0a    = ((( channelB.y0a - xB ) * param1.fcurrent ) >> 32 ) + xB;
-        channelA.y0b    = ((( channelA.y0b - channelA.y0a ) * param1.fcurrent ) >> 32 ) + channelA.y0a;
-        channelB.y0b    = ((( channelB.y0b - channelB.y0a ) * param1.fcurrent ) >> 32 ) + channelB.y0a;
-        channelA.y0c    = ((( channelA.y0c - channelA.y0b ) * param1.fcurrent ) >> 32 ) + channelA.y0b;
-        channelB.y0c    = ((( channelB.y0c - channelB.y0b ) * param1.fcurrent ) >> 32 ) + channelB.y0b;
-        channelA.y0d    = ((( channelA.y0d - channelA.y0c ) * param1.fcurrent ) >> 32 ) + channelA.y0c;
-        channelB.y0d    = ((( channelB.y0d - channelB.y0c ) * param1.fcurrent ) >> 32 ) + channelB.y0c;
-    };
-    Channel     channelA;
-    Channel     channelB;
-}; // end Filter4PoleIntegerStereo
-#endif
 
 } // end namespace filter
 

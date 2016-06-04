@@ -51,7 +51,7 @@
 
 
  */
-using namespace limiter;
+//using namespace limiter;
 using namespace noiser;
 
 namespace yacynth {
@@ -131,7 +131,7 @@ protected:
     std::string             name;
     const uint32_t          id;
     const char * const      efType;
-    static GNoiseShaped     gNoiseShaped;
+//    static GNoiseShaped     gNoiseShaped;
     static uint32_t         count;
 };
 

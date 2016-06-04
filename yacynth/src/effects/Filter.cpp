@@ -121,10 +121,10 @@ void ControlledFilter::process( const EIObuffer& __restrict inp, EIObuffer& __re
     for( auto i = 0u; i < filterSampleCount; ++i ) {
 //        const float in = noise.getWhitef();
 //        filter.set<4>( in );
-        filter.set<2>( inp.channel[out.chA][i] );
+        filter.set<4>( inp.channel[out.chA][i] );
 //        out.channel[out.chA][i] = out.channel[out.chB][i] = filter.getLBP<filter.SD,filter.SC,0,2>();
 // update gain for AM
-        out.channel[out.chA][i] = out.channel[out.chB][i] = filter.getLBP<filter.SD,filter.SC,0,2>();
+        out.channel[out.chA][i] = out.channel[out.chB][i] = filter.getLBP<filter.SD,filter.SC,0,4>();
     }
 
     // profiling

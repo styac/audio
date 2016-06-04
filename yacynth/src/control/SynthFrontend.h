@@ -73,6 +73,8 @@ private:
     OscillatorOutVector&    outVector;
     YaIoInQueueVector&      queuein;
     Statistics              statistics;
+    uint32_t                cycleNoise;    
+
 };
 
 } // end namespace yacynth

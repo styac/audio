@@ -39,6 +39,7 @@ IOThread:: IOThread(
 ,   queueOut(out)
 ,   midiRouter(router)
 ,   panMixer()
+,   cycleNoise(0)
 {
     endMixer.setGain( 1.0f , 0 );
     endMixer.connect( panMixer.get(), 0 );
@@ -121,6 +122,11 @@ void IOThread::audioOutCB( void *data, uint32_t nframes, float *outp1, float *ou
         thp.endMixer.process( outp1, outp2 );
         outp1 += thp.endMixer.sectionSize;
         outp2 += thp.endMixer.sectionSize;
+    }
+    
+    if( 0 == ++thp.cycleNoise ) { // reset after 2^32 cycles
+        GaloisShifterSingle<seedThreadEffect_noise>::getInstance().reset();
+        GaloisShifterSingle<seedThreadEffect_random>::getInstance().reset();
     }
     // profiling
     gettimeofday(&tv,NULL);

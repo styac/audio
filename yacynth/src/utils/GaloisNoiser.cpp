@@ -27,8 +27,6 @@
 
 namespace noiser {
 
-GaloisShifter   grandomOscillatorThread;
-
 
 }
 

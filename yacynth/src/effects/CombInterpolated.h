@@ -25,6 +25,11 @@
  * Created on March 8, 2016, 10:23 PM
  */
 
+//
+// 2nd order Lagrange
+//  http://users.spa.aalto.fi/vpv/publications/vesan_vaitos/ch3_pt2_lagrange.pdf
+// https://www.idc-online.com/technical_references/pdfs/electronic_engineering/A%20FRACTIONAL%20DELAY.pdf
+//
 #include    "Comb.h"
 
 #include    "../oscillator/Lfo.h"

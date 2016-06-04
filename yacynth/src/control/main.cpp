@@ -26,6 +26,7 @@
 #include    "../utils/Biquad.h"
 #include    "../utils/BiquadMath.h"
 #include    "../utils/Limiters.h"
+#include    "../utils/GaloisNoiser.h"
 #include    "../utils/FilterBase.h"
 #include    "../oscillator/Tables.h"
 #include    "../oscillator/Oscillator.h"
@@ -64,6 +65,7 @@
 using namespace yacynth;
 using namespace filter;
 using namespace tables;
+using namespace noiser;
 
 
 // beacuse of the signal handler -- must be revisited
@@ -112,6 +114,82 @@ void teststuff(void)
 
         << "\n Filter4Pole: "               << sizeof(Filter4Pole<3>)
         << std::endl;
+    
+    double f0 = 20.0;
+    const double df = 1.2;
+#if 0   
+    for( auto k=0; k<32; k++ ) {
+        const uint16_t ff = std::round( std::exp( -2.0 * 3.1415 * f0 / 48000.0 ) * double(0xFFFF) );
+        std::cout 
+            << "f0 " << f0
+            << " ff " << ff
+            << std::endl;
+            f0 *= df;
+
+    }
+           
+    
+    for( auto k=1; k<16; k++ ) {
+        constexpr double      PI2  = 2.0 * 3.141592653589793238462643383279502884197;
+
+        const double x = 1L<<k;    
+        const double x1 = 1L<<(k+1);    
+        const double x2 = 1L<<(k+3);    
+
+        const double y2k  = -std::log( 1.0 - 1.0 / x  ) / PI2 * 48000.0;                
+        const double y2ka  = -std::log( 1.0 - 1.0 / x - 1.0 / x1 ) / PI2 * 48000.0;                
+        const double y2kb  = -std::log( 1.0 - 1.0 / x - 1.0 / x2 ) / PI2 * 48000.0;                
+        
+        const double y2k48000_1  = -std::log( 1.0 - 1.0 / x ) / PI2 * 48000.0;                
+        const double y2k44100_1  = -std::log( 1.0 - 1.0 / x ) / PI2 * 44100.0;                
+        const double y2k48000_3  = -std::log( 1.0 - 3.0 / x ) / PI2 * 48000.0;                
+        const double y2k44100_3  = -std::log( 1.0 - 3.0 / x ) / PI2 * 44100.0;                
+        const double y2k48000_5  = -std::log( 1.0 - 5.0 / x ) / PI2 * 48000.0;                
+        const double y2k44100_5  = -std::log( 1.0 - 5.0 / x ) / PI2 * 44100.0;                
+        const double y2k48000_7  = -std::log( 1.0 - 7.0 / x ) / PI2 * 48000.0;                
+        const double y2k44100_7  = -std::log( 1.0 - 7.0 / x ) / PI2 * 44100.0;                
+        const double y2k48000_9  = -std::log( 1.0 - 9.0 / x ) / PI2 * 48000.0;                
+        const double y2k44100_9  = -std::log( 1.0 - 9.0 / x ) / PI2 * 44100.0;                
+        std::cout 
+            << "k " << k
+            << " y2k " << y2k
+            << " y2ka " << y2ka
+            << " y2kb " << y2kb
+            
+            << " y2k48000_1 " << y2k48000_1
+            << " y2k48000_3 " << y2k48000_3
+            << " y2k48000_5 " << y2k48000_5
+            << " y2k48000_7 " << y2k48000_7
+            << " y2k48000_9 " << y2k48000_9
+            << " y2k44100_1 " << y2k44100_1
+            << " y2k44100_3 " << y2k44100_3
+            << " y2k44100_5 " << y2k44100_5
+
+            
+            << std::endl;        
+    }
+#endif
+#if 0    
+    GaloisShifter gs;
+    for( uint64_t k=0; k < (1L<<33); k++ ) {
+        const uint64_t st = gs.get();
+        if( k > 0xFFFFFFFAL && k < 0x100000004L ) {
+            std::cout << std::hex
+                << "k " << k
+                << " st " << st
+                << " cycle " << gs.cycle
+                << " ls 0 " << gs.lfsr[0]
+                << " ls 1 " << gs.lfsr[1]
+            
+                << std::endl;        
+            
+        }
+
+    }
+
+    exit(0);
+#endif
+    
 #if 0
         double maxerr = 0.0;
         double err = 0.0;
@@ -646,48 +724,14 @@ exit(0);
         << "\n  4000 " << freq2ycent(4000)
         << std::endl;
 
-    for( int i = 1; i < 20; ++i  ) {
-        double jd = ( 1<<i ) * 10;
-        double jdfel = jd *1.2 ;
-        double jdfel1 = jd *1.4 ;
-        double jdfel2 = jd *1.6 ;
-        uint32_t ycent = freq2ycent(jd) ;
-        uint32_t ycentfel = freq2ycent(jdfel) ;
-        uint32_t ycentfel1 = freq2ycent(jdfel1) ;
-        uint32_t ycentfel2 = freq2ycent(jdfel2) ;
 
-        std::cout << std::hex
-            << "  j " << jd
-            << " freq2ycent " << ycent
-            << " PitchDep " << AmplitudeTransient::envelopePitchDepIndex( ycent )
-            << std::endl;
-
-        std::cout << std::hex
-            << "  j " << jdfel
-            << " freq2ycent " << ycentfel
-            << " PitchDep " << AmplitudeTransient::envelopePitchDepIndex( ycentfel )
-            << std::endl;
-        std::cout << std::hex
-            << "  j " << jdfel1
-            << " freq2ycent " << ycentfel1
-            << " PitchDep " << AmplitudeTransient::envelopePitchDepIndex( ycentfel1 )
-            << std::endl;
-        std::cout << std::hex
-            << "  j " << jdfel2
-            << " freq2ycent " << ycentfel2
-            << " PitchDep " << AmplitudeTransient::envelopePitchDepIndex( ycentfel2 )
-            << std::endl;
-
-    }
-
-    for( int i = 5000; i < 61000; ++i  ) {
+    for( int i = 20; i < 40; ++i  ) {
         double jd = i;
         uint32_t ycent = freq2ycent(jd) ;
 
         std::cout << std::hex
             << "  j " << jd
             << " freq2ycent " << ycent
-            << " PitchDep " << AmplitudeTransient::envelopePitchDepIndex( ycent )
             << std::endl;
     }
 
@@ -740,7 +784,12 @@ exit(0);
 //   exit(0);
 #endif
 
+
+           
+//    GNoise<galoisShifter, 2> gNoise;  
 }
+
+
 // --------------------------------------------------------------------
 //  -- MAIN --
 // --------------------------------------------------------------------
@@ -760,7 +809,34 @@ int main( int argc, char** argv )
     teststuff();
     // to test things end
 
-    //  singletons first
+    //  singletons first    
+    // random generators
+    GaloisShifterSingle<seedThreadEffect_noise>& gs0        = GaloisShifterSingle<seedThreadEffect_noise>::getInstance();
+    GaloisShifterSingle<seedThreadOscillator_noise>& gs1    = GaloisShifterSingle<seedThreadOscillator_noise>::getInstance();
+    GaloisShifterSingle<seedThreadEffect_random>& gs2       = GaloisShifterSingle<seedThreadEffect_random>::getInstance();
+    GaloisShifterSingle<seedThreadOscillator_random>& gs3   = GaloisShifterSingle<seedThreadOscillator_random>::getInstance();
+
+    std::cout 
+        << "\ngs0 " << static_cast< void *>(&gs0)
+        << "\ngs1 " << static_cast< void *>(&gs1)
+        << "\ngs2 " << static_cast< void *>(&gs2)
+        << "\ngs3 " << static_cast< void *>(&gs3)
+        << std::endl;
+    
+#if 0
+    for( uint64_t i=0u; i<0x1000000000000UL; ++i) {
+
+        const uint64_t vv = static_cast<GaloisShifter&>(GaloisShifterSingle<seedThreadOscillator_random>::getInstance()).get();
+        if( 0 == ( i & 0x3FFFFFFFFFUL ) ) {
+            std::cout << std::hex
+                << "i " << i
+                << " vv " << vv
+                << std::endl;
+            
+        }
+    }
+#endif
+    
     // inter thread communication
     YaIoInQueueVector&   queuein    = YaIoInQueueVector::getInstance();
     OscillatorOutVector& oscOutVec  = OscillatorOutVector::getInstance();
@@ -786,7 +862,7 @@ int main( int argc, char** argv )
 
         << std::endl;
 // start going up
-    effects.check();
+//    effects.check();
 
     jack.setProcessCB( iOThread, IOThread::midiInCB,  IOThread::audioOutCB );
     if( ! synthFe->initialize() )

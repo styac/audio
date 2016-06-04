@@ -68,6 +68,9 @@ private:
     // profiling
     uint64_t    timer;
     int64_t     count;    
+    
+    // to reset the noise generators
+    uint32_t    cycleNoise;    
 };
 
 } // end namespace yacynth

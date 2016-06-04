@@ -65,9 +65,6 @@ public:
 
     static_assert( C_END <= controllerCount, "controller matrix too small");
 
-    ControllerMatrix()
-    { reset(); };
-
     inline static ControllerMatrix& getInstance(void)
     {
         static ControllerMatrix instance;
@@ -117,6 +114,9 @@ public:
     }
 
 private:
+    ControllerMatrix()
+    { reset(); };
+    
     ControllerT     value[controllerCount];
 };
 // --------------------------------------------------------------------

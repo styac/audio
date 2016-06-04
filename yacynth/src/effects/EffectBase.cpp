@@ -49,7 +49,7 @@ void Effects::check(void) {
     }
 }
 // --------------------------------------------------------------------
-GNoiseShaped    EffectBase::gNoiseShaped;
+//GNoiseShaped    EffectBase::gNoiseShaped;
 uint32_t        EffectBase::count = 0;
 EffectBase      effectNil("Nil");
 EffectNoise     effectNoise;
@@ -126,13 +126,13 @@ void EffectNoise::process(void)
     for( auto i=0u; i <out.sectionSize; ++i ) {
         int32_t A;
         int32_t B;
-        gNoiseShaped.getWhite( A, B );
+//        gNoiseShaped.getWhite( A, B );
         out.channelA[i] = A * level;
         out.channelB[i] = B * level;
         if ( 0 == ( ++count & 0x0FFFFF  ) ) {
             std::cout << std::hex
                 << "count " << count
-                << " gNoiseShaped " << gNoiseShaped.get()
+//                << " gNoiseShaped " << gNoiseShaped.get()
                 << " sec " << tv.tv_sec
                 << std::endl;
         }

@@ -28,6 +28,10 @@
 #include    "OscillatorOutput.h"
 #include    "Tables.h"
 #include    "ToneShaper.h"
+#include    "NoiseFrame.h"
+#include    "NoiseSample.h"
+#include    "OscillatorNoiseInt.h"
+
 #include    "../control/Statistics.h"
 #include    "../utils/GaloisNoiser.h"
 #include    "../utils/Fastsincos.h"
@@ -81,7 +85,7 @@ struct SustainModulator {
     }
     inline int64_t decay ( const int64_t in, const AmplitudeSustain& env )
     {
-        return env.decayCoeff ? -(( ( env.decayCoeff * in ) >> 28 ) + 1 ) : 0 ;
+        return env.decayCoeffLF ? -(( ( env.decayCoeffLF * in ) >> 28 ) + 1 ) : 0 ;
     }
     inline int64_t mod( const int64_t in, const AmplitudeSustain& env, const uint64_t gShifter )
     {
@@ -136,20 +140,20 @@ struct SustainModulator {
 };
 // --------------------------------------------------------------------
 struct OscillatorState {
+    
     int64_t             amplitudoOsc;                   // ok - must be signed to handle underflows
     int64_t             envelopeTargetValueVelocity;    // ok - must be signed to handle underflows
     uint32_t            phase;
-    int32_t             tickFrame;
-    uint16_t            velocity;                       // layer velocity: set by note on
-    uint16_t            envelopMultiplierExpChecked;
-    int16_t             envelopePhase;                  // run max..0  , -1 end
+    int32_t             tickFrame;  // int16_t ???
+    uint16_t            envelopMultiplierExpChecked; // int8_t ???
+    int16_t             envelopePhase;  // int8_t ???                // run max..0  , -1 end
     SustainModulator    sustainModulator;
 };
 // --------------------------------------------------------------------
 class alignas(16) Oscillator {
 public:
-    static constexpr uint32_t minPitchDep = 0x155b2c3e;       // freq2ycent( 40.0 ) should be about 40 Hz
-    static constexpr uint32_t maxPitchDep = 0x1cd91653;       // freq2ycent( 6144.0 ) should be about 5 kHz -- 5400 Hz
+      // j 30 freq2ycent 155b2c3e
+    static constexpr int32_t minPitchDep = 0x155b2c3e;  // j 30 freq2ycent 155b2c3e
 
     enum OscType {
         OSC_SIN     = 0,
@@ -171,9 +175,16 @@ public:
 //        OSC_WAVE1   = 1,    // user fillable tables
 //        OSC_WAVE2   = 2,    // user fillable tables
 //        OSC_WAVE3   = 3,    // user fillable tables
-        OSC_WHITE_NOISE   = 0x80,
-        OSC_RED_NOISE,
+        OSC_NOISE_WHITE   = 0x80,
+        OSC_NOISE_RED,
+        OSC_NOISE_PURPLE,
+        OSC_NOISE_BLUE,        
+        OSC_NOISE_PEEK1,
+        OSC_NOISE_PEEK2,
+        OSC_NOISE_PEEK3,
+        OSC_NOISE_PEEK4,
         OSC_SIN_MULT_RED_NOISE,
+        OSC_NONE     = 255,
     };
 
 
@@ -207,35 +218,82 @@ public:
     void        voiceDelay(         const OscillatorInChange& in );
     std::size_t sizeVector(void)    const { overtoneCountOscDef; };
 
+    inline static void fillWhiteNoise(void)
+    {
+        whiteNoiseFrame.fillWhiteBlue(); // fillWhiteBlue ??
+    }
+    
 private:
+    
     inline void setPitchDependency(void)
     {
-        if( basePitch >= maxPitchDep ) {    // high freq-> no dep - tick[15]
-            pitchDepIndex = 15;
-            pitchDepDx  = 0;
-            return;
-        }
-        if( basePitch <= minPitchDep ) {  // low freq-> no dep tick[0]
-            pitchDepIndex = -1;
-            pitchDepDx  = 0;
-            return;
-        }
-        const uint32_t  pitchDep  = ( basePitch - minPitchDep ) >> 7;
-        pitchDepDx  = pitchDep & 0x0FFFF ;
-        pitchDepIndex = ( pitchDep >> 16 ) & 0x0F;
-    }
+        // pitch:
+        // bit 0..23 - in octave (24 bits)
+        // bit 24..31 - octave number
+        // here 8 octave is used -- 3 bit
+        //  13 bit from in octave part
+        //  24-13 = 11
+        //
+/*
+ 
+  j 20 freq2ycent 14c56c23
+  j 21 freq2ycent 14d7712c
+  j 22 freq2ycent 14e89f92
+  j 23 freq2ycent 14f90a6a
+  j 24 freq2ycent 1508c25c
+  j 25 freq2ycent 1517d605
+  j 26 freq2ycent 15265247
+  j 27 freq2ycent 15344291
+  j 28 freq2ycent 1541b112
+  j 29 freq2ycent 154ea6e7
+  j 30 freq2ycent 155b2c3e
+  j 31 freq2ycent 15674878
+  j 32 freq2ycent 15730242
+  j 33 freq2ycent 157e5fac
+  j 34 freq2ycent 15896639
+  j 35 freq2ycent 15941af3
+  j 36 freq2ycent 159e8277
+  j 37 freq2ycent 15a8a0ff
+  j 38 freq2ycent 15b27a70
+  j 39 freq2ycent 15bc1261
 
-    GaloisShifter                   random4SustainModulator;
+ 
+ 
+ 
+ */        
+        constexpr uint8_t   prExp = 11;
+        constexpr uint32_t  maxPd = 0x0FFFF;
+        const int32_t dp = basePitch - minPitchDep;
+        if( dp <= 0 ) {
+            pitchDepDx  = 0;
+            return;
+        }
+        if( dp >= (maxPd<<prExp) ) {
+            pitchDepDx  = maxPd;
+            return;
+        }
+        pitchDepDx  = dp >> prExp;
+    }
+    
+    inline uint32_t interpolatePitchDependency( const int64_t lowLim, const int64_t highLim )
+    {
+        return lowLim + ((( highLim - lowLim ) * pitchDepDx ) >> 16 );
+    }
+    
+    GaloisShifter                   random4SustainModulator; // obsolate
     OscillatorState                 state[ overtoneCountOscDef ];
-    uint32_t                        basePitch;
+    NoiseSample                     noiseWide;      // only 1 for a voice
+    OscillatorNoise                 noiseNarrow;    // only 1 for a voice
+    int32_t                         basePitch;
+    uint16_t                        velocity;  // NEW TODO -- velocity: set by note on
     uint16_t                        delay;
     uint16_t                        toneShaperSelect;
     uint16_t                        oscillatorCountUsed;
     voice_state_t                   voiceState;
     uint16_t                        pitchDepDx;
-    int8_t                          pitchDepIndex;
-    static GNoise                   gNoiser;
-    static GaloisShifter            gRandom;
+    static GaloisShifter            gRandom;  // obsolate
+    static NoiseFrame<FrameInt<oscillatorOutSampleCountExp>>   
+                                    whiteNoiseFrame;
     static const ToneShaperMatrix   toneShaperMatrix;
 }; // end class Oscillator
 // --------------------------------------------------------------------
