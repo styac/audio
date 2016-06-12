@@ -36,7 +36,7 @@
 //
 // WARNING
 //  coefficients a1,a2 , b0,b1,b2   -- B * X  + A * Y
-//  NO SUBSTRACTION -- a1,a2 must be negated !!
+//  NO SUBTRACTION -- a1,a2 must be negated !!
 //
 //
 // http://www.micromodeler.com/dsp/

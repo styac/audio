@@ -68,7 +68,7 @@ using namespace tables;
 using namespace noiser;
 
 
-// beacuse of the signal handler -- must be revisited
+// because of the signal handler -- must be revisited
 YaIoJack    jack;
 // --------------------------------------------------------------------
 bool initialize(void)
