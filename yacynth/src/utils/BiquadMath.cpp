@@ -30,7 +30,7 @@
 namespace filter {
 //
 // this calculator negates the a1,a2
-// the implementation DO NOT SUBSTRACT
+// the implementation DO NOT SUBTRACT
 //
 // fcrel = f / fs
 //

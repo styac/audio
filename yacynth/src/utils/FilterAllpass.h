@@ -109,7 +109,7 @@ public:
     //          ^ ------ * -kmulb------ <
     //
     // 2 channel (STEREO)
-    // "count" paralel (count/2 -> each channel)
+    // "count" parallel (count/2 -> each channel)
     // 2 multiplier 1 delay
     template< std::size_t count >
     inline void set2mul( const float x0, const float x1, float& y0, float& y1 )
@@ -142,7 +142,7 @@ public:
 
     //
     // 1 channel (MONO)
-    // "count" paralel
+    // "count" parallel
     // 2 multiplier 1 delay
     //
     template< std::size_t count >
