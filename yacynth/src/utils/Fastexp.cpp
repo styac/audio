@@ -28,7 +28,7 @@
 namespace tables {
 float       expMinus2PI[ expTableSize + 1 ];
 uint64_t    exp2Table[   expTableSize + 1 ];
-const ExpTable& expTable = ExpTable::table();
+const ExpTable& expTable = ExpTable::getInstance();
 } // end namespace tables
 
 

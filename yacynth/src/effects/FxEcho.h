@@ -28,7 +28,7 @@
 #include    "../oscillator/Tables.h"
 #include    "../utils/Limiters.h"
 #include    "../effects/DelayTap.h"
-#include    "EffectBase.h"
+#include    "FxBase.h"
 
 // taps for testing
 #include    "../settings/EchoTaps.h"
@@ -53,9 +53,29 @@ using namespace limiter;
 // comb feedforward, feedback,allpass
 //
 namespace yacynth {
+
+class FxEchoParam {
+public:
+    // mandatory fields
+    static constexpr char const * const name = "Echo";
+    static constexpr std::size_t maxMode     = 1; // 0 is always exist> 0,1,2
+    static constexpr std::size_t inputCount  = 1; //  0-base signal 1-modulation
+
+    FxEchoParam();
+    
+//    float   gain;
+//    float   modulationIndex;
+    
+    // optional fields
+    
+};
+
+
 // --------------------------------------------------------------------
 // template< std::size_t outputTapCount, std::size_t delayTapCount >
-class Echo : public EffectIOBase {
+
+class FxEcho : public Fx<FxEchoParam> {
+    
 public:
     static constexpr uint16_t   maxTapsExp      = 5;
     static constexpr uint16_t   maxTaps         = 1<<maxTapsExp;
@@ -63,27 +83,27 @@ public:
     static constexpr auto       sectionSizeExp  = EIObuffer::sectionSizeExp;
     using TapOutputVector   =   StereoDelayTapVector< sectionSizeExp, maxTapsExp >;
     using TapFeedbackVector =   StereoDelayTapVector< sectionSizeExp, maxTapsExp >;
-
+    using MyType = FxEcho;
     void testvect(void);
 
-    Echo() = delete;
+    FxEcho() = delete;
 
     // to be revised
-    Echo( const uint16_t lengthExp )
-    :   EffectIOBase("Echo")
+    FxEcho( const uint16_t lengthExp )
+    :   Fx<FxEchoParam>()
     ,   delay(lengthExp)   // 8192 * 64 sample
     {
+//        fillSprocessv<0>(sprocess_00);
+        
         delay.clear();
         tapOutputVector.setDelayLength( delay.bufferSize );
         tapFeedbackVector.setDelayLength( delay.bufferSize );
         testvect();
-        pprocess = sprocess_0;
     };
 
-    static void sprocess_0( void * thp );
-    static void sprocess_1( void * thp );
 
-    virtual bool fill( std::stringstream& ser )         override;
+
+//    virtual bool fill( std::stringstream& ser )         override;
 
     void clear(void) {  delay.clear(); };
     void mixInput( const bool v = true ) { inMix=v; };
@@ -96,16 +116,17 @@ public:
     {
         gains.wet = wet;
         tapOutputVector.mult( wet );
-        if( gain < 1e-20 ) {
-            inMix = false;
-        }
+//        if( gain < 1e-20 ) {
+//            inMix = false;
+//        }
     };
     void setGainDecay( const float decay )
     {
         gains.decay = decay;
         tapFeedbackVector.mult( decay );
     };
-    virtual void process(void) override;
+
+     void process(void) ;
 
 protected:
     // ----------------------------------------
@@ -119,7 +140,7 @@ protected:
     Gains                       gains;
     bool                        inMix;
 
-}; // end Echo
+}; 
 // --------------------------------------------------------------------
 
 // --------------------------------------------------------------------

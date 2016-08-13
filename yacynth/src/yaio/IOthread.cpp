@@ -38,10 +38,14 @@ IOThread:: IOThread(
 :   queueIn(in)
 ,   queueOut(out)
 ,   midiRouter(router)
-,   panMixer()
+//,   panMixer()
+,   cycleNoise(0)
+,   fxEndMixer()
+,   fxOscillatorMixer()
+,   fxRunner(fxEndMixer)
+
 {
-    endMixer.setGain( 1.0f , 0 );
-    endMixer.connect( panMixer.get(), 0 );
+    fxEndMixer.setProcMode(1); // TODO > endMixed mode
 };
 // --------------------------------------------------------------------
 
@@ -115,12 +119,19 @@ void IOThread::audioOutCB( void *data, uint32_t nframes, float *outp1, float *ou
     const uint64_t begint   = tv.tv_sec*1000000ULL + tv.tv_usec;
 
     for( auto fi=0u; fi < bufferSizeMult; ++fi ) {
-        int ri = thp.queueOut.getReadIndex();
-        thp.panMixer.process( thp.queueOut.out[ri] );
+        const int ri = thp.queueOut.getReadIndex();       
+        thp.fxOscillatorMixer.process( thp.queueOut.out[ri] ); // this has a special interface
         thp.queueOut.readOk();
-        thp.endMixer.process( outp1, outp2 );
-        outp1 += thp.endMixer.sectionSize;
-        outp2 += thp.endMixer.sectionSize;
+        thp.fxRunner.run();
+        thp.fxEndMixer.exec();  // must be the last 
+        thp.fxEndMixer.dump( outp1, outp2 ); // get the result       
+        outp1 += thp.fxEndMixer.sectionSize;
+        outp2 += thp.fxEndMixer.sectionSize;
+    }
+    
+    if( 0 == ++thp.cycleNoise ) { // reset after 2^32 cycles
+        GaloisShifterSingle<seedThreadEffect_noise>::getInstance().reset();
+        GaloisShifterSingle<seedThreadEffect_random>::getInstance().reset();
     }
     // profiling
     gettimeofday(&tv,NULL);

@@ -17,15 +17,37 @@
  */
 
 /* 
- * File:   Flanger.cpp
+ * File:   FxOscillatorMixer.cpp
  * Author: Istvan Simon -- stevens37 at gmail dot com
  *
- * Created on March 8, 2016, 8:22 AM
+ * Created on June 23, 2016, 9:41 PM
  */
 
-#include "Flanger.h"
+#include "FxOscillatorMixer.h"
 
 namespace yacynth {
+
+void FxOscillatorMixer::process( const OscillatorOut& inp )
+{
+    AddVector  addbuff;
+    // index to put the amplitudeSumm 
+    // interface to controller
+    
+    param.amplitudeSumm = static_cast<float>( inp.amplitudeSumm );
+    
+    for( uint16_t si = 0u; si < oscillatorOutSampleCount; ++si ) {
+        addbuff.v[si] = inp.layer[0][si] + inp.layer[1][si];
+    }
+
+    for( uint16_t ovi = 2u; ovi < inp.overtoneCount; ++ovi ) {
+        for( uint16_t si = 0u; si < oscillatorOutSampleCount; ++si ) {
+            addbuff.v[si] += inp.layer[ovi][si];
+        }
+    }
+    out().copyMono2Stereo( addbuff.v, param.gain );
+}
+
+  
 
 } // end namespace yacynth
 

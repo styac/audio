@@ -1,0 +1,21 @@
+param change -0.9 to +0.1
+
+    allpassk[0] = -0.9f;
+    allpassk[1] = +0.1f;
+
+
+
+
+
+
+        // compare the 2 solution
+        channel.kmulf[1] = channel.kmulb[1]; // channel 1 - change both
+
+        const float t0 = channel.s[0] + x0 * channel.kmulf[0];
+        const float t1 = channel.s[1] + x1 * channel.kmulf[1];
+        channel.s[0] = x0 - t0 * channel.kmulb[0];
+        channel.s[1] = x1 - t1 * channel.kmulb[1];
+        // forward will be delayed by 1 tick - channel 0
+        channel.kmulf[0] = channel.kmulb[0];
+        y0 = t0 * channel.gmul[0];
+        y1 = t1 * channel.gmul[1];

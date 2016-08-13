@@ -27,6 +27,58 @@
 
 namespace yacynth {
 
+float InnerController::expFuncTable[midiStep];
+uint32_t InnerController::phaseFuncTable[midiStep];
+
+InnerController::InnerController() 
+{
+    clear();
+    constexpr float dy          = 0.97;
+    float y = 1.0f;
+    
+    for( int i=midiStep-1; i>0; --i ) {
+        expFuncTable[i] = y;
+        y *= dy;
+        phaseFuncTable[i] = (i & 0x7E )<<(31-7); // ????
+    }
+    expFuncTable[0]     = 0.0f;
+    phaseFuncTable[0]   = 0;
+    phaseFuncTable[midiStep-1] = phaseFuncTable[midiStep-2] = 0x80000000; // ????
+    value.v[InnerController::CC_PITCHBEND] = 0x2000;
+}
+    
+MidiRangeController::MidiRangeController()
+{
+    clear();
+    // test setup
+    // novation impulse 49 -- basic
+    // channel 0 -- slide 9
+    index[0][0x29] = InnerController::CC_SINK;      // 0
+    index[0][0x2A] = InnerController::CC_SINK;
+    index[0][0x2B] = InnerController::CC_SINK;
+    index[0][0x2C] = InnerController::CC_SINK;
+    index[0][0x2D] = InnerController::CC_SINK;
+    index[0][0x2E] = InnerController::CC_MODULATOR_FREQ1;
+    index[0][0x2F] = InnerController::CC_MODULATOR_FREQ0;
+    
+    index[0][0x30] = InnerController::CC_MODULATOR_PHASEDIFF0;
+    index[0][0x31] = InnerController::CC_MAINVOLUME; // 8
+    
+    index[0][0x15] = InnerController::CC_SINK;      // upper
+    index[0][0x16] = InnerController::CC_SINK;
+    index[0][0x17] = InnerController::CC_SINK;
+    index[0][0x18] = InnerController::CC_SINK;
+    
+    index[0][0x19] = InnerController::CC_SINK;      // lower
+    index[0][0x1A] = InnerController::CC_SINK;
+    index[0][0x1B] = InnerController::CC_SINK;
+    index[0][0x1C] = InnerController::CC_SINK;
+
+    index[0][controllerAftertouch]  = InnerController::CC_CHANNEL_AFTERTOUCH;
+    index[0][controllerPitchbend]   = InnerController::CC_PITCHBEND;
+    
+    
+}
 
 
 } // end namespace yacynth

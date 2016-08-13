@@ -28,8 +28,8 @@
 
 namespace filter {
 
-const FilterBase::FtableExp2Pi      ftableExp2Pi;
-const FilterBase::FtableSinCosPi2   ftableSinCosPi2;
-const FilterBase::Ftable2SinPi      ftable2SinPi;
+const FilterBaseOld::FtableExp2Pi      ftableExp2Pi;
+const FilterBaseOld::FtableSinCosPi2   ftableSinCosPi2;
+const FilterBaseOld::Ftable2SinPi      ftable2SinPi;
 
 }

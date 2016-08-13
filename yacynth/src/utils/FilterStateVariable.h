@@ -41,7 +41,7 @@ namespace filter {
 //
 #if 0
 
-class FilterSV : public FilterBase {
+class FilterSV : public FilterBaseOld {
 public:
     static constexpr    uint16_t oversamplingRate   = 2;
     static inline float getFc(const float freq)     { return getFcOSR<oversamplingRate>(freq); };

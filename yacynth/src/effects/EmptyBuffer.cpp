@@ -20,4 +20,5 @@
 
 namespace yacynth {
     const EIObuffer nullEBuffer;
+    const EIObuffer fadeEBuffer(new FadeBufferTag());
 }

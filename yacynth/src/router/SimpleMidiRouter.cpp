@@ -56,35 +56,61 @@ Yamsgrt SimpleMidiRouter::translate( const RouteIn& in )
             out.setVoice.oscNr      = in.note_cc_val;
             out.setVoice.velocity   = 0;    // ?
             out.setVoice.pitch      = 0;    // OFF
-        } else {
-            out.setVoice.opcode = YAMOP_SETVOICE_NOTE;
-            out.setVoice.oscNr      = in.note_cc_val;
-            out.setVoice.velocity   = in.velocity_val << 9; // no fine value - 0..127
-            out.setVoice.pitch      = getPitch( in.note_cc_val, 0 );
+            break;
         }
+        out.setVoice.opcode = YAMOP_SETVOICE_NOTE;
+        out.setVoice.oscNr      = in.note_cc_val;
+        out.setVoice.velocity   = in.velocity_val << 9; // no fine value - 0..127
+        out.setVoice.pitch      = getPitch( in.note_cc_val, 0 );
         break;
 
     case MIDI_PLY_AFTCH:
+//        out.setVoice.opcode = YAMOP_CHNGVOICE_NOTE;
+//        out.setVoice.oscNr      = in.note_cc_val;
+//        out.setVoice.velocity   = 0;    // ?
+//        out.setVoice.pitch      = 0;    // OFF
         break;
+
     case MIDI_CONTR_CHNG:
+        // new
+        InnerController::getInstance().setMidi(
+            midiRangeController.get( in.chn, in.note_cc_val ),
+            in.velocity_val );
+#if 0
+        // obsolate
         switch(in.note_cc_val) {
         case 0x29:
         case 0x1b:
             ControllerMatrix::getInstance().setMidiH( ControllerMatrix::C_INT_FILTER_FREQUENCY1, in.velocity_val );
+            InnerController::getInstance().setMidi( 5, in.velocity_val );
             break;
         case 0x2A:
         case 0x1A:
             ControllerMatrix::getInstance().setMidiH( ControllerMatrix::C_INT_FILTER_Q, in.velocity_val );
+            InnerController::getInstance().setMidi( 6, in.velocity_val );
             break;
 
         }
+#endif
         break;
     case MIDI_PROG_CHNG:
         break;
+
     case MIDI_CHN_AFTCH:
+        InnerController::getInstance().setMidi(
+            midiRangeController.getAftertouch ( in.chn ),
+            in.velocity_val );
         break;
+
     case MIDI_PITCH:
-        ControllerMatrix::getInstance().setMidiHL( ControllerMatrix::C_INT_PITCHBEND, in.velocity_val, in.note_cc_val );
+        // new
+        InnerController::getInstance().setMidi(
+            midiRangeController.getPitchbend( in.chn ),
+            in.velocity_val, in.note_cc_val );
+
+        // obsolate
+//        ControllerMatrix::getInstance().setMidiHL( ControllerMatrix::C_INT_PITCHBEND, in.velocity_val, in.note_cc_val );
+        InnerController::getInstance().setMidi( 4, in.velocity_val, in.note_cc_val );
         break;
     }
     return out;

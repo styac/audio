@@ -7,7 +7,7 @@
  * of the License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * but WITHOUT ANY WARRANTY; without() even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
@@ -17,17 +17,23 @@
  */
 
 /*
- * File:   Echo.cpp
+ * File:   FxEcho.cpp
  * Author: Istvan Simon -- stevens37 at gmail dot com
  *
  * Created on March 7, 2016, 2:05 PM
  */
 
-#include    "Echo.h"
+#include    "FxEcho.h"
 
 namespace yacynth {
+
+
+FxEchoParam::FxEchoParam()
+{
+}
+
 // --------------------------------------------------------------------
-void Echo::testvect(void)
+void FxEcho::testvect(void)
 {
     tapOutputVector.fill( echoTapsOut() );
     tapFeedbackVector.fill( echoTapsFeedback() );
@@ -35,37 +41,27 @@ void Echo::testvect(void)
 //    tapFeedbackVector.list();
 }
 // --------------------------------------------------------------------
-void Echo::sprocess_0( void * thp )
-{
-    (static_cast<Echo*>(thp))->process();
-}
-// --------------------------------------------------------------------
-bool Echo::fill( std::stringstream& ser )
-{
-    return false;
-}
+
 
 // --------------------------------------------------------------------
-void Echo::process(void)
+void FxEcho::process(void)
 {
-//    const EIObuffer& inp = *this->inp;
-
-    out.copy( *inp );
+    out().copy( inp<0>() );
     const uint16_t loopCountF = std::min( tapFeedbackVector.usedTapCount, tapFeedbackVector.vectorSize );
     for( auto i = 0u; i < loopCountF; ++i ) {
         auto& tv = tapFeedbackVector.dtvec[i];
         if( tv.isValid() ) {
             uint32_t ind = tv.delaySrcH + sectionSize;   // index is negated
             for( auto i = 0u; i < sectionSize; ++i ) {
-                delay.multAddMixStereoNoisefloor<-24>( --ind, tv.coeff, out.channelA[i], out.channelB[i] );
+                delay.multAddMixStereoNoisefloor<-24>( --ind, tv.coeff, out().channelA[i], out().channelB[i] );
             }
         }
     }
-    delay.pushSection( out.channelA, out.channelB );
+    delay.pushSection( out().channelA, out().channelB );
     if( inMix ) {
-        out.copy( *inp );
+        out().copy( inp<0>() );
     } else {
-        out.clear();
+        out().clear();
     }
     const uint16_t loopCountO = std::min( tapOutputVector.usedTapCount, tapOutputVector.vectorSize );
     for( auto i = 0u; i < loopCountO; ++i ) {
@@ -73,11 +69,11 @@ void Echo::process(void)
         if( tv.isValid() ) {
             uint32_t ind = tv.delaySrcH + sectionSize;   // index is negated
             for( auto i = 0u; i < sectionSize; ++i ) {
-                delay.multAddMixStereo( --ind, tv.coeff, out.channelA[i], out.channelB[i] );
+                delay.multAddMixStereo( --ind, tv.coeff, out().channelA[i], out().channelB[i] );
             }
         }
     }
-} // end Echo:process
+} // end FxEcho:process
 // --------------------------------------------------------------------
 
 

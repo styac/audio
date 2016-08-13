@@ -28,6 +28,7 @@
 #include    <cstdint>
 #include    <cmath>
 #include    <algorithm>
+#include    <iostream>
 
 // singleton class
 //
@@ -38,11 +39,10 @@
 
 namespace tables {
 
-constexpr uint32_t sinTableSize     = 1<<16;
-constexpr uint32_t sinTableSizeF    = 1<<18;
-extern  int16_t waveSinTable[ sinTableSize + 1 ];
-extern  float   sin1pcos[ sinTableSize + 1 ];
-extern  float   sinTable[ sinTableSizeF + 1 ];
+constexpr uint32_t  sinTableSizeExp  = 16;
+constexpr uint32_t  sinTableSize     = 1<<sinTableSizeExp;
+extern  int16_t     waveSinTable[ sinTableSize + 1 ];
+extern  float       sinTable[ sinTableSize + 1 ];
 
 class SinTable;
 extern const SinTable& sintable;
@@ -58,6 +58,7 @@ public:
         static SinTable instance;
         return instance;
     }
+#if  0   
     inline int16_t sinWaveindex0(   const uint16_t index ) const
     {
         return waveSinTable[index];
@@ -88,6 +89,9 @@ public:
         return fastsin2PI( fi * (0.5f/PI));
     } // end fastsin
 
+    //
+    // TODO: table is now full sine -> can be simplified
+    //
     // input: rad / ( 2*PI )
     // 18 bit of input
     // 2 * PI * x * ( 2^mult2exp)
@@ -221,19 +225,40 @@ public:
         }
         return -sin1pcos[ uint16_t( 0x0FFFF - std::lround( (fpfs-0.25f) * (1<<18) ) ) + 1 ];
     };
-
+#endif
+    
 private:
     SinTable()
     {
-        constexpr double deltaf = 0.5 * PIld / sinTableSize;
-        constexpr double deltai = PI2 / sinTableSize;
+        constexpr long double dcerrcomp = 0.000000000015 / 65536.0;
+        constexpr long double deltai = PIld * 2.0 / sinTableSize;
+//        long double ldsumm = 0;
+//        long double ldsummi = 0;
         for( uint32_t i = 0u; i <= sinTableSize; ++i ) {
-            sin1pcos[ i ]       = ( std::sin( deltaf * i ) - 1.0 ) / std::cos ( deltaf * i );
-            waveSinTable[ i ]   = std::round( std::sin( deltai * i ) * 0x7FFE );
+            const long double d = deltai * i;
+            const long double sinv = std::sin( d ) - dcerrcomp;
+            waveSinTable[ i ]   = std::round( sinv * 0x7FFE );
+            sinTable[ i ]       = sinv;
+//            ldsumm += sinTable[ i ];
+//            ldsummi += waveSinTable[ i ];
         }
-        for( uint32_t i = 0u; i <= sinTableSizeF; ++i ) {
-            sinTable[ i ]           = std::sin( deltaf * i );
+        sinTable[ 0 ] = sinTable[ 32768 ] = sinTable[ 65536 ] = 0;
+        waveSinTable[ 0 ] = waveSinTable[ 32768 ] = waveSinTable[ 65536 ] = 0;
+#if 0
+        long double summ = 0;
+        long double summi = 0;
+        for( uint32_t i = 0u; i <= sinTableSize; ++i ) {
+            summ += sinTable[ i ];
+            summi += waveSinTable[ i ];
         }
+        std::cout 
+            << "\n\n **** sin summ " << summ 
+            << "\n\n **** sin summi " << summi 
+            
+            << "\n\n **** sin ldsumm " << ldsumm 
+            << "\n\n **** sin ldsummi " << ldsummi 
+            << std::endl;
+#endif        
     };
 };
 

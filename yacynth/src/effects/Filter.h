@@ -111,12 +111,12 @@ public:
 private:
 
 
-    Filter4Pole<channelCountExp>    filter;
+    Filter4PoleOld<channelCountExp>    filter;
     FilterControl<channelCountExp>  filterControl;
-    ControllerIterated  ctrlF1;
-    ControllerIterated  ctrlF2;
-    ControllerIterated  ctrlQ;
-    GNoiseShaped                    noise;  // test -> to be removed -> connect input
+//    ControllerIterated  ctrlF1;
+//    ControllerIterated  ctrlF2;
+//    ControllerIterated  ctrlQ;
+//    GNoiseShaped                    noise;  // test -> to be removed -> connect input
 
     // Lfo  filter; // filter f modulation
     // Lfo  amMod   // after filter channel Amplitude modulation

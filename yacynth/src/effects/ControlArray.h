@@ -19,36 +19,32 @@
  */
 
 /* 
- * File:   Flanger.h
+ * File:   ControlArray.h
  * Author: Istvan Simon -- stevens37 at gmail dot com
  *
- * Created on March 8, 2016, 8:22 AM
+ * Created on June 22, 2016, 6:56 PM
  */
 
-#include    "yacynth_globals.h"
-#include    "Ebuffer.h"
-#include    <array>
-#include    <iostream>
+#include    "v4.h"
 
 namespace yacynth {
 
-class Flanger {
-public:
-    static constexpr uint16_t   maxTaps     = 32;
-    static constexpr auto       sectionSize = EIObuffer::sectionSize;
+template< std::size_t sExp >
+struct alignas(16) ValueArray {
+    static constexpr std::size_t varraySizeExp      = sExp;
+    static constexpr std::size_t varraySize         = 1<<varraySizeExp;    
+    static constexpr std::size_t arraySizeExp       = varraySizeExp+2;
+    static constexpr std::size_t arraySize          = arraySizeExp;
+    static constexpr std::size_t arraySizeMask      = arraySize-1;
     
-    struct TapFlanger {
-        float       aa;
-        float       ab;
-        float       ba;        
-        float       bb;
-        uint64_t    delay;      // mean delay - this is interpolated index !!!
-        uint64_t    depth;      // amplitude - for the interpolated index !!!
-        uint32_t    deltaPhase; // frequency 
+    union {
+        v4si        v[varraySize];
+        uint32_t    i[arraySize];        
     };
-    
-private:
 };
+
+
+
 
 } // end namespace yacynth
 

@@ -82,6 +82,11 @@ bool SynthFrontend::evalMEssage( void )
         switch(  msg.f1.opcode ) {
         case YAMOP_SETVOICE_NOTE:
             oscArray->voiceUp(      msg.setVoice.oscNr, msg.setVoice.pitch, msg.setVoice.velocity );
+            if( 0 == ++cycleNoise ) { // reset after 2^32 cycles
+                GaloisShifterSingle<seedThreadOscillator_noise>::getInstance().reset();
+                GaloisShifterSingle<seedThreadOscillator_random>::getInstance().reset();
+            }
+            
             break;
         case YAMOP_CHNGVOICE_NOTE:
             oscArray->voiceChange(  msg.setVoice.oscNr, msg.setVoice.pitch, msg.setVoice.velocity );
@@ -112,6 +117,13 @@ bool SynthFrontend::generate( void )
 // --------------------------------------------------------------------
 bool SynthFrontend::run( void )
 {
+//    GaloisShifterSingle& gs1         = GaloisShifterSingle::getInstance();
+//    GaloisShifterSingle& gs2         = GaloisShifterSingle::getInstance();
+//    std::cout 
+//        << "gs1 " << static_cast< void *>( &(gs1 ) )
+ //       << " gs2 " << static_cast< void *>( &(gs2 ) )
+ //       << std::endl;
+    
     statistics.startTimer();
     statistics.stopTimer();
 

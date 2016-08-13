@@ -33,28 +33,47 @@ ToneShaper::ToneShaper()
 // these are for testing -- same for each overtone
 
     for( auto i = 0; i < transientKnotCount; i++ ) {
-        transient[ i ].tickFrame[0]    = 0;
-        transient[ i ].curveSpeed   = 0;
-        transient[ i ].targetValue[0]  = 0;
+        transient[ i ].clear();
     }
-    transient[ envelopeKnotRelease ].tickFrame[0]    = 100;
-    transient[ envelopeKnotRelease ].curveSpeed   = 2;
-    transient[ envelopeKnotRelease ].targetValue[0]  = 0;      // ignored
+#if 0       
+    // NEW
+    // standard test
+    tickFrameRelease.set(1000);
+    curveSpeedRelease   = 2;
+    
+    transient[ 2 ].tickFrame.set(10);
+    transient[ 2 ].curveSpeed       = 2;
+    transient[ 2 ].targetValue.set(65534 * (1L<<16)); // NEW uin32
 
-    transient[ 2 ].tickFrame[0] = 10;
-    transient[ 2 ].curveSpeed   = -1;
-    transient[ 2 ].targetValue[0]  = 65534 * (1L<<16); // NEW uin32
+    transient[ 1 ].tickFrame.set(300);
+    transient[ 1 ].curveSpeed       = 1;
+    transient[ 1 ].targetValue.set(20000 * (1L<<16)); // NEW uin32
 
-    transient[ 1 ].tickFrame[0] = 300;
-    transient[ 1 ].curveSpeed   = 1;
-    transient[ 1 ].targetValue[0]  = 20000 * (1L<<16); // NEW uin32
-
-    sustain.decayCoeff          = 1000;
+    sustain.decayCoeff.set( 1000 );
     sustain.sustainModDepth     = 0;      // 100 / 256
 //    sustain.sustainModDepth     = 170;      // 100 / 256
     sustain.sustainModPeriod    = 300;
     sustain.sustainModType      = 1;
+#else
+    // allpass test
+    tickFrameRelease.set(1000);
+    curveSpeedRelease   = 2;
+    
+    transient[ 2 ].tickFrame.set(10);
+    transient[ 2 ].curveSpeed       = 2;
+    transient[ 2 ].targetValue.set(65534 * (1L<<16)); // NEW uin32
 
+    transient[ 1 ].tickFrame.set(300);
+    transient[ 1 ].curveSpeed       = 1;
+    transient[ 1 ].targetValue.set(60000 * (1L<<16)); // NEW uin32
+
+    sustain.decayCoeff.set( 0 );
+    sustain.sustainModDepth     = 0;      // 100 / 256
+//    sustain.sustainModDepth     = 170;      // 100 / 256
+    sustain.sustainModPeriod    = 300;
+    sustain.sustainModType      = 1;
+    
+#endif
     // this should be diff for each ovwertone
     // but for testing we use the same values - so suspend the activation
     // sustainModMagic[] = {}; -

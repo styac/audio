@@ -21,8 +21,8 @@
 namespace tables {
 
 int16_t waveSinTable[ sinTableSize + 1 ];
-float   sin1pcos[ sinTableSize + 1 ];
-float   sinTable[ sinTableSizeF + 1 ];
+//float   sin1pcos[ sinTableSize + 1 ];
+float   sinTable[ sinTableSize + 1 ];
 
 const SinTable& sintable = SinTable::table();
 

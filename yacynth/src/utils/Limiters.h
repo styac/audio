@@ -257,6 +257,11 @@ inline int64_t i64LimitClip ( const int64_t x )
 {
     return std::min( limit, std::max( -limit, x ));
 } // end i64LimitClip
+template< int32_t limit>
+inline int64_t i32LimitClip ( const int32_t x )
+{
+    return std::min( limit, std::max( -limit, x ));
+} // end i64LimitClip
 
 inline int64_t i64LimitClip ( const int64_t x, const int64_t limit )
 {

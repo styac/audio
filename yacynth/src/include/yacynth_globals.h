@@ -55,8 +55,8 @@ constexpr   uint16_t    settingVectorSize           = 16;
 //
 constexpr   uint16_t    envelopeVectorSize          = 1<<8;
 constexpr   uint16_t    transientKnotCount          = 1<<4;     // 16 point
-constexpr   uint16_t    envelopeKnotRelease         = transientKnotCount-1;
-constexpr   uint16_t    envelopeKnotUp              = transientKnotCount-2;
+constexpr   uint16_t    envelopeKnotRelease         = 0x7F;     // new> own var for release
+constexpr   uint16_t    envelopeKnotUp              = transientKnotCount-1;
 constexpr   uint16_t    envelopeKnotSteady          = -1;
 
 constexpr   uint16_t    sytemOutChannel             = 2;    // mono = mono/2 stereo

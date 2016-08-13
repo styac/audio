@@ -29,28 +29,34 @@
 #include    "v4.h"
 #include    "Filter.h"
 #include    "Ebuffer.h"
-#include    "Echo.h"
-#include    "Comb.h"
-#include    "CombInterpolated.h"
-#include    "FilterBank.h"
-#include    "EffectBase.h"
+//#include    "Echo.h"
+//#include    "Comb.h"
+//#include    "CombInterpolated.h"
+//#include    "FilterBank.h"
+//#include    "FxEffectBase.h"
+//#include    "FxOutNoise.h"
 
 #include    "../oscillator/Tables.h"
+#include    "../oscillator/NoiseFrame.h"
+#include    "../oscillator/NoiseSample.h"
+
 #include    "../oscillator/OscillatorOutput.h"
 #include    "../control/Controllers.h"
 #include    "../oscillator/Lfo.h"
 #include    "../utils/GaloisNoiser.h"
-#include    "../utils/Limiters.h"
-#include    "../utils/BurningWood.h"
+#include    "../utils/FilterComb.h"
+#include    "../utils/FilterAllpass.h"
+//#include    "../utils/BurningWood.h"
 
 #include    <cstdint>
 #include    <iostream>
 #include    <tgmath.h>
 
 using namespace limiter;
+using namespace filter;
 
 namespace yacynth {
-
+#if 0
 class Panmix {
 public:
     struct alignas(16) AddVector {
@@ -73,11 +79,48 @@ private:
     }
     EIObuffer           inFilter;
     EIObuffer           out;           // final out
+    NoiseFrame< FrameInt< EbufferPar::EffectFrameSizeExp > >       
+                        noiseFrame;
+    NoiseFrame< FrameFloat< EbufferPar::EffectFrameSizeExp > >       
+                        noiseFrameF;
+    NoiseFrame< EIObuffer >       
+                        noiseFrameE;
+    NoiseSample         noiseSample;
     ControlledFilter    controlledFilter;
     uint64_t            amplitude;
-    GNoiseStereo        gNoiseStereo;
+    FilterCombInt64<10>       filterComb1;
+    FilterCombInt64<10>       filterComb2;
+    FilterCombInt64<10>       filterComb3;
+    FilterCombInt64<10>       filterComb4;
+//    FilterComb<5>       filterComb1;
+//    FilterComb<5>       filterComb2;
+//    FilterComb<5>       filterComb3;
+//    FilterComb<5>       filterComb4;
+    FilterAllpass1<1>     allpass1;
+    FilterAllpass1<1>     allpass2;
+    // GaloisShifterCascade    galoisShifterCascade;
+//    FxOutNoise          fxOutNoise;
+//    FxNode              fxOutNoiseNode;
+
+    float               allpassk[2];
+    int                 allpasskind;
+    int                 allpasskindcng;
+
+    int                 noiselength;
+    int                 noiseinterleave;
+
+    //NoiseFilterInt<EbufferPar::EffectFrameSizeExp>      noiseFilter;
+    OscillatorNoise      oscillatorNoise;
+//    OscillatorNoise      oscillatorNoise1;
+    OscillatorNoiseFloat oscillatorNoiseFloat;
     bool                enableEffectFilter;
+    // profiling
+    uint64_t    timer;
+    uint64_t    timer1;
+    int64_t     count;
+    
 };
+#endif
 
 } // end namespace yacynth
 

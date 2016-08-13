@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Istvan Simon
+ * Copyright (C) 2016 Istvan Simon -- stevens37 at gmail dot com
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -15,16 +15,33 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
+
 /*
- * File:   Mixer.cpp
- * Author: Istvan Simon
+ * File:   FxFilter.cpp
+ * Author: Istvan Simon -- stevens37 at gmail dot com
  *
- * Created on March 15, 2016, 6:23 PM
+ * Created on June 21, 2016, 9:57 PM
  */
 
-#include "Mixer.h"
+#include "FxFilter.h"
 
 namespace yacynth {
 
+    // 00 is always clear for output or bypass for in-out
+void FxFilter::sprocess_00( void * thp )
+{
+//        static_cast< MyType * >(thp)->clear();
+}
+void FxFilter::sprocess_01( void * thp )
+{
+    static_cast< MyType * >(thp)->test_allpass2();
+}
+void FxFilter::sprocess_02( void * thp )
+{
+    static_cast< MyType * >(thp)->test_allpass2();
+}
+
 
 } // end namespace yacynth
+
+

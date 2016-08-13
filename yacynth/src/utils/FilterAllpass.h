@@ -24,659 +24,277 @@
  *
  * Created on March 21, 2016, 6:52 PM
  */
-
+// https://ccrma.stanford.edu/~jos/bbt/Bark_Frequency_Scale.html - Bark freqs
+// http://www.music.mcgill.ca/~ich/classes/dafx_book.pdf
 // http://www.music.mcgill.ca/~ich/classes/FiltersChap2.pdf
 
 // http://www.micromodeler.com/dsp/
 // http://home.deib.polimi.it/bestagini/_Slides/lesson_3.pdf
 
+// http://cdn.intechweb.org/pdfs/15188.pdf 2nd order structures - fractional delay
+
 #include    "FilterBase.h"
 
 using namespace tables;
 
-namespace filter {
-
 typedef float v4sf __attribute__((mode(SF)))  __attribute__ ((vector_size(16),aligned(16)));
 
-// **********************
+namespace filter {
 
-class FilterAllpassBase : public FilterBase {
+template< std::size_t filterCountExp, std::size_t channelCountExp, std::size_t stateCountExp  >
+class FilterAllpass : public FilterBase {
 public:
-    static constexpr    uint16_t oversamplingRate   = 1;
-    static constexpr    float    fMin               = 25.0/48000.0;   // highest freq ~19500
-    static constexpr    float    fMax               = 20000.0/48000.0;     // lowest freq ~23 lower might be unstable
-    static constexpr    int      qRateExp           = 48;
+    static constexpr  std::size_t filterCount       = 1<<filterCountExp;
+    static constexpr  std::size_t filterCountMask   = filterCount-1;
+    static constexpr  std::size_t stateCount        = 1<<stateCountExp;
+    static constexpr  std::size_t channelCount      = 1<<filterCountExp;
+    static constexpr  std::size_t v4count           = (filterCount+stateCount+channelCount+3)/4;
+    static constexpr  std::size_t klinCount         = 1<<(filterCountExp+filterCountExp);
+    static constexpr  std::size_t klinCountMask     = klinCount-1;
 
-protected:
-    // NEW
+    static constexpr  std::size_t ZD0   = 0;    // z delay
+    static constexpr  std::size_t ZD1   = 1;    // z delay
+    static constexpr  std::size_t CH0   = 0;    // channel
+    static constexpr  std::size_t CH1   = 1;    // channel
+    static constexpr  std::size_t FL0   = 0;    // filter
+    static constexpr  std::size_t FL1   = 1;    // filter
+    static constexpr  std::size_t FL2   = 2;    // filter
+    static constexpr  std::size_t FL3   = 3;    // filter
 
-};
-
-// **********************
-
-class FilterAllpass1 : public FilterAllpassBase {
-public:
-    inline int32_t controller2logF( const uint16_t index )  // controller - 0 .. 127 ; 0 = max freq
+    // parameter direct set
+    template< std::size_t CH, std::size_t ZD >
+    inline void setK( float v, std::size_t index=0 )
     {
-        constexpr int32_t val0   = 0x1e500000 - (oversamplingRate-1) * 0x1000000;
-        constexpr int32_t val127 = 0x15000000 - (oversamplingRate-1) * 0x1000000;
-        constexpr int32_t rate   = ( val0 - val127 ) / 127;
-        const int64_t logF =  val0 - int32_t(index) * rate;
-//        param1.flog.setStep( logF );
+        if( ZD0 == ZD ) {
+            k[ZD][ index & filterCountMask ][CH] = v;
+        } else if( ZD1 == ZD ) {
+            k[ZD][ index & filterCountMask ][CH] = v;
+        } else {
+            static_assert(ZD==0 || ZD==1,"illegal parameter");
+        }
     }
 
-    inline int32_t controller2logQ( const uint16_t index )
+    // parameter set with frequency -- only for testing -- slow
+    template< std::size_t CH, std::size_t ZD >
+    inline void setFreq( float fc, std::size_t index=0 )
     {
-//        param1.qlog.setStep(  int64_t(index) << qRateExp );
+        if( ZD0 == ZD ) {
+            k[ZD][ index & filterCountMask ][CH] = FilterTable::fc_sinpercosPi2_F( fc );
+        } else if( ZD1 == ZD ) {
+            k[ZD][ index & filterCountMask ][CH] = FilterTable::fc_cosPi2_F( fc );
+        } else {
+            static_assert(ZD==0 || ZD==1,"illegal parameter");
+        }
     }
 
-
-    static inline float evalFc( const float freq, const float samplingFrequency )
+    // parameter set with ycent
+    template< std::size_t CH, std::size_t ZD >
+    inline void setYcent( uint32_t ycent, std::size_t index=0 )
     {
-        const float x = PI2 * freq / samplingFrequency;
-        return  ( std::sin(x) - 1 ) / std::cos(x);
-    };
-
-    enum FilterType {
-        BYPASS,
-        ALLPASS,
-        XPASS,
-    };
-
-    struct alignas(16) Channel {
-        float   zx;
-        float   zy;
-    };
-
-    struct Param {
-        float           igain;
-        float           fgain;
-        float           qgain;
-
-        float       ftarget;
-        float       fcurrent;
-        float       fdelta;
-        int32_t     fcount;
-        float       c;
-        FilterType  type;
-    };
-
-    FilterAllpass1()
-    {
-        clear();
-        param1.fcount = 1;
-        sweep();
-    };
-
-    inline void setType( const FilterType t ) { param1.type=t; };
-
-    void clear(void)
-    {
-        channelA    = {0};
-        channelB    = {0};
-        param1      = {0};
-        param1.fcurrent = param1.ftarget = fMax;
-    };
-
-    float checkF( const float fv )
-    {
-        return fv <= fMin ? fMin : fv >= fMax ? fMax : fv;
-    };
-    inline void setF( float fv )
-    {
-        param1.ftarget  = checkF( fv ) ;
-        param1.fdelta   = ( param1.ftarget - param1.fcurrent ) * (1.0f / paramIntCount);
-        param1.fcount   = paramIntCount;
-    };
-
-    inline bool sweep( void )
-    {
-        bool ret = false;
-        if( param1.fcount > 0 ) {
-            --param1.fcount;
-            param1.fcurrent += param1.fdelta;
-            const float cosv = sintable.fastcos2PI( param1.fcurrent );   // f/fs
-            const float sinv = sintable.fastsin2PI( param1.fcurrent );
-            param1.c = ( sinv - 1.0f ) / cosv;
-            ret = true;
+        if( ZD0 == ZD ) {
+            k[ZD][ index & filterCountMask ][CH] = FilterTableSinCosPi2::getInstance().getFloat( ycent );
+        } else if( ZD1 == ZD ) {
+            k[ZD][ index & filterCountMask ][CH] = FilterTableCos2Pi::getInstance().getFloat( ycent );
+        } else {
+            static_assert(ZD==0 || ZD==1,"illegal parameter");
         }
-        return ret;
-    };
-
-    inline void getA( const float in, float& out )
-    {
-        doA(in);
-        switch( param1.type ) {
-        case BYPASS:
-            out = in;
-            return;
-        case ALLPASS:
-            out = channelA.zy;
-            return;
-        case XPASS:
-            out = in - channelA.zy;
-            return;
-        }
-    };
-
-private:
-    // Mitra-Hirano 1A
-    inline void doA( const float in )
-    {
-        channelA.zy     = param1.c * ( in - channelA.zy ) + channelA.zx;
-        channelA.zx     = in;
-    };
-    Channel     channelA;
-    Channel     channelB;
-    Param       param1; // obsolate
-}; // end FilterAllpass1
-// --------------------------------------------------------------------
-//
-//
-// http://www.music.mcgill.ca/~ich/classes/FiltersChap2.pdf
-//  page 12
-//
-
-class FilterAllpass2 : public FilterAllpassBase {
-public:
-    static constexpr    float    fMin               = 20.0/48000.0;
-    static constexpr    float    fMax               = 19000.0/48000.0; // start changing phase
-
-    // smaller q is bigger q !!! - smaller transient zone
-    static constexpr    float    qMin               = 1.1f; // Fpi = Fbeg * q
-    static constexpr    float    qMax               = 4.0f; // ??
-
-    inline int32_t controller2logF( const uint16_t index )  // controller - 0 .. 127 ; 0 = max freq
-    {
-        constexpr int32_t val0   = 0x1e500000 - (oversamplingRate-1) * 0x1000000;
-        constexpr int32_t val127 = 0x15000000 - (oversamplingRate-1) * 0x1000000;
-        constexpr int32_t rate   = ( val0 - val127 ) / 127;
-        const int64_t logF =  val0 - int32_t(index) * rate;
-//        param1.flog.setStep( logF );
     }
 
-    inline int32_t controller2logQ( const uint16_t index )
+    // index 0..2^k-1 -- filter  2^k -- channel
+    // TODO TEST !!!
+    template< std::size_t ZD >
+    inline void setYcent( uint32_t ycent, std::size_t index )
     {
-//        param1.qlog.setStep(  int64_t(index) << qRateExp );
+        if( ZD0 == ZD ) {
+            klin[ZD][ index & klinCountMask ] = FilterTableSinCosPi2::getInstance().getFloat( ycent );
+        } else if( ZD1 == ZD ) {
+            klin[ZD][ index & klinCountMask ] = FilterTableCos2Pi::getInstance().getFloat( ycent );
+        } else {
+            static_assert(ZD==0 || ZD==1,"illegal parameter");
+        }
     }
 
-    static inline float evalFc( const float freq, const float samplingFrequency )
+//----------------------------------------------
+// 1st order single
+
+    template< std::size_t CH >
+    inline void allpass1_transposed( const float x0, float& y0 )
     {
-        const float x = PI2 * freq / samplingFrequency;
-        return  ( std::sin(x) - 1 ) / std::cos(x);
-    };
-    static inline float evalFc48000( const float freq )
+        y0 = x0 * k[ZD0][FL0][CH] + z[ZD0][FL0][CH];
+        z[ZD0][FL0][CH] = x0 - y0 * k[ZD0][FL0][CH];
+    }
+
+    template< std::size_t CH >
+    inline void allpass1_direct( const float x0, float& y0 )
     {
-        const float x = PI2 / 48000.0f * freq;
-        return  ( std::sin(x) - 1 ) / std::cos(x);
-    };
-    static inline float evalFc44100( const float freq )
+        const float t0 = x0 - z[ZD0][FL0][CH] * k[ZD0][FL0][CH];
+        y0 = t0 * k[ZD0][FL0][CH] + z[ZD0][FL0][CH];
+        z[ZD0][FL0][CH] = t0;
+    }
+
+    // -----------------
+    // 1 multiplier is the best for 1st order -- default
+    template< std::size_t CH >
+    inline void allpass1( const float x0, float& y0 )
     {
-        const float x = PI2 / 44100.0f * freq;
-        return  ( std::sin(x) - 1 ) / std::cos(x);
-    };
+        static_assert(channelCount>CH,"channel count low");
+        const float t0 = ( x0 - z[ZD0][FL0][CH] ) * k[ZD0][FL0][CH];
+        y0 = t0 + z[ZD0][FL0][CH];
+        z[ZD0][FL0][CH] = t0 + x0;
+    }
 
-    // c = (  sin( 2 * pi * f/fs ) - 1 ) / cos ( 2 * PI * f/fs )
-    // d = - cos (  2 * PI * f/fs )
-    // c2 = d * (1 - c1)
-    // c2 = sin( 2 * pi * f/fs )
-
-    enum FilterType {
-        BYPASS,                // get the input: the filter is runnning
-        ALLPASS,
-        XPASS,
-        YPASS
-    };
-
-    struct alignas(16) Channel {
-        float   zx1;
-        float   zy1;
-        float   zx2;
-        float   zy2;
-    };
-
-    struct Param {
-        float           igain;
-        float           fgain;
-        float           qgain;
-
-        // OBSOLATE
-        float       ftarget;
-        float       fcurrent;
-        float       fdelta;
-        int32_t     fcount;
-        float       qtarget;
-        float       qcurrent;
-        float       qdelta;
-        int32_t     qcount;
-        float       c1;
-        float       c2;
-        FilterType  type;
-    };
-
-    FilterAllpass2()
+    // 2 channel - stereo special case
+    inline void allpass1( const float x0, const float x1, float& y0, float& y1 )
     {
-        clear();
-        param1.fcount = 1;
-        sweep();
-    };
+        static_assert(channelCount>1,"channel count low");
+        const float t0 = ( x0 - z[ZD0][FL0][CH0] ) * k[ZD0][FL0][CH0];
+        const float t1 = ( x1 - z[ZD0][FL0][CH1] ) * k[ZD0][FL0][CH1];
+        y0 = t0 + z[ZD0][FL0][CH0];
+        y1 = t1 + z[ZD0][FL0][CH1];
+        z[ZD0][FL0][CH0] = t0 + x0;
+        z[ZD0][FL0][CH1] = t1 + x1;
+    }
 
-    inline void setType( const FilterType t ) { param1.type=t; };
-
-    void clear(void)
+    // name compatibility forwarders
+    template< std::size_t CH >
+    inline void allpass1_1mult( const float x0, float& y0 )
     {
-        channelA    = {0};
-        channelB    = {0};
-        param1      = {0};
-        param1.fcurrent = param1.ftarget = fMax;
-        param1.qcurrent = param1.qtarget = qMin;
-    };
+        allpass1<CH>( x0, y0 );
+    }
 
-    inline float checkF( const float fv )
+    inline void allpass1_1mult( const float x0, const float x1, float& y0, float& y1 )
     {
-        return fv <= fMin ? fMin : fv >= fMax ? fMax : fv;
-    };
+        allpass1( x0, x1, y0, y1 );
+    }
 
-    inline float checkQ( const float qv )
+//----------------------------------------------
+// 2nd order single
+    template< std::size_t CH >
+    inline void allpass2_direct( const float x0, float& y0 )
     {
-        return qv <= qMin ? qMin : qv >= qMax ? qMax : qv;
-    };
+        static_assert(stateCount>1,"state count low");
+        static_assert(channelCount>CH,"channel count low");
+        // 1th stage
+        const float t0 = x0 + z[ZD0][FL0][CH] * k[ZD0][FL0][CH];
+        y0 = z[ZD0][FL0][CH] - t0 * k[ZD0][FL0][CH];
+        // 2nd stage
+        const float t1 = t0 + z[ZD1][FL0][CH] * k[ZD1][FL0][CH];
+        z[ZD0][FL0][CH] = z[ZD1][FL0][CH] - t1 * k[ZD1][FL0][CH];
+        z[ZD1][FL0][CH] = t1;
+    }
 
-    inline void setQ( float qv )
+    template< std::size_t CH >
+    inline void allpass2_1mult( const float x0, float& y0 )
     {
-        param1.qtarget  = checkQ( qv ) ;
-        param1.qdelta   = ( param1.qtarget - param1.qcurrent ) * (1.0f / paramIntCount);
-        param1.qcount   = paramIntCount;
-    };
+        static_assert(stateCount>1,"state count low");
+        static_assert(channelCount>CH,"channel count low");
+        // 1th stage -- tan
+        const float t00 = ( z[ZD0][FL0][CH] - x0 ) * k[ZD0][FL0][CH];
+        y0 = t00 + z[ZD0][FL0][CH];
+        // 2nd stage -- cos
+        const float t001 = t00 + x0;
+        const float t01 = ( z[ZD1][FL0][CH] - t001 ) * k[ZD1][FL0][CH];
+        z[ZD0][FL0][CH] = t01 + z[ZD1][FL0][CH];
+        z[ZD1][FL0][CH] = t01 + t001;
+    }
 
-    inline void setF( float fv )
+    // 1 stage > transposed
+    // 2 stage > 1mult
+    template< std::size_t CH >
+    inline void allpass2_1mult_transposed( const float x0, float& y0 )
     {
-        param1.ftarget  = checkF( fv ) ;
-        param1.fdelta   = ( param1.ftarget - param1.fcurrent ) * (1.0f / paramIntCount);
-        param1.fcount   = paramIntCount;
-    };
+        static_assert(stateCount>1,"state count low");
+        static_assert(channelCount>CH,"channel count low");
+        // 1th stage -- tan
+        y0 = z[ZD0][FL0][CH] - x0 * k[ZD0][FL0][CH]; // - ( tan-1)/(tan+1) !!
+        const float t0 = x0 + y0 * k[ZD0][FL0][CH]; // - ( tan-1)/(tan+1) !!
+        // 2nd stage
+        const float t01 = ( z[ZD1][FL0][CH] - t0 ) * k[ZD1][FL0][CH];
+        z[ZD0][FL0][CH] = t01 + z[ZD1][FL0][CH];
+        z[ZD1][FL0][CH] = t01 + t0;
+    }
 
-
-    // x = 2*pi*f/fs
-    // c = (sin(x1) - 1)/cos(x1)
-    // d = -cosv2
-    // c1 = -c
-    // c2 = d*(1-c)
-
-
-
-    inline bool sweep( void )
+    //transposed is the best for 2nd order
+    template< std::size_t CH >
+    inline void allpass2( const float x0, float& y0 )
     {
-        bool ret = false;
-        if( 0 < param1.qcount ) {
-            --param1.qcount;
-            param1.qcurrent += param1.qdelta;
-            if( 0 >= param1.qcount ) {
-                param1.qdelta = 0.0f;
-            }
-            if( 0 >= param1.fcount ) {
-                evalFQ();
-            }
-            ret = true;
-        }
-        if( 0 < param1.fcount ) {
-            --param1.fcount;
-            param1.fcurrent += param1.fdelta;
-            if( 0 >= param1.fcount ) {
-                param1.fdelta = 0.0f;
-            }
-            evalFQ();
-            ret = true;
-        }
-        return ret;
-    };
+        static_assert(stateCount>1,"state count low");
+        static_assert(channelCount>CH,"channel count low");
+        // 1th stage
+        y0 = z[ZD0][FL0][CH] - x0 * k[ZD0][FL0][CH]; // - ( tan-1)/(tan+1) !!
+        // 2nd stage
+        const float t0 = x0 + y0 * k[ZD0][FL0][CH]; // - ( tan-1)/(tan+1) !!
+        z[ZD0][FL0][CH] = z[ZD1][FL0][CH] - t0 * k[ZD1][FL0][CH];  // - cos !!
+        z[ZD1][FL0][CH] = t0 + z[ZD0][FL0][CH] * k[ZD1][FL0][CH];  // - cos !!
+    }
 
-    inline void getA( const float in, float& out )
+    inline void allpass2( const float x0, const float x1, float& y0, float& y1 )
     {
-        doA(in);
-        switch( param1.type ) {
-        case BYPASS:
-            out = in;
-            return;
-        case ALLPASS:
-            out = channelA.zy2;
-            return;
-        case XPASS:
-            out = in - channelA.zy2;
-            return;
-        case YPASS:
-            out = in + channelA.zy2;
-            return;
-        }
-    };
+        static_assert(stateCount>1,"state count low");
+        static_assert(channelCount>1,"channel count low");
+        // 1th stage
+        y0 = z[ZD0][FL0][CH0] - x0 * k[ZD0][FL0][CH0];
+        y1 = z[ZD0][FL0][CH1] - x1 * k[ZD0][FL0][CH1];
+        // 2nd stage
+        const float t0 = x0 + y0 * k[ZD0][FL0][CH0];
+        const float t1 = x1 + y1 * k[ZD0][FL0][CH1];
+        z[ZD0][FL0][CH0] = z[ZD1][FL0][CH0] - t0 * k[ZD1][FL0][CH0];
+        z[ZD0][FL0][CH1] = z[ZD1][FL0][CH1] - t1 * k[ZD1][FL0][CH1];
+        z[ZD1][FL0][CH0] = t0 + z[ZD0][FL0][CH0] * k[ZD1][FL0][CH0];
+        z[ZD1][FL0][CH1] = t1 + z[ZD0][FL0][CH1] * k[ZD1][FL0][CH1];
+    }
 
-private:
-    void evalFQ(void) {
-        //const float c   = ( std::sin( PI2 * param1.fcurrent ) - 1.0f ) / std::cos(  PI2 * param1.fcurrent );
-        // const float d   = - std::cos(  PI2 * fpi );
-        const float c   = sintable.fastSin2PIx_1p_cos2PIx( param1.fcurrent );
-        const float d   = -sintable.fastcos2PI( std::min( param1.fcurrent * param1.qcurrent, fMax ) );   // f/fs
-        param1.c1 = -c;
-        param1.c2 = d * ( c - 1.0f );
+    template< std::size_t CH >
+    inline void allpass2_transposed( const float x0, float& y0 )
+    {
+        allpass2<CH>(x0,y0);
+    }
+
+    inline void allpass2_transposed( const float x0, const float x1, float& y0, float& y1 )
+    {
+        allpass2(x0,x1,y0,y1);
+    }
+//----------------------------------------------
+// 1st order multi
+
+//----------------------------------------------
+// 2nd order multi
+
+    // allpass cascade> 2 x 4 filter
+    inline void allpass2x8( const float x0, const float x1, float& y0, float& y1 )
+    {
+        static_assert(stateCount>1,"state count low");
+        static_assert(channelCount>1,"channel count low");
+        static_assert(filterCount>3,"filter count low");
+
 #if 0
-        std::cout
-            << "f "  << param1.fcurrent
-            << " q "  << param1.qcurrent
-            << " c "  << c
-            << " d "  << d
-            << " c1 "  << param1.c1
-            << " c2 "  << param1.c2
-            << std::endl;
+        // 1th stage
+        y0 = z[ZD0][FL0][CH0] - x0 * k[ZD0][FL0][CH0];
+        y1 = z[ZD0][FL0][CH1] - x1 * k[ZD0][FL0][CH1];
+        // 2nd stage
+        const float t0 = x0 + y0 * k[ZD0][FL0][CH0];
+        const float t1 = x1 + y1 * k[ZD0][FL0][CH1];
+        z[ZD0][FL0][CH0] = z[ZD1][FL0][CH0] - t0 * k[ZD1][FL0][CH0];
+        z[ZD0][FL0][CH1] = z[ZD1][FL0][CH1] - t1 * k[ZD1][FL0][CH1];
+        z[ZD1][FL0][CH0] = t0 + z[ZD0][FL0][CH0] * k[ZD1][FL0][CH0];
+        z[ZD1][FL0][CH1] = t1 + z[ZD0][FL0][CH1] * k[ZD1][FL0][CH1];
 #endif
-    };
 
-    // Mitra-Hirano 3D
-    inline void doA( const float in )
-    {
-        const float t1  = param1.c1 * ( in - channelA.zy2 ) + param1.c2 * ( channelA.zx1 - channelA.zy1 ) + channelA.zx2 ;
-        channelA.zx2    = channelA.zx1;
-        channelA.zx1    = in;
-        channelA.zy2    = channelA.zy1;
-        channelA.zy1    = t1;
-    };
-    Channel     channelA;
-    Channel     channelB;
-    Param       param1;
-}; // end FilterAllpass2
-
-// --------------------------------------------------------------------
-
-class FilterAllpass2X4 : public FilterAllpassBase {
-public:
-    static constexpr    float    fMin               = 20.0/48000.0;
-    static constexpr    float    fMax               = 11000.0/48000.0; // start changing phase
-
-    // smaller q is bigger q !!! - smaller transient zone
-    static constexpr    float    qMin               = 1.1f; // Fpi = Fbeg * q
-    static constexpr    float    qMax               = 4.0f; // ??
-    inline int32_t controller2logF( const uint16_t index )  // controller - 0 .. 127 ; 0 = max freq
-    {
-        constexpr int32_t val0   = 0x1e500000 - (oversamplingRate-1) * 0x1000000;
-        constexpr int32_t val127 = 0x15000000 - (oversamplingRate-1) * 0x1000000;
-        constexpr int32_t rate   = ( val0 - val127 ) / 127;
-        const int64_t logF =  val0 - int32_t(index) * rate;
-  //      param1.flog.setStep( logF );
+        // 1. 1 Hz 1st order fix allpass --> changes phase -- forward signal minus ! - to supresss DC
     }
 
-    inline int32_t controller2logQ( const uint16_t index )
-    {
-//        param1.qlog.setStep(  int64_t(index) << qRateExp );
-    }
-
-
-    static inline float evalFc( const float freq, const float samplingFrequency )
-    {
-        const float x = PI2 * freq / samplingFrequency;
-        return  ( std::sin(x) - 1 ) / std::cos(x);
-    };
-    static inline float evalFc48000( const float freq )
-    {
-        const float x = PI2 / 48000.0f * freq;
-        return  ( std::sin(x) - 1 ) / std::cos(x);
-    };
-    static inline float evalFc44100( const float freq )
-    {
-        const float x = PI2 / 44100.0f * freq;
-        return  ( std::sin(x) - 1 ) / std::cos(x);
-    };
-
-    // c = (  sin( 2 * pi * f/fs ) - 1 ) / cos ( 2 * PI * f/fs )
-    // d = - cos (  2 * PI * f/fs )
-    // c2 = d * (1 - c1)
-    // c2 = sin( 2 * pi * f/fs )
-
-    enum FilterType {
-        BYPASS,                // get the input: the filter is runnning
-        ALLPASS,
-        XPASS,
-        YPASS
-    };
-
-    struct alignas(16) Channel {
-        float   zx1s0;
-        float   zy1s0;
-        float   zx2s0;
-        float   zy2s0;
-        float   zx1s1;
-        float   zy1s1;
-        float   zx2s1;
-        float   zy2s1;
-        float   zx1s2;
-        float   zy1s2;
-        float   zx2s2;
-        float   zy2s2;
-        float   zx1s3;
-        float   zy1s3;
-        float   zx2s3;
-        float   zy2s3;
-    };
-
-    struct Param {
-        float           igain;
-        float           fgain;
-        float           qgain;
-
-        float       ftarget;
-        float       fcurrent;
-        float       fdelta;
-        int32_t     fcount;
-        float       qtarget;
-        float       qcurrent;
-        float       qdelta;
-        int32_t     qcount;
-        float       c1;
-        float       c2;
-        FilterType  type;
-    };
-
-    FilterAllpass2X4()
-    {
-        clear();
-        param1.fcount = 1;
-        sweep();
-    };
-
-    inline void setType( const FilterType t ) { param1.type=t; };
-
-    void clear(void)
-    {
-        channelA    = {0};
-        channelB    = {0};
-        param1      = {0};
-        param1.fcurrent = param1.ftarget = fMax;
-        param1.qcurrent = param1.qtarget = qMin;
-    };
-
-    inline float checkF( const float fv )
-    {
-        return fv <= fMin ? fMin : fv >= fMax ? fMax : fv;
-    };
-
-    inline float checkQ( const float qv )
-    {
-        return qv <= qMin ? qMin : qv >= qMax ? qMax : qv;
-    };
-
-    inline void setQ( float qv )
-    {
-        param1.qtarget  = checkQ( qv ) ;
-        param1.qdelta   = ( param1.qtarget - param1.qcurrent ) * (1.0f / paramIntCount);
-        param1.qcount   = paramIntCount;
-    };
-
-    inline void setF( float fv )
-    {
-        param1.ftarget  = checkF( fv ) ;
-        param1.fdelta   = ( param1.ftarget - param1.fcurrent ) * (1.0f / paramIntCount);
-        param1.fcount   = paramIntCount;
-    };
-
-
-    // x = 2*pi*f/fs
-    // c = (sin(x1) - 1)/cos(x1)
-    // d = -cosv2
-    // c1 = -c
-    // c2 = d*(1-c)
-
-
-
-    inline bool sweep( void )
-    {
-        bool ret = false;
-        if( 0 < param1.qcount ) {
-            --param1.qcount;
-            param1.qcurrent += param1.qdelta;
-            if( 0 >= param1.qcount ) {
-                param1.qdelta = 0.0f;
-            }
-            if( 0 >= param1.fcount ) {
-                evalFQ();
-            }
-            ret = true;
-        }
-        if( 0 < param1.fcount ) {
-            --param1.fcount;
-            param1.fcurrent += param1.fdelta;
-            if( 0 >= param1.fcount ) {
-                param1.fdelta = 0.0f;
-            }
-            evalFQ();
-            ret = true;
-        }
-        return ret;
-    };
-
-    inline void getA( const float in, float& out )
-    {
-        doA(in);
-        switch( param1.type ) {
-        case BYPASS:
-            out = in;
-            return;
-        case ALLPASS:
-            out = channelA.zy2s3;
-            return;
-        case XPASS:
-            out = in - channelA.zy2s3;
-            return;
-        case YPASS:
-            out = in + channelA.zy2s3;
-            return;
-        }
-    };
-
+//----------------------------------------------
 private:
-    void evalFQ(void) {
-        //const float c   = ( std::sin( PI2 * param1.fcurrent ) - 1.0f ) / std::cos(  PI2 * param1.fcurrent );
-        // const float d   = - std::cos(  PI2 * fpi );
-        const float c   = sintable.fastSin2PIx_1p_cos2PIx( param1.fcurrent );
-        const float d   = -sintable.fastcos2PI( std::min( param1.fcurrent * param1.qcurrent, fMax ) );   // f/fs
-        param1.c1 = -c;
-        param1.c2 = d * ( c - 1.0f );
-#if 0
-        std::cout
-            << "f "  << param1.fcurrent
-            << " q "  << param1.qcurrent
-            << " c "  << c
-            << " d "  << d
-            << " c1 "  << param1.c1
-            << " c2 "  << param1.c2
-            << std::endl;
-#endif
+    union {
+        v4sf    v4[v4count];
+        struct {
+            union {
+                float   klin[stateCount][klinCount]; // linear access for setting
+                float   k[stateCount][filterCount][channelCount];
+            };
+            float   z[stateCount][filterCount][channelCount];
+        };
     };
-
-    // Mitra-Hirano 3D
-    inline void doA( const float in )
-    {
-        const float t0    = param1.c1 * ( in - channelA.zy2s0 ) + param1.c2 * ( channelA.zx1s0 - channelA.zy1s0 ) + channelA.zx2s0 ;
-        channelA.zx2s0    = channelA.zx1s0;
-        channelA.zx1s0    = in;
-        channelA.zy2s0    = channelA.zy1s0;
-        channelA.zy1s0    = t0;
-
-        const float t1    = param1.c1 * ( channelA.zy2s0 - channelA.zy2s1 ) + param1.c2 * ( channelA.zx1s1 - channelA.zy1s1 ) + channelA.zx2s1 ;
-        channelA.zx2s1    = channelA.zx1s1;
-        channelA.zx1s1    = channelA.zy2s0;
-        channelA.zy2s1    = channelA.zy1s1;
-        channelA.zy1s1    = t1;
-
-        const float t2    = param1.c1 * ( channelA.zy2s1 - channelA.zy2s2 ) + param1.c2 * ( channelA.zx1s2 - channelA.zy1s2 ) + channelA.zx2s2 ;
-        channelA.zx2s2    = channelA.zx1s2;
-        channelA.zx1s2    = channelA.zy2s1;
-        channelA.zy2s2    = channelA.zy1s2;
-        channelA.zy1s2    = t2;
-
-        const float t3    = param1.c1 * ( channelA.zy2s2 - channelA.zy2s3 ) + param1.c2 * ( channelA.zx1s3 - channelA.zy1s3 ) + channelA.zx2s3 ;
-        channelA.zx2s3    = channelA.zx1s3;
-        channelA.zx1s3    = channelA.zy2s2;
-        channelA.zy2s3    = channelA.zy1s3;
-        channelA.zy1s3    = t3;
-    };
-    Channel     channelA;
-    Channel     channelB;
-    Param       param1;
-//    Param       param2;
-//    Param       param3;
-//    Param       param4;
-//      Lfo     lfo
-}; // end FilterAllpass2X4
-// --------------------------------------------------------------------
-template< std::size_t tableSizeX >
-class FilterAllpassTableF {
-public:
-    static constexpr std::size_t tableSizeExp = tableSizeX;
-    static constexpr std::size_t tableSize = 1<<tableSizeExp;
-    static constexpr double PI  = 3.141592653589793238462643383279502884197;
-    FilterAllpassTableF()
-    :   FilterAllpassTableF( 25.0, 19900.0, 48000.0, 1 )
-    {};
-    FilterAllpassTableF( const double minFreq, const double maxFreq, const float samplingFrequencyP, const int16_t oversamplingRateP )
-    :   oversamplingRate(oversamplingRateP)
-    ,   samplingFrequency(samplingFrequencyP)
-    {
-        const double mult   = 1.0 / samplingFrequency / oversamplingRate;
-        const double dfreq  = std::pow( 2.0f, std::log2( maxFreq / minFreq ) / tableSize ) ;
-        double freq = minFreq;
-        for( int i = 0; i < tableSize; ++i ) {
-            f[ i ] =  freq * mult;
-            freq *= dfreq;
-        }
-    };
-    float get( const uint64_t index ) { return index < tableSize ? f[ index ] : f[ tableSize - 1 ]; };
-
-private:
-    float           f[ tableSize ];
-    const int16_t   oversamplingRate;
-    const float     samplingFrequency;
-};
-
-template< std::size_t tableSizeX >
-class FilterAllpassTableQ {
-public:
-    static constexpr std::size_t tableSizeExp = tableSizeX;
-    static constexpr std::size_t tableSize = 1<<tableSizeExp;
-    static constexpr double PI  = 3.141592653589793238462643383279502884197;
-    FilterAllpassTableQ()
-    :   FilterAllpassTableQ( 0.2, 5.0 )
-    {};
-    FilterAllpassTableQ( const double minQ, const double maxQ )
-    {
-        const double dq  = std::pow( 2.0f, std::log2( maxQ / minQ ) / tableSize ) ;
-        double qv = minQ;
-        for( int i = 0; i < tableSize; ++i ) {
-            q[ i ] =  qv;
-            qv *= dq;
-        }
-    };
-    float get( const uint64_t index ) { return index < tableSize ? q[ index ] : q[ tableSize - 1 ]; };
-
-private:
-    float           q[ tableSize ];
 };
 
 } // end namespace

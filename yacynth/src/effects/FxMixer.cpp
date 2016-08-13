@@ -15,21 +15,28 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
-
 /*
- * File:   ChannelMix.cpp
+ * File:   Mixer.cpp
  * Author: Istvan Simon
  *
- * Created on March 26, 2016, 10:35 PM
+ * Created on March 15, 2016, 6:23 PM
  */
 
-#include    "../effects/ChannelMix.h"
+#include "FxMixer.h"
 
 namespace yacynth {
 
-ChannelMix::ChannelMix()
+FxMixerParam::FxMixerParam()
 {
-
+    gainTarget.index = InnerController::CC_MAINVOLUME;
+    gainTarget.setShift(0);
+    
 }
+
+bool FxMixer::connect( const FxBase * v, uint16_t ind ) 
+{
+    doConnect(v,ind);
+};  
+    
 
 } // end namespace yacynth

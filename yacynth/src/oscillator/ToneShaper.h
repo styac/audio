@@ -25,6 +25,8 @@
  * Created on January 30, 2016, 11:45 PM
  */
 
+// -O3 -mfpmath=sse -msse2 -msse3 -msse4.2 -ffast-math -funsafe-math-optimizations -mfma -mfma4 -mavx -funsafe-loop-optimizations -funswitch-loops -funroll-loops -fvariable-expansion-in-unroller -ftree-vectorizer-verbose=2
+// -O3 -mfpmath=sse -msse2 -msse3 -msse4.2 -ffast-math -funsafe-math-optimizations -mfma -mfma4 -mavx -funsafe-loop-optimizations -funswitch-loops -fvariable-expansion-in-unroller -ftree-vectorizer-verbose=2
 
 #include    "yacynth_globals.h"
 #include    "Serialize.h"
@@ -34,6 +36,82 @@
 
 namespace yacynth {
 
+//
+// interpolated values for frequency dependent values
+// range is 8 octaves
+// dx => logaritmic
+//
+template< typename T, std::size_t rlim  >
+struct Interpolated {   
+    static constexpr float rateLimitHigh = rlim;
+    static constexpr float rateLimitLow  = 1.0f/rlim;
+    
+    Interpolated()
+    :   rate(1.0f)
+    {};
+    
+    // rate for 8 octaves
+    inline void setRate( const float r )
+    {
+        rate = r;
+        if( rateLimitHigh < r ) {
+            rate = rateLimitHigh;
+        } else if( rateLimitLow > r ) {
+            rate = rateLimitLow;
+        }       
+        set();
+    }
+
+    inline void set( const T low )
+    {
+        lf  = low;
+        set();
+    }
+    
+    inline T get(void) const
+    {
+        return lf;
+    }
+
+    // temp for testing
+    inline void mult( const float m )
+    {
+        lf *= m;
+        set();
+    }
+      
+    inline void set(void)
+    {
+        const int64_t hf = std::max((static_cast<float>(lf) * rate ), static_cast<float>( std::numeric_limits<T>::max()));
+        diff = hf - lf;        
+    }
+            
+    inline T get( const uint16_t dx ) const 
+    {
+        return lf + (( diff * dx ) >> 16 );
+    }
+        
+    int64_t diff;   // value_high_frequencies - value_low_frequencies
+    float   rate;   // hf = rate*lf   -- practically for 8 octaves
+    T       lf;     // value at low frequencies
+};
+
+template< typename T,std::size_t S>
+inline void serialize( std::stringstream& ser, const Interpolated<T,S>& val )
+{
+    serialize(ser, val.rate);
+    serialize(ser, val.lf);
+};
+// --------------------------------------------------------------------
+template< typename T,std::size_t S>
+inline bool deserialize( std::stringstream& ser, Interpolated<T,S>& val )
+{
+    bool ret = true;
+    ret = ret && deserialize(ser, val.rate);
+    ret = ret && deserialize(ser, val.lf);
+    val.set();
+    return ret;
+};
 // --------------------------------------------------------------------
 //
 //  tickFrame >= 0
@@ -55,67 +133,37 @@ namespace yacynth {
 //  transient -- test
 //
 
-
-// envelope frequency dependency:
-// map the highest 6 bits of the pitch
-//  high nibble (4) - octave - 1 bit under is a half octave
-//  but only 8 octave is interesting: 20Hz -- 4096 Hz
-//  0 ..40
-//  1 ..80
-//  2 ..160
-//  3 ..320
-//  4 ..640
-//  5 ..1280
-//  6 ..2560
-//  7 ---
-//
-// this should be somehow coded here
-// TODO: envelope pitch dependency
-/*
-
-    j 40 freq2ycent 15c56c23 PitchDep 0
-    j 56 freq2ycent 1641b112 PitchDep 1
-    j 80 freq2ycent 16c56c23 PitchDep 2
-   j 112 freq2ycent 1741b112 PitchDep 3
-   j 160 freq2ycent 17c56c23 PitchDep 4
-   j 224 freq2ycent 1841b112 PitchDep 5
-   j 320 freq2ycent 18c56c23 PitchDep 6
-   j 448 freq2ycent 1941b112 PitchDep 7
-   j 640 freq2ycent 19c56c23 PitchDep 8
-   j 896 freq2ycent 1a41b112 PitchDep 9
-  j 1280 freq2ycent 1ac56c23 PitchDep a
-  j 1792 freq2ycent 1b41b112 PitchDep b
-  j 2560 freq2ycent 1bc56c23 PitchDep c
-  j 3584 freq2ycent 1c41b112 PitchDep d
-  j 5120 freq2ycent 1cc56c23 PitchDep e
-
-  j 5400 freq2ycent 1cd91653 PitchDep e
-  j 5430 freq2ycent 1cdb2224 PitchDep e
-
-  j 7168 freq2ycent 1d41b112 PitchDep f
- *
-
-
-*/
-
 // --------------------------------------------------------------------
 // sustain level !!!!
 // check -> max 1/4 of peek : 1<<28
 // TODO freq dependent amplitude !!! direct equalisation - higher less overtones !!!
 // --------------------------------------------------------------------
 
+//
+// value + value * ( ( pitch - t0 ) * k )
+// pitch    - int32
+// k        - int16 
+// fac = ( ( pitch * k   + 0x08000 ) >> 16 )
+// value + ( value * fac + 0x08000 ) >> 16 )
+// 
+
+
 struct AmplitudeTransient  {
     static constexpr Sermagic sermagic = "AMTR:01";
-    static constexpr uint32_t minPitch = 0x155b2c3e;       // freq2ycent( 40.0 ) should be about 40 Hz
-    static constexpr uint32_t maxPitch = 0x1cd91653;       // freq2ycent( 6144.0 ) should be about 5 kHz -- 5400 Hz
-    static constexpr uint16_t amplEnvFreqDepRange   = 16;
     static constexpr int8_t   curveSpeedLimit       = 3;
-    static constexpr uint32_t tickLimit             = 10000;
+    static constexpr uint32_t tickLimit             = 10000;    // 13 sec
+    static constexpr int8_t   amplEnvFreqDepRange   = 2;    // min max
 
     bool clear(void)
     {
-        *this = {0};
+        targetValue.set(0);
+        targetValue.setRate(1.0f);
+        tickFrame.set(0);
+        tickFrame.setRate(1.0f);
+        amplitudeDetune = 0;
+        curveSpeed = 0;
     };
+    
     bool check(void)
     {
         // sustain level !!!! - last node node[0]
@@ -124,74 +172,40 @@ struct AmplitudeTransient  {
         // valid only -3..+3
         curveSpeed = saturate<int8_t,curveSpeedLimit>(curveSpeed);
 
-        for( auto i=0u; i < amplEnvFreqDepRange; ++i ) {
-            tickFrame[i] = std::min( uint32_t(tickFrame[i]), tickLimit );
-        }
         return true;
     };
     void set( const uint32_t target, uint16_t tick, int8_t curve, uint32_t freqDep = 0 )
     {
         clear();
-        targetValue[0] = target;
-        tickFrame[0]= std::min( uint32_t(tick), tickLimit ); // std::min wants the same types
+        targetValue.set( target );
+        tickFrame.set( std::min( uint32_t(tick), tickLimit ) ); // std::min wants the same types
         curveSpeed  = saturate<int8_t,curveSpeedLimit>(curve);
 //        curveSpeed  = curve <= -curveSpeedLimit ? -curveSpeedLimit : curve >= curveSpeedLimit ? curveSpeedLimit : curve;
-        for( auto i=1u; i < amplEnvFreqDepRange; ++i ) {
-            tickFrame[i] = std::min( (freqDep * tickFrame[i-1]) >> 14, tickLimit );
-        }
     };
     void update( const AmplitudeTransient& val )
     {
         *this = val;
     };
-    // TODO : TEST
-    // TODO : amplitude freq dependency
 
-    inline uint16_t envelopePitchDepTick( const int8_t ind, const uint16_t dx )
-    {
-        if( 0 == tickFrame[0] || 0 == tickFrame[1] || ind < 0 )     // means: no frequency dependency or low freqs
-            return tickFrame[0];    // otherwise all [1]..[15] MUST BE FILLED with data
-        if( 15 <= ind ) {
-            return tickFrame[15];
-        }
-        const int32_t y0  = tickFrame[ ind ];
-        const int32_t res = y0 + ((( tickFrame[ ind + 1 ] - y0 ) * dx ) >> 16 );
-        return res > 0 ? res : 1;
-    };
-
-    inline uint32_t envelopePitchDepAmplitude( const int8_t ind, const uint16_t dx )
-    {
-        if( 0 == targetValue[0] || 0 == targetValue[1] || ind < 0 )     // means: no frequency dependency or low freqs
-            return targetValue[0];    // otherwise all [1]..[15] MUST BE FILLED with data
-        if( 15 <= ind ) {
-            return targetValue[15];
-        }
-        const int64_t y0  = targetValue[ ind ];
-        const int64_t res = y0 + ((( targetValue[ ind + 1 ] - y0 ) * dx ) >> 16 );
-        return res > 0 ? res : 0;
-    };
-
-    // input is amplitude 48 bit
+    // input is amplitude 39 bit
     inline int32_t getDetune( int64_t amplitude ) const
     {
         return ( amplitude * amplitudeDetune ) >> 41; // 23 bit -- TODO must be tested -> max +- 1/2 octave ???
     }
 
     //------- data ----------
-    uint32_t    targetValue[amplEnvFreqDepRange];  //freq dependent amplitude
-    uint16_t    tickFrame[amplEnvFreqDepRange]; // number of frames (64 samples at 48kHz: 1.3msec) - freq dependent
-    int16_t     amplitudeDetune;    // pitch + amplitudeDetune * amplitude >> ??
-    int8_t      curveSpeed;     // -3 .. 0 .. +3 : curve concave-lin-convex
-    int8_t      rfu1;            // padding
+    Interpolated<uint32_t,256> targetValue;
+    Interpolated<uint16_t,8> tickFrame;
+    int16_t     amplitudeDetune;    // TODO: pitch + amplitudeDetune * amplitude >> ??
+    int8_t      curveSpeed;         // -3 .. 0 .. +3 : curve concave-lin-convex
+    int8_t      rfu1;               // padding
 };
 // --------------------------------------------------------------------
 inline void serialize( std::stringstream& ser, const AmplitudeTransient& val )
 {
     serialize(ser, val.sermagic);
-    for(auto& v :  val.targetValue) serialize( ser, v );
-    serializeSpace(ser);
-    for(auto& v :  val.tickFrame)   serialize( ser, v );
-    serializeSpace(ser);
+    serialize(ser, val.targetValue);
+    serialize(ser, val.tickFrame);
     serialize(ser, val.amplitudeDetune);
     serialize(ser, val.curveSpeed);
 };
@@ -200,8 +214,8 @@ inline bool deserialize( std::stringstream& ser, AmplitudeTransient& val )
 {
     bool ret = true;
     ret = ret && deserialize(ser, val.sermagic);
-    for(auto& v : val.targetValue)  ret = ret && deserialize(ser, v);
-    for(auto& v : val.tickFrame)    ret = ret && deserialize(ser, v);
+    ret = ret && deserialize(ser, val.targetValue);
+    ret = ret && deserialize(ser, val.tickFrame);
     ret = ret && deserialize(ser, val.amplitudeDetune);
     ret = ret && deserialize(ser, val.curveSpeed);
     return ret;
@@ -233,7 +247,8 @@ struct AmplitudeSustain {
     uint16_t    antiDecayCoeff; // used as (1 + antiDecayCoeff/64k)
     uint16_t    antiDecayCyles; // antiDecayCyles * 1.3 msec
     //----------------------------------
-    uint16_t    decayCoeff;
+    Interpolated<uint16_t,8> decayCoeff;
+    
     uint16_t    sustainModPeriod;
     uint8_t     sustainModDepth;    // modulation depth 0==disable -> sustainModDepth/256
     // 0 = no randomization
@@ -296,12 +311,19 @@ struct ToneShaper {
         return true;
     };
 
-    int32_t             pitch;              // may be negative !! - undertones
-    AmplitudeTransient  transient[transientKnotCount];
-    AmplitudeSustain    sustain;
-    uint16_t            tickFrameRelease;   // TODO : change
-    int8_t              curveSpeedRelease;  // TODO : change
-    uint8_t             oscillatorType;
+    int32_t                 pitch;              // may be negative !! - undertones
+    AmplitudeTransient      transient[transientKnotCount];
+    AmplitudeSustain        sustain;
+    Interpolated<uint16_t,8>  
+                            tickFrameRelease;
+    int8_t                  curveSpeedRelease;
+    uint8_t                 oscillatorType;
+
+    uint8_t                 outChannel;         // TODO : which channel to write
+    uint8_t                 rfu1;
+    uint8_t                 rfu2;
+    uint8_t                 rfu3;
+
 };
 // --------------------------------------------------------------------
 inline void serialize( std::stringstream& ser, const ToneShaper& val )
@@ -311,6 +333,7 @@ inline void serialize( std::stringstream& ser, const ToneShaper& val )
     serialize( ser, val.tickFrameRelease );
     serialize( ser, val.curveSpeedRelease );
     serialize( ser, val.oscillatorType );
+    serialize( ser, val.outChannel );
     for( auto& v :  val.transient) serialize( ser, v );
     serialize( ser, val.sustain );
 };
@@ -323,6 +346,7 @@ inline bool deserialize( std::stringstream& ser, ToneShaper& val )
     ret = ret && deserialize( ser, val.tickFrameRelease );
     ret = ret && deserialize( ser, val.curveSpeedRelease );
     ret = ret && deserialize( ser, val.oscillatorType );
+    ret = ret && deserialize( ser, val.outChannel );
     for( auto& v :  val.transient) ret = ret && deserialize( ser, v );
     ret = ret && deserialize( ser, val.sustain );
     return ret;
@@ -396,7 +420,7 @@ struct ToneShaperVector {
         for( auto vi = 0u; vi < overtoneCountOscDef; ++vi ) {
             const float onevi = 1.0f/float(vi+1);
             for( auto ni = 0u; ni < transientKnotCount; ++ni ) {
-                toneShaperVec[vi].transient[ni].targetValue[0] *= onevi;
+                toneShaperVec[vi].transient[ni].targetValue.mult( onevi );
             }
         }
     }
