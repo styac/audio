@@ -123,6 +123,7 @@ public:
     void    fillPartch43(       uint8_t tableNr );
 
 protected:
+    MidiRangeController  midiRangeController;
     std::array< std::array<uint32_t, tuningTableSize>, tuningTableCount> pitch;
     Yamsgrt     out;
     tuned_t     tuned;

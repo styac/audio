@@ -25,6 +25,8 @@
  * Created on January 30, 2016, 11:45 PM
  */
 
+// -O3 -mfpmath=sse -msse2 -msse3 -msse4.2 -ffast-math -funsafe-math-optimizations -mfma -mfma4 -mavx -funsafe-loop-optimizations -funswitch-loops -funroll-loops -fvariable-expansion-in-unroller -ftree-vectorizer-verbose=2
+// -O3 -mfpmath=sse -msse2 -msse3 -msse4.2 -ffast-math -funsafe-math-optimizations -mfma -mfma4 -mavx -funsafe-loop-optimizations -funswitch-loops -fvariable-expansion-in-unroller -ftree-vectorizer-verbose=2
 
 #include    "yacynth_globals.h"
 #include    "Serialize.h"
@@ -34,6 +36,82 @@
 
 namespace yacynth {
 
+//
+// interpolated values for frequency dependent values
+// range is 8 octaves
+// dx => logaritmic
+//
+template< typename T, std::size_t rlim  >
+struct Interpolated {   
+    static constexpr float rateLimitHigh = rlim;
+    static constexpr float rateLimitLow  = 1.0f/rlim;
+    
+    Interpolated()
+    :   rate(1.0f)
+    {};
+    
+    // rate for 8 octaves
+    inline void setRate( const float r )
+    {
+        rate = r;
+        if( rateLimitHigh < r ) {
+            rate = rateLimitHigh;
+        } else if( rateLimitLow > r ) {
+            rate = rateLimitLow;
+        }       
+        set();
+    }
+
+    inline void set( const T low )
+    {
+        lf  = low;
+        set();
+    }
+    
+    inline T get(void) const
+    {
+        return lf;
+    }
+
+    // temp for testing
+    inline void mult( const float m )
+    {
+        lf *= m;
+        set();
+    }
+      
+    inline void set(void)
+    {
+        const int64_t hf = std::max((static_cast<float>(lf) * rate ), static_cast<float>( std::numeric_limits<T>::max()));
+        diff = hf - lf;        
+    }
+            
+    inline T get( const uint16_t dx ) const 
+    {
+        return lf + (( diff * dx ) >> 16 );
+    }
+        
+    int64_t diff;   // value_high_frequencies - value_low_frequencies
+    float   rate;   // hf = rate*lf   -- practically for 8 octaves
+    T       lf;     // value at low frequencies
+};
+
+template< typename T,std::size_t S>
+inline void serialize( std::stringstream& ser, const Interpolated<T,S>& val )
+{
+    serialize(ser, val.rate);
+    serialize(ser, val.lf);
+};
+// --------------------------------------------------------------------
+template< typename T,std::size_t S>
+inline bool deserialize( std::stringstream& ser, Interpolated<T,S>& val )
+{
+    bool ret = true;
+    ret = ret && deserialize(ser, val.rate);
+    ret = ret && deserialize(ser, val.lf);
+    val.set();
+    return ret;
+};
 // --------------------------------------------------------------------
 //
 //  tickFrame >= 0
@@ -78,8 +156,14 @@ struct AmplitudeTransient  {
 
     bool clear(void)
     {
-        *this = {0};
+        targetValue.set(0);
+        targetValue.setRate(1.0f);
+        tickFrame.set(0);
+        tickFrame.setRate(1.0f);
+        amplitudeDetune = 0;
+        curveSpeed = 0;
     };
+    
     bool check(void)
     {
         // sustain level !!!! - last node node[0]
@@ -93,8 +177,13 @@ struct AmplitudeTransient  {
     void set( const uint32_t target, uint16_t tick, int8_t curve, uint32_t freqDep = 0 )
     {
         clear();
+<<<<<<< HEAD
         targetValueLF = target;
         tickFrameLF= std::min( uint32_t(tick), tickLimit ); // std::min wants the same types
+=======
+        targetValue.set( target );
+        tickFrame.set( std::min( uint32_t(tick), tickLimit ) ); // std::min wants the same types
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
         curveSpeed  = saturate<int8_t,curveSpeedLimit>(curve);
 //        curveSpeed  = curve <= -curveSpeedLimit ? -curveSpeedLimit : curve >= curveSpeedLimit ? curveSpeedLimit : curve;
     };
@@ -110,11 +199,17 @@ struct AmplitudeTransient  {
     }
 
     //------- data ----------
+<<<<<<< HEAD
     uint32_t    targetValueLF;   //freq dependent amplitude
     uint32_t    targetValueHF;   //freq dependent amplitude    
     uint16_t    tickFrameLF;     // number of frames (64 samples at 48kHz: 1.3msec) - freq dependent
     uint16_t    tickFrameHF;     // number of frames (64 samples at 48kHz: 1.3msec) - freq dependent
     int16_t     amplitudeDetune;    // pitch + amplitudeDetune * amplitude >> ??
+=======
+    Interpolated<uint32_t,256> targetValue;
+    Interpolated<uint16_t,8> tickFrame;
+    int16_t     amplitudeDetune;    // TODO: pitch + amplitudeDetune * amplitude >> ??
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
     int8_t      curveSpeed;         // -3 .. 0 .. +3 : curve concave-lin-convex
     int8_t      rfu1;               // padding
 };
@@ -122,10 +217,15 @@ struct AmplitudeTransient  {
 inline void serialize( std::stringstream& ser, const AmplitudeTransient& val )
 {
     serialize(ser, val.sermagic);
+<<<<<<< HEAD
     serialize(ser, val.targetValueLF);
     serialize(ser, val.targetValueHF);
     serialize(ser, val.tickFrameLF);
     serialize(ser, val.tickFrameHF);
+=======
+    serialize(ser, val.targetValue);
+    serialize(ser, val.tickFrame);
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
     serialize(ser, val.amplitudeDetune);
     serialize(ser, val.curveSpeed);
 };
@@ -134,10 +234,15 @@ inline bool deserialize( std::stringstream& ser, AmplitudeTransient& val )
 {
     bool ret = true;
     ret = ret && deserialize(ser, val.sermagic);
+<<<<<<< HEAD
     ret = ret && deserialize(ser, val.targetValueLF);
     ret = ret && deserialize(ser, val.targetValueHF);
     ret = ret && deserialize(ser, val.tickFrameLF);
     ret = ret && deserialize(ser, val.tickFrameHF);
+=======
+    ret = ret && deserialize(ser, val.targetValue);
+    ret = ret && deserialize(ser, val.tickFrame);
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
     ret = ret && deserialize(ser, val.amplitudeDetune);
     ret = ret && deserialize(ser, val.curveSpeed);
     return ret;
@@ -169,8 +274,12 @@ struct AmplitudeSustain {
     uint16_t    antiDecayCoeff; // used as (1 + antiDecayCoeff/64k)
     uint16_t    antiDecayCyles; // antiDecayCyles * 1.3 msec
     //----------------------------------
+<<<<<<< HEAD
     uint16_t    decayCoeffLF;
     uint16_t    decayCoeffHF;
+=======
+    Interpolated<uint16_t,8> decayCoeff;
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
     
     uint16_t    sustainModPeriod;
     uint8_t     sustainModDepth;    // modulation depth 0==disable -> sustainModDepth/256
@@ -236,6 +345,7 @@ struct ToneShaper {
         return true;
     };
 
+<<<<<<< HEAD
     int32_t             pitch;              // may be negative !! - undertones
     AmplitudeTransient  transient[transientKnotCount];
     AmplitudeSustain    sustain;
@@ -248,6 +358,20 @@ struct ToneShaper {
     uint8_t             rfu1;
     uint8_t             rfu2;
     uint8_t             rfu3;
+=======
+    int32_t                 pitch;              // may be negative !! - undertones
+    AmplitudeTransient      transient[transientKnotCount];
+    AmplitudeSustain        sustain;
+    Interpolated<uint16_t,8>  
+                            tickFrameRelease;
+    int8_t                  curveSpeedRelease;
+    uint8_t                 oscillatorType;
+
+    uint8_t                 outChannel;         // TODO : which channel to write
+    uint8_t                 rfu1;
+    uint8_t                 rfu2;
+    uint8_t                 rfu3;
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
 
 };
 // --------------------------------------------------------------------
@@ -347,7 +471,11 @@ struct ToneShaperVector {
         for( auto vi = 0u; vi < overtoneCountOscDef; ++vi ) {
             const float onevi = 1.0f/float(vi+1);
             for( auto ni = 0u; ni < transientKnotCount; ++ni ) {
+<<<<<<< HEAD
                 toneShaperVec[vi].transient[ni].targetValueLF *= onevi;
+=======
+                toneShaperVec[vi].transient[ni].targetValue.mult( onevi );
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
             }
         }
     }

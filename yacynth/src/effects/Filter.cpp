@@ -37,9 +37,9 @@
 namespace yacynth {
 // --------------------------------------------------------------------
 ControlledFilter::ControlledFilter( )
-:   ctrlQ(ControllerMatrix::C_INT_FILTER_Q)
-,   ctrlF1(ControllerMatrix::C_INT_FILTER_FREQUENCY1)
-,   ctrlF2(ControllerMatrix::C_INT_FILTER_FREQUENCY2)
+//:   ctrlQ(ControllerMatrix::C_INT_FILTER_Q)
+//,   ctrlF1(ControllerMatrix::C_INT_FILTER_FREQUENCY1)
+//,   ctrlF2(ControllerMatrix::C_INT_FILTER_FREQUENCY2)
 
 { reset(); };
 // --------------------------------------------------------------------
@@ -55,7 +55,7 @@ void ControlledFilter::process( const EIObuffer& __restrict inp, EIObuffer& __re
         count = maxC;
         timer = 0;
     }
-    const float gain = inp.channelGain;
+    const float gain = 1.0f; // inp.channelGain[0];
 //    const float gain = 1.0f;
     // next> Amplitude modulation
     for( auto i=0; i<filterControl.activeFilterCount; ++i ) {
@@ -74,9 +74,8 @@ void ControlledFilter::process( const EIObuffer& __restrict inp, EIObuffer& __re
     filter.setGain( 6, gain );
     filter.setGain( 7, gain );
 
-    out.channelGain = 1.0f;
 
-#if 1
+#if 0
     if( ctrlF1.update() ) {
         const int64_t cc = ctrlF1.get();
         const int32_t f = filter.fMin + ((( filter.fMax-filter.fMin ) * cc  )>>24) ;
@@ -93,9 +92,10 @@ void ControlledFilter::process( const EIObuffer& __restrict inp, EIObuffer& __re
 
     }
 #endif
-    if( ctrlQ.update() ) {
-        const float q = ctrlQ.getNorm(2);  // max value == 4
-        std::cout << "q " << q << std::endl;
+//    if( ctrlQ.update() ) {
+        const float q = 0 ; //ctrlQ.getNorm(2);  // max value == 4
+    
+    std::cout << "q " << q << std::endl;
 
         for( auto i=0; i<filterControl.activeFilterCount; ++i ) {
               filterControl.channelParam[i].q = q;
@@ -111,7 +111,7 @@ void ControlledFilter::process( const EIObuffer& __restrict inp, EIObuffer& __re
         filter.setQ( 6, q );
         filter.setQ( 7, q );
 
-    }
+//    }
 
 
     // profiling

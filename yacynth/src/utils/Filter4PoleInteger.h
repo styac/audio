@@ -42,7 +42,11 @@ namespace filter {
 // --------------------------------------------------------------------
 
 template< std::size_t channelCountExp >
+<<<<<<< HEAD
 class Filter4PoleInteger : public FilterBase {
+=======
+class Filter4PoleInteger : public FilterBaseOld {
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
 public:
     static constexpr uint8_t  channelCount      = 1<<channelCountExp;
     static constexpr uint8_t  channelCountMask  = channelCount-1;

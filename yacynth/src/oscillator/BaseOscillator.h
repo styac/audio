@@ -73,12 +73,22 @@ protected:
 // real size = 1 << (sizeExpT+2)
 // BaseOscillatorArray<6> --> 256 oscillator !!
 
+<<<<<<< HEAD
 template< std::size_t sizeExpT >
 class BaseOscillatorArray {
 public:
     static constexpr uint16_t sizeExp   = (sizeExpT+2);
     static constexpr uint16_t size      = 1<<sizeExp;
     static constexpr uint16_t sizeMask  = size-1;
+=======
+
+class LowOscillatorArray {
+public:
+    static constexpr uint16_t sizeExp   = 8;
+    static constexpr uint16_t size      = 1<<sizeExp;
+    static constexpr uint16_t sizeMask  = size-1;
+    static constexpr uint16_t vsize     = size/4;
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
 
     static constexpr uint32_t phase1    = 1 << (14+16);
     static constexpr uint32_t phase2    = 1 << (15+16);
@@ -94,14 +104,24 @@ public:
 
     inline void inc(void)
     {
+<<<<<<< HEAD
         for( auto i=0u; i < size; ++i  ) {
             phase[i] += phaseDelta[i];
+=======
+        for( auto i=0u; i < vsize; ++i  ) {
+            vphase[i] += vphaseDelta[i];
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
         }
     }
     inline void reset(void)
     {
+<<<<<<< HEAD
         for( auto i=0u; i < size; ++i  ) {
             phase[i] = phase0[i];
+=======
+        for( auto i=0u; i < vsize; ++i  ) {
+            vphase[i] = vphase0[i];
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
         }
     }
     inline void sync( const uint16_t index )
@@ -124,6 +144,7 @@ public:
     }
     // 16 bit out
     // TODO : for float use the float sin table !!!
+<<<<<<< HEAD
     inline int32_t sin16(const uint16_t index)      const {return tables::waveSinTable[ uint16_t(  phase[index&sizeMask] >>16 ) ];};
     inline float   fsin(const uint16_t index)       const {return float(sin16()) * franges; };
     inline int32_t cos16(const uint16_t index)      const {return tables::waveSinTable[ uint16_t(( phase[index&sizeMask] + phase1 ) >>16 ) ];};
@@ -133,6 +154,19 @@ public:
     inline float   fsinu(const uint16_t index)      const {return float(sin16u()) * frangesu; };
     inline int32_t cos16u(const uint16_t index)     const {return 0x7FFF+ tables::waveSinTable[ uint16_t(( phase[index&sizeMask] + phase1 ) >>16 )];};
     inline float   fcosu(const uint16_t index)      const {return float(cos16u()) * frangesu;};
+=======
+    inline int32_t sin16(const uint16_t index)      const {return tables::waveSinTable[ uint16_t(  phase[index&sizeMask] >> 16 ) ];};
+    //inline float   fsin(const uint16_t index)       const {return float(sin16(index)) * franges; };
+    inline float   fsin(const uint16_t index)       const {return tables::sinTable[phase[index&sizeMask] >> 14]; };
+
+    inline int32_t cos16(const uint16_t index)      const {return tables::waveSinTable[ uint16_t(( phase[index&sizeMask] + phase1 ) >>16 ) ];};
+    inline float   fcos(const uint16_t index)       const {return float(cos16(index)) * franges;  };
+
+    inline int32_t sin16u(const uint16_t index)     const {return 0x7FFF + tables::waveSinTable[ uint16_t(  phase[index&sizeMask] >>16 )];};
+    inline float   fsinu(const uint16_t index)      const {return float(sin16u(index)) * frangesu; };
+    inline int32_t cos16u(const uint16_t index)     const {return 0x7FFF+ tables::waveSinTable[ uint16_t(( phase[index&sizeMask] + phase1 ) >>16 )];};
+    inline float   fcosu(const uint16_t index)      const {return float(cos16u(index)) * frangesu;};
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
 
     // normalized to 30 bit
     inline int32_t sin(const uint16_t index)        const {return tables::waveSinTable[ uint16_t(  phase[index&sizeMask] >>16 ) ]<<15;};
@@ -141,6 +175,7 @@ public:
     inline int32_t cosu(const uint16_t index)       const {return uOffs + (tables::waveSinTable[ uint16_t(( phase[index&sizeMask] + phase1 ) >>16 ) ]<<15);};
 
     inline int32_t saw(const uint16_t index)        const {return int32_t(phase[index&sizeMask]) >> 1;};
+<<<<<<< HEAD
     inline float   fsaw(const uint16_t index)       const {return float(saw()) * frange;};
     inline int32_t sawu(const uint16_t index)       const {return uOffs + (int32_t(phase[index&sizeMask]) >> 2);};
     inline float   fsawu(const uint16_t index)      const {return float(sawu()) * frange;};
@@ -173,10 +208,45 @@ public:
     inline float   fangle3c(const uint16_t index)   const {return float(angle3c()) * frange;};
     inline int32_t angle3cu(const uint16_t index)   const {return ((( int32_t(phase[index&sizeMask]) | 1 ) ^ ( int32_t(phase[index&sizeMask]) >> 31 ))>>1);};
     inline float   fangle3cu(const uint16_t index)  const {return float(angle3cu()) * frange;};
+=======
+    inline float   fsaw(const uint16_t index)       const {return float(saw(index)) * frange;};
+    inline int32_t sawu(const uint16_t index)       const {return uOffs + (int32_t(phase[index&sizeMask]) >> 2);};
+    inline float   fsawu(const uint16_t index)      const {return float(sawu(index)) * frange;};
+
+    // shifted by PI/2 ==> cos
+    inline int32_t sawc(const uint16_t index)       const {return int32_t(phase[index&sizeMask]+phase1) >> 1;};
+    inline float   fsawc(const uint16_t index)      const {return float(sawc(index)) * frange;};
+    inline int32_t sawcu(const uint16_t index)      const {return uOffs + (int32_t(phase[index&sizeMask]+phase1) >> 2);};
+    inline float   fsawcu(const uint16_t index)     const {return float(sawcu(index)) * frange;};
+
+    inline int32_t square(const uint16_t index)     const {return (( int32_t(phase[index&sizeMask]) >> 31 ) | 1 ) << 30;};
+    inline float   fsquare(const uint16_t index)    const {return float(square(index)) * frange;};
+    inline int32_t squareu(const uint16_t index)    const {return uOffs + ((( int32_t(phase[index&sizeMask]) >> 31 ) | 1 ) << 29);};
+    inline float   fsquareu(const uint16_t index)   const {return float(squareu(index)) * frange;};
+
+    // shifted by PI/2 ==> cos
+    inline int32_t squarec(const uint16_t index)    const {return (( int32_t(phase[index&sizeMask]+phase1) >> 31 ) | 1 ) << 30;};
+    inline float   fsquarec(const uint16_t index)   const {return float(squarec(index)) * frange;};
+    inline int32_t squarecu(const uint16_t index)   const {return uOffs + ((( int32_t(phase[index&sizeMask]+phase1) >> 31 ) | 1 ) << 29);};
+    inline float   fsquarecu(const uint16_t index)  const {return float(squarecu(index)) * frange;};
+
+    // triangle -> sometimes called sawtooth
+    inline int32_t angle3(const uint16_t index)     const {return (( int32_t(phase[index&sizeMask]+phase1) | 1 ) ^ ( int32_t(phase[index&sizeMask]+phase1) >> 31 )) - 0x3FFFFFFF;};
+    inline float   ftangle3(const uint16_t index)   const {return float(angle3(index)) * frange;};
+    inline int32_t angle3u(const uint16_t index)    const {return (( int32_t(phase[index&sizeMask]+phase1) | 1 ) ^ ( int32_t(phase[index&sizeMask]+phase1) >> 31 ))>>1;};
+    inline float   fangle3u(const uint16_t index)   const {return float(angle3u(index)) * frange;};
+
+    // shifted by PI/2 ==> cos
+    inline int32_t angle3c(const uint16_t index)    const {return -((( int32_t(phase[index&sizeMask]) | 1 ) ^ ( int32_t(phase[index&sizeMask]) >> 31 )) - 0x3FFFFFFF);};
+    inline float   fangle3c(const uint16_t index)   const {return float(angle3c(index)) * frange;};
+    inline int32_t angle3cu(const uint16_t index)   const {return ((( int32_t(phase[index&sizeMask]) | 1 ) ^ ( int32_t(phase[index&sizeMask]) >> 31 ))>>1);};
+    inline float   fangle3cu(const uint16_t index)  const {return float(angle3cu(index)) * frange;};
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
 
     // phase distorsion sin(sin) series
     //
     inline int32_t pd00ssin(const uint16_t index)   const {return tables::waveSinTable[ uint16_t((tables::waveSinTable[phase[index&sizeMask] >>16])    + (phase[index&sizeMask] >>16))]<<15;};
+<<<<<<< HEAD
     inline float   fpd00ssin(const uint16_t index)  const {return float(pd00ssin()) * frange;};
 
     inline int32_t pd01ssin(const uint16_t index)   const {return tables::waveSinTable[ uint16_t((tables::waveSinTable[phase[index&sizeMask] >>16]>>1) + (phase[index&sizeMask] >>16))]<<15;};
@@ -220,6 +290,65 @@ protected:
         uint32_t    phase0[size];
     };
 };
+=======
+    inline float   fpd00ssin(const uint16_t index)  const {return float(pd00ssin(index)) * frange;};
+
+    inline int32_t pd01ssin(const uint16_t index)   const {return tables::waveSinTable[ uint16_t((tables::waveSinTable[phase[index&sizeMask] >>16]>>1) + (phase[index&sizeMask] >>16))]<<15;};
+    inline float   fpd01ssin(const uint16_t index)  const {return float(pd01ssin(index)) * frange;};
+    inline int32_t pd02ssin(const uint16_t index)   const {return tables::waveSinTable[ uint16_t((tables::waveSinTable[phase[index&sizeMask] >>16]>>2) + (phase[index&sizeMask] >>16))]<<15;};
+    inline float   fpd02ssin(const uint16_t index)  const {return float(pd02ssin(index)) * frange;};
+    inline int32_t pd03ssin(const uint16_t index)   const {return tables::waveSinTable[ uint16_t((tables::waveSinTable[phase[index&sizeMask] >>16]>>3) + (phase[index&sizeMask] >>16))]<<15;};
+    inline float   fpd03ssin(const uint16_t index)  const {return float(pd03ssin(index)) * frange;};
+
+    inline int32_t pd10ssin(const uint16_t index)   const {return tables::waveSinTable[ uint16_t((tables::waveSinTable[phase[index&sizeMask] >>16]<<1) + (phase[index&sizeMask] >>16))]<<15;};
+    inline float   fpd10ssin(const uint16_t index)  const {return float(pd10ssin(index)) * frange;};
+    inline int32_t pd20ssin(const uint16_t index)   const {return tables::waveSinTable[ uint16_t((tables::waveSinTable[phase[index&sizeMask] >>16]<<2) + (phase[index&sizeMask] >>16))]<<15;};
+    inline float   fpd20ssin(const uint16_t index)  const {return float(pd20ssin(index)) * frange;};
+    inline int32_t pd30ssin(const uint16_t index)   const {return tables::waveSinTable[ uint16_t((tables::waveSinTable[phase[index&sizeMask] >>16]<<2) + (phase[index&sizeMask] >>16))]<<15;};
+    inline float   fpd30ssin(const uint16_t index)  const {return float(pd30ssin(index)) * frange;};
+
+    inline int32_t pd0qssin(const uint16_t index)   const {return tables::waveSinTable[ uint16_t( tables::waveSinTable[phase[index&sizeMask] >>16] )]<<15;};
+    inline float   fpdq0ssin(const uint16_t index)  const {return float(pd0qssin(index)) * frange;};
+    // pair sin 1+2
+    //
+    inline int32_t psin1e2(const uint16_t index)    const {return (tables::waveSinTable[uint16_t(phase[index&sizeMask]>>16)]+(tables::waveSinTable[uint16_t(phase[index&sizeMask]>>15)]));};
+    inline float   fpsin1e2(const uint16_t index)   const {return float(psin1e2(index)) * frange1e2;};
+    inline int32_t psin1h2(const uint16_t index)    const {return (tables::waveSinTable[uint16_t(phase[index&sizeMask]>>16)]+(tables::waveSinTable[uint16_t(phase[index&sizeMask]>>15)]>>1));};
+    inline float   fpsin1h2(const uint16_t index)   const {return float(psin1h2(index)) * frange1h2;};
+    inline int32_t psin1q2(const uint16_t index)    const {return (tables::waveSinTable[uint16_t(phase[index&sizeMask]>>16)]+(tables::waveSinTable[uint16_t(phase[index&sizeMask]>>15)]>>2));};
+    inline float   fpsin1q2(const uint16_t index)   const {return float(psin1q2(index)) * frange1q2;};
+
+    inline int32_t trigger(const uint16_t index)    const {return -int32_t( (  phase[index&sizeMask]+phaseDelta[index&sizeMask] ) > phase[index&sizeMask] ); };
+
+
+    inline static LowOscillatorArray& getInstance(void)
+    {
+        static LowOscillatorArray instance;
+        return instance;
+    };
+    
+private:    
+    LowOscillatorArray()
+    {};
+    
+    union {
+        v4si        vphase[vsize];
+        uint32_t    phase[size];
+    };
+    union {
+        v4si        vphaseDelta[vsize];
+        uint32_t    phaseDelta[size];
+    };
+    union {
+        v4si        vphase0[vsize];
+        uint32_t    phase0[size];
+    };
+
+};
+
+
+//LowOscillatorArray<> lowOscillatorArray;
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
 
 // obsolate
 class BaseOscillatorFunction {

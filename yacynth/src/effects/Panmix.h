@@ -33,7 +33,12 @@
 //#include    "Comb.h"
 //#include    "CombInterpolated.h"
 //#include    "FilterBank.h"
+<<<<<<< HEAD
 #include    "EffectBase.h"
+=======
+//#include    "FxEffectBase.h"
+//#include    "FxOutNoise.h"
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
 
 #include    "../oscillator/Tables.h"
 #include    "../oscillator/NoiseFrame.h"
@@ -55,7 +60,7 @@ using namespace limiter;
 using namespace filter;
 
 namespace yacynth {
-
+#if 0
 class Panmix {
 public:
     struct alignas(16) AddVector {
@@ -97,6 +102,12 @@ private:
 //    FilterComb<5>       filterComb4;
     FilterAllpass1<1>     allpass1;
     FilterAllpass1<1>     allpass2;
+<<<<<<< HEAD
+=======
+    // GaloisShifterCascade    galoisShifterCascade;
+//    FxOutNoise          fxOutNoise;
+//    FxNode              fxOutNoiseNode;
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
 
     float               allpassk[2];
     int                 allpasskind;
@@ -116,6 +127,7 @@ private:
     int64_t     count;
     
 };
+#endif
 
 } // end namespace yacynth
 

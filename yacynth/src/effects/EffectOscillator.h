@@ -25,16 +25,76 @@
  * Created on April 17, 2016, 9:09 PM
  */
 #include    "../oscillator/BaseOscillator.h"
-#include    "EffectBase.h"
 #include    "Ebuffer.h"
 
 namespace yacynth {
 
-template< typename Tstore >
-class EffectOscillator {
-public:
-        
+template< std::size_t sExp>
+struct VsizeParam {
+    static constexpr std::size_t varraySizeExp  = sExp;
+    static constexpr std::size_t varraySize     = 1<<varraySizeExp;    
+    static constexpr std::size_t arraySizeExp   = varraySizeExp+2;
+    static constexpr std::size_t arraySize      = arraySizeExp;
+    static constexpr std::size_t arraySizeMask  = arraySize-1;
+    static constexpr std::size_t arraySizeExp2  = arraySizeExp+1;
+    static constexpr std::size_t arraySize2     = arraySizeExp2;
+    static constexpr std::size_t arraySizeMask2 = arraySize2-1;
 };
+
+template< std::size_t sExp >
+struct alignas(16) ValueArray : public VsizeParam<sExp> {
+    union {
+        v4si        v[varraySize];
+        uint32_t    i[arraySize];        
+    };
+};
+
+template< typename T, typename TV, std::size_t sExp >
+struct alignas(16) TargetParamVector : VsizeParam<sExp> {    
+    union {
+        TV vv[varraySize];
+        T  v[arraySize];
+    };        
+};
+
+template< std::size_t sExp>
+class EffectOscillator : public VsizeParam<sExp> {
+public:        
+    void reset(void)
+    {
+        for( auto i=0u; i<varraySize; ++i ) {
+            phase.v[i] = initPhase.v[i];
+        }
+    }
+        
+    void inc(void)
+    {
+        for( auto i=0u; i<varraySize; ++i ) {
+            phase.v[i] += deltaPhase.v[i];
+        }
+    }
+    
+    uint32_t get( std::size_t ind )
+    {
+        return phase.i[ind];
+    }
+    
+    inline static EffectOscillator& getInstance(void)
+    {
+        static EffectOscillator instance;
+        return instance;
+    }
+    
+private:
+    EffectOscillator() {}
+    // purple lfo <1> -> phase + am to osc
+    ValueArray<sExp>     phase;
+    ValueArray<sExp>     initPhase;
+    ValueArray<sExp>     deltaPhase;
+//    MapperControllerInt2Int controller[arraySize];
+};
+
+
 
 } // end namespace yacynth
 

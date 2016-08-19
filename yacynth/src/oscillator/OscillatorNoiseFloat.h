@@ -32,7 +32,11 @@ using namespace filter;
 
 namespace yacynth {
 
+<<<<<<< HEAD
 class OscillatorNoiseFloat : public FilterBase {
+=======
+class OscillatorNoiseFloat : public FilterBaseOld {
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
 public:
 
     static constexpr float    fcontrolMin       = std::exp(-PI2*fcMin);

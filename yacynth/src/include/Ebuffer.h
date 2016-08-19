@@ -78,8 +78,11 @@ inline float noisefloor( const float val )
 // possible oversampling rate 1<<EffectOversamplingRateExp
 //
 
+<<<<<<< HEAD
 // remove template !
 using EDataType  = float;
+=======
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
 // --------------------------------------------------------------------
 
 struct EbufferPar {    
@@ -88,10 +91,17 @@ struct EbufferPar {
     static constexpr std::size_t sectionSizeExp     = EffectFrameSizeExp+EffectOversamplingRateExp;
     static constexpr std::size_t sectionSize        = 1<<sectionSizeExp;
     static constexpr std::size_t sectionSizeMask    = sectionSize-1;
+<<<<<<< HEAD
     static constexpr std::size_t vsectionSizeExp    = sectionSizeExp-2;    
     static constexpr std::size_t vsectionSize       = 1<<vsectionSizeExp;    
     static constexpr std::size_t vsectionSizeMask   = vsectionSize-1;    
     
+=======
+    static constexpr std::size_t vsectionSizeExp    = sectionSizeExp-2;
+    static constexpr std::size_t vsectionSize       = 1<<vsectionSizeExp;
+    static constexpr std::size_t vsectionSizeMask   = vsectionSize-1;
+
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
     static constexpr std::size_t chA                = 0;
     static constexpr std::size_t chB                = 1;
 
@@ -107,169 +117,286 @@ struct EbufferPar {
 
 // --------------------------------------------------------------------
 // Effect stage IO buffer
+<<<<<<< HEAD
 // this will be only float
 template< typename Tstore >
 struct EIObufferT : public EbufferPar {
     typedef Tstore value_type;
     EIObufferT()
+=======
+struct FadeBufferTag {
+    FadeBufferTag() = default;
+};
+
+struct EIObuffer : public EbufferPar {
+
+    EIObuffer()
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
     { clear(); };
+
+    // fast hack to make fade buffer
+    EIObuffer( const FadeBufferTag * x)
+    { makeFadeBuffer(); };
 
     void clear(void)
     {
+<<<<<<< HEAD
         for( auto& ichn : channel ) memset( ichn, 0, sectionSize*sizeof(Tstore) );
         channelGain = 1.0f;
+=======
+        for( auto& ichn : channel ) memset( ichn, 0, sectionSize*sizeof(float) );
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
     }
 
-    inline void copyMono2Stereo( const EIObufferT& inp )
+    // chA fadeIn
+    // chB fadeOut
+    void makeFadeBuffer(void)
     {
-        const auto * inpAp = inp.channel[EbufferPar::chA];
-        auto * outAp = channel[EbufferPar::chA];
-        auto * outBp = channel[EbufferPar::chB];
-        for( auto i=0u; i < sectionSize; ++i ) {
-            *outAp++ = *outBp++ = *inpAp++;
+        for( auto i=0u; i<sectionSize; ++i ) {
+            const float x = float(i) / float(sectionSize);
+            channel[chA][i] = x;
+            channel[chB][sectionSize-1-i] = x;
         }
     }
 
-    inline void copy( const EIObufferT& inp )
+    inline void copyMono2Stereo( int32_t * inp )
     {
-        // no aliasing -> __restrict__
-        const auto * inpAp = inp.channel[EbufferPar::chA];
-        const auto * inpBp = inp.channel[EbufferPar::chB];
-        auto * outAp = channel[EbufferPar::chA];
-        auto * outBp = channel[EbufferPar::chB];
         for( auto i=0u; i < sectionSize; ++i ) {
-            *outAp++ = *inpAp++;
-            *outBp++ = *inpBp++;
+            channel[chB][i] = channel[chA][i] = static_cast<float>(*inp++);
         }
     }
 
-    inline void add( const EIObufferT& inp )
+    inline void copyMono2Stereo( int32_t * inp, float gain )
     {
-        const auto * inpAp = inp.channel[EbufferPar::chA];
-        const auto * inpBp = inp.channel[EbufferPar::chB];
-        auto * outAp = channel[EbufferPar::chA];
-        auto * outBp = channel[EbufferPar::chB];
         for( auto i=0u; i < sectionSize; ++i ) {
-            *outAp++ += *inpAp++;
-            *outBp++ += *inpBp++;
+            channel[chB][i] = channel[chA][i] = static_cast<float>(*inp++) * gain;
         }
     }
 
-    inline void add( const EIObufferT& inp1, const EIObufferT& inp2  )
+    inline void copyMono2Stereo( int64_t * inp )
     {
-        const auto * inp1Ap = inp1.channel[EbufferPar::chA];
-        const auto * inp1Bp = inp1.channel[EbufferPar::chB];
-        const auto * inp2Ap = inp2.channel[EbufferPar::chA];
-        const auto * inp2Bp = inp2.channel[EbufferPar::chB];
-        auto * outAp = channel[EbufferPar::chA];
-        auto * outBp = channel[EbufferPar::chB];
         for( auto i=0u; i < sectionSize; ++i ) {
-            *outAp++ += *inp1Ap++ + *inp2Ap++;
-            *outBp++ += *inp1Bp++ + *inp2Bp++;
+            channel[chB][i] = channel[chA][i] = static_cast<float>(*inp++);
         }
     }
 
-    inline void add( const EIObufferT& inp1, const EIObufferT& inp2, const EIObufferT& inp3  )
+    inline void copyMono2Stereo( int64_t * inp, float gain )
     {
-        const auto * inp1Ap = inp1.channel[EbufferPar::chA];
-        const auto * inp1Bp = inp1.channel[EbufferPar::chB];
-        const auto * inp2Ap = inp2.channel[EbufferPar::chA];
-        const auto * inp2Bp = inp2.channel[EbufferPar::chB];
-        const auto * inp3Ap = inp3.channel[EbufferPar::chA];
-        const auto * inp3Bp = inp3.channel[EbufferPar::chB];
-        auto * outAp = channel[EbufferPar::chA];
-        auto * outBp = channel[EbufferPar::chB];
         for( auto i=0u; i < sectionSize; ++i ) {
-            *outAp++ += *inp1Ap++ + *inp2Ap++ + *inp3Ap++;
-            *outBp++ += *inp1Bp++ + *inp2Bp++ + *inp3Bp++;
+            channel[chB][i] = channel[chA][i] = static_cast<float>(*inp++) * gain;
         }
     }
 
-    inline void mult( const EIObufferT& inp );
+    inline void copyMono2Stereo( const EIObuffer& inp )
+    {
+        for( auto i=0u; i < vsectionSize; ++i ) {
+            vchannel[chB][i] = vchannel[chA][i] = inp.vchannel[chA][i];
+        }
+    }
 
-    void dump( Tstore * chnA, Tstore * chnB ) const
+    // do vectorizing - check
+    inline void copy( const EIObuffer& inp )
+    {
+        for( auto i=0u; i < vsectionSize; ++i ) {
+            vchannel[chA][i] = inp.vchannel[chA][i];
+            vchannel[chB][i] = inp.vchannel[chB][i];
+        }
+    }
+
+    inline void add( const EIObuffer& inp )
+    {
+        for( auto i=0u; i < vsectionSize; ++i ) {
+            vchannel[chA][i] += inp.vchannel[chA][i];
+            vchannel[chB][i] += inp.vchannel[chB][i];
+        }
+    }
+
+    inline void add( const EIObuffer& inp1, const EIObuffer& inp2  )
+    {
+        for( auto i=0u; i < vsectionSize; ++i ) {
+            vchannel[chA][i] = inp1.vchannel[chA][i] + inp2.vchannel[chA][i];
+            vchannel[chB][i] = inp1.vchannel[chB][i] + inp2.vchannel[chB][i];
+        }
+    }
+
+    inline void mult( const EIObuffer& inp, float gain )
+    {
+        for( auto i=0u; i < vsectionSize; ++i ) {
+            vchannel[chA][i] = inp.vchannel[chA][i] * gain;
+            vchannel[chB][i] = inp.vchannel[chB][i] * gain;
+        }
+    }
+    inline void mult( float gain )
+    {
+        for( auto i=0u; i < vsectionSize; ++i ) {
+            vchannel[chA][i] *= gain;
+            vchannel[chB][i] *= gain;
+        }
+    }
+
+    inline void fade( const EIObuffer& inp, float& gain, float dgain )
+    {
+        for( auto i=0u; i < sectionSize; ++i ) {
+            gain += dgain;
+            channel[chA][i] = inp.channel[chA][i] * gain;
+            channel[chB][i] = inp.channel[chB][i] * gain;
+        }
+    }
+
+    inline void mult( const EIObuffer& inp1, const EIObuffer& inp2  )
+    {
+        for( auto i=0u; i < vsectionSize; ++i ) {
+            vchannel[chA][i] = inp1.vchannel[chA][i] * inp2.vchannel[chA][i];
+            vchannel[chB][i] = inp1.vchannel[chB][i] * inp2.vchannel[chB][i];
+        }
+    }
+
+    inline void mult( const EIObuffer& inp ) {
+        for( auto i=0u; i < vsectionSize; ++i ) {
+            vchannel[chA][i] *= inp.vchannel[chA][i];
+            vchannel[chB][i] *= inp.vchannel[chB][i];
+        }
+    }
+
+    // AM == inp1 * inp2 * k1 + inp1 * k2
+    inline void mult( const EIObuffer& inp1, const EIObuffer& inp2, float k1, float k2 ) {
+        for( auto i=0u; i < vsectionSize; ++i ) {
+            vchannel[chA][i] =
+                inp1.vchannel[chA][i] * inp2.vchannel[chA][i] * k1 + inp1.vchannel[chA][i] * k2;
+            vchannel[chB][i] =
+                inp1.vchannel[chB][i] * inp2.vchannel[chB][i] * k1 + inp1.vchannel[chB][i] * k2;
+        }
+    }
+
+    inline void mult( const v4sf * inp ) {
+        for( auto i=0u; i < vsectionSize; ++i ) {
+            vchannel[chA][i] *= inp[i];
+            vchannel[chB][i] *= inp[i];
+        }
+    }
+
+
+    inline void mult( const v4sf * inpA, const v4sf * inpB ) {
+        for( auto i=0u; i < vsectionSize; ++i ) {
+            vchannel[chA][i] *= inpA[i];
+            vchannel[chB][i] *= inpB[i];
+        }
+    }
+
+    void dump( float * chnA, float * chnB ) const
     {
         for( auto i = 0u; i < sectionSize; ++i ) {
-            *chnA++ = channel[EbufferPar::chA][i];
-            *chnB++ = channel[EbufferPar::chB][i];
+            *chnA++ = channel[chA][i];
+            *chnB++ = channel[chB][i];
         }
     }
 
-    inline void setGain( const float v )
+    void dump( float * chnA, float * chnB, float kA, float kB ) const
     {
-        channelGain = v;
+        for( auto i = 0u; i < sectionSize; ++i ) {
+            *chnA++ = channel[chA][i] * kA;
+            *chnB++ = channel[chB][i] * kB;
+        }
     }
 
-//    union {
+    inline void fadeOut( const EIObuffer& inp );
+    inline void fadeIn(  const EIObuffer& inp );
+    inline void fadeOut( void );
+    inline void fadeIn(  void );
+
     union alignas(16) {
         v4sf    vchannel[ channelCount ][ vsectionSize ];
+<<<<<<< HEAD
         Tstore  channel[ channelCount ][ sectionSize ];
+=======
+        float   channel[ channelCount ][ sectionSize ];
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
         struct {
-            Tstore  channelA[ sectionSize ];
-            Tstore  channelB[ sectionSize ];
+            float  channelA[ sectionSize ];
+            float  channelB[ sectionSize ];
 #ifdef CH4VERSION
-            Tstore  channelC[ sectionSize ];
-            Tstore  channelD[ sectionSize ];
+            float  channelC[ sectionSize ];
+            float  channelD[ sectionSize ];
 #endif
         };
     };
-    float           channelGain;
 };
 // --------------------------------------------------------------------
-template<> inline void EIObufferT<float>::mult( const EIObufferT& inp )
+extern const EIObuffer nullEBuffer;
+extern const EIObuffer fadeEBuffer;
+// --------------------------------------------------------------------
+inline void EIObuffer::fadeIn( const EIObuffer& inp )
 {
-    for( auto i=0u; i < sectionSize; ++i ) {
-        channel[EbufferPar::chA][i] *= inp.channel[EbufferPar::chA][i];
-        channel[EbufferPar::chB][i] *= inp.channel[EbufferPar::chB][i];
+    for( auto i=0u; i < vsectionSize; ++i ) {
+        vchannel[chA][i] = inp.vchannel[chA][i] * fadeEBuffer.vchannel[chA][i]
+                + vchannel[chA][i] * fadeEBuffer.vchannel[chB][i];
+        vchannel[chB][i] = inp.vchannel[chB][i] * fadeEBuffer.vchannel[chA][i]
+                + vchannel[chB][i] * fadeEBuffer.vchannel[chB][i];
+    }
+}
+
+inline void EIObuffer::fadeIn(void)
+{
+    for( auto i=0u; i < vsectionSize; ++i ) {
+        vchannel[chA][i] *= fadeEBuffer.vchannel[chA][i];
+        vchannel[chB][i] *= fadeEBuffer.vchannel[chA][i];
+    }
+}
+
+inline void EIObuffer::fadeOut( const EIObuffer& inp )
+{
+    for( auto i=0u; i < vsectionSize; ++i ) {
+        vchannel[chA][i] = inp.vchannel[chA][i] * fadeEBuffer.vchannel[chB][i]
+                + vchannel[chA][i] * fadeEBuffer.vchannel[chA][i];
+        vchannel[chB][i] = inp.vchannel[chB][i] * fadeEBuffer.vchannel[chB][i]
+                + vchannel[chB][i] * fadeEBuffer.vchannel[chA][i];
+    }
+}
+inline void EIObuffer::fadeOut(void)
+{
+    for( auto i=0u; i < vsectionSize; ++i ) {
+        vchannel[chA][i] *= fadeEBuffer.vchannel[chB][i];
+        vchannel[chB][i] *= fadeEBuffer.vchannel[chB][i];
     }
 }
 // --------------------------------------------------------------------
-template<> inline void EIObufferT<int32_t>::mult( const EIObufferT& inp )
-{
-    for( auto i=0u; i < sectionSize; ++i ) {
-        channel[EbufferPar::chA][i] = ( int64_t(inp.channel[EbufferPar::chA][i]) * channel[EbufferPar::chA][i] ) >> 32;
-        channel[EbufferPar::chB][i] = ( int64_t(inp.channel[EbufferPar::chB][i]) * channel[EbufferPar::chB][i] ) >> 32;
-    }
-}
-// --------------------------------------------------------------------
-template< typename Tstore >
-struct EDelayLineT : public EbufferPar {
-    EDelayLineT( std::size_t sectionCountExp ) // section count MUST BE 1<<k
+struct EDelayLine : public EbufferPar {
+    EDelayLine( std::size_t sectionCountExp ) // section count MUST BE 1<<k
     :   index(0)
     ,   bufferSizeExp( sectionCountExp + sectionSizeExp )
     ,   bufferSize( 1L << ( sectionCountExp + sectionSizeExp) )
     ,   bufferSizeMask(bufferSize-1)
     {
-        for( auto& ichn : channel ) ichn = new Tstore [ bufferSize ];
+        for( auto& ichn : channel ) ichn = new float [ bufferSize ];
         clear();
     };
 
-    EDelayLineT() = delete;
+    EDelayLine() = delete;
 
-    ~EDelayLineT()
+    ~EDelayLine()
     {
         for( auto& ichn : channel ) delete[] ichn;
     };
 
     void clear(void)
     {
-        for( auto& ichn : channel ) memset( ichn, 0, bufferSize*sizeof(Tstore) );
+        for( auto& ichn : channel ) memset( ichn, 0, bufferSize*sizeof(float) );
         index = 0;
     };
     // ----------------------------------------------------------------------
 
-    inline void push( const Tstore valA, const Tstore valB )
+    inline void push( const float valA, const float valB )
     {
         channelA[ index ] = valA;
         channelB[ index ] = valB;
         index = ( ++index ) & bufferSizeMask;
     };
-    inline void push( const Tstore valA )
+    inline void push( const float valA )
     {
         channelA[ index ] = valA;
         index = ( ++index ) & bufferSizeMask;
     };
-    inline void pushSection( const Tstore * valA, const Tstore * valB )
+    inline void pushSection( const float * valA, const float * valB )
     {
         auto * pA = &channelA[ ( index & ~sectionSizeMask ) & bufferSizeMask ];
         auto * pB = &channelB[ ( index & ~sectionSizeMask ) & bufferSizeMask ];
@@ -279,7 +406,7 @@ struct EDelayLineT : public EbufferPar {
         }
         incIndexBySectionSize();
     };
-    inline void pushBlock( const Tstore * valA, Tstore * valB )
+    inline void pushBlock( const float * valA, float * valB )
     {
         for( uint32_t ind = 0u; ind < sectionSize; ++ind ) {
             channelA[ index ] = *valA++;
@@ -344,7 +471,7 @@ struct EDelayLineT : public EbufferPar {
         A += channelA[cind] * mult;
         B += channelB[cind] * mult;
     }
-    inline void get( const uint32_t delay, Tstore& A, Tstore& B ) const
+    inline void get( const uint32_t delay, float& A, float& B ) const
     {
         const uint32_t cind = getIndex(delay);
         A = channelA[cind];
@@ -467,16 +594,16 @@ struct EDelayLineT : public EbufferPar {
 
     // ----------------------------------------------------------------------
     union {
-        Tstore * channel[ channelCount ];
+        float * channel[ channelCount ];
         struct {
             // once channelA should be replaced by channel[Ebuffer::chA]
             // once channelB should be replaced by channel[Ebuffer::chB]
-            Tstore  * channelA;
-            Tstore  * channelB;
+            float  * channelA;
+            float  * channelB;
 #ifdef CH4VERSION
             // this should not be used
-            Tstore        * channelC;
-            Tstore        * channelD;
+            float        * channelC;
+            float        * channelD;
 #endif
         };
     };
@@ -487,6 +614,7 @@ struct EDelayLineT : public EbufferPar {
 };
 
 // --------------------------------------------------------------------
+<<<<<<< HEAD
 // --------------------------------------------------------------------
 using EIObuffer         = EIObufferT<EDataType>;
 //using EIObufferInt      = EIObufferT<int32_t>;
@@ -496,5 +624,7 @@ using EDelayLine        = EDelayLineT<EDataType>;
 // --------------------------------------------------------------------
 extern const EIObuffer nullEBuffer;
 // --------------------------------------------------------------------
+=======
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
 } // end namespace yacynth
 

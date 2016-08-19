@@ -49,14 +49,13 @@ public:
 
     inline void getPitch() 
     {
-        constexpr  int8_t   pitchBendMaxExp     = 13 + ControllerIterated::rangeExp ;    
+        constexpr  int8_t   pitchBendMaxExp     = 13 + 10;    
         constexpr  int32_t  pitchBendMax        = 1<<pitchBendMaxExp;    
         constexpr  float    octaveResolution    = 1<<24;        
         constexpr  uint32_t pitchMult           = octaveResolution / 6; // fix range 
         if( pitchBend.update() ) {
-            const int64_t pitchInd = pitchBend.get() - pitchBendMax;
+            const int64_t pitchInd = (pitchBend.getValue()<<10) - pitchBendMax;
             oscillatorParamGenerate.pitchDelta = (pitchInd * pitchMult)>>pitchBendMaxExp;
-//            std::cout << "v pitchDelta " << oscillatorParamGenerate.pitchDelta   << std::endl;            
         }
     }
     
@@ -69,10 +68,7 @@ private:
     bool                    enableFM;
     int16_t                 fastReleaseTick;
     int32_t                 commonFMPitch;
-//    const Controller&       pitchBend;
-//    ControllerMatrix&       controllers;
-    ControllerIterated   pitchBend;
-//    ControllerLfo&          frequencyModulator;
+    ControlledValue         pitchBend;
     std::array<Oscillator,overtoneCountOscDef> array;
 };
 

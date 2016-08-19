@@ -72,8 +72,9 @@ typedef float v4sf __attribute__((mode(SF)))  __attribute__ ((vector_size(16),al
 namespace filter {
 
 // --------------------------------------------------------------------
+// OBSOLATE
 
-class FilterBase {
+class FilterBaseOld {
 public :
     static constexpr float      PI  = 3.141592653589793238462643383279502884197;
     static constexpr float      PI2 = 2.0f * PI;
@@ -188,6 +189,9 @@ public :
                 }
             }
         }
+
+        // singleton
+
     };
 
     class FtableSinCosPi2 : public Ftable {
@@ -210,6 +214,8 @@ public :
                 }
             }
         }
+
+        // singleton
     };
 
     class Ftable2SinPi : public Ftable {
@@ -232,6 +238,8 @@ public :
                 }
             }
         }
+
+        // singleton
     };
 
     template< uint16_t oversamplingRate >
@@ -248,62 +256,287 @@ public :
                 : fc > fcMax/float(oversamplingRate) ? fcMax/float(oversamplingRate)
                 : fc; };
 
-//protected:
-//    static const FtableExp2Pi       ftableExp2Pi;
-//    static const FtableSinCosPi2    ftableSinCosPi2;
-//    static const Ftable2SinPi       ftable2SinPi;
 };
+
+// --------------------------------------------------------------------
+// --------------------------------------------------------------------
+// --------------------------------------------------------------------
+// --------------------------------------------------------------------
+// --------------------------------------------------------------------
+// === NEW === NEW === NEW === NEW === NEW === NEW === NEW
+class FilterBase {
+public :
+    static constexpr float      PI  = 3.141592653589793238462643383279502884197;
+    static constexpr float      PI2 = 2.0f * PI;
+    static constexpr uint16_t   samplingFrequency = 48000;  // this could be a template parameter but don't bother
+    static constexpr float      onepfs  = 1.0f/samplingFrequency;
+    static constexpr float      freqMin = 24.0;
+    static constexpr float      freqMax = 19000.0;
+    static constexpr float      fcMin   = freqMin/samplingFrequency;
+    static constexpr float      fcMax   = freqMax/samplingFrequency;
+    // reminder
+    static constexpr int        octave12000  = 30;
+    static constexpr int        octave6000   = 29;
+    static constexpr int        octave3000   = 28;
+    static constexpr int        octave1500   = 27;
+
+};
+
 // --------------------------------------------------------------------
 
-template< std::size_t tableSizeX, std::size_t samplingFrequencyP >
-class  FilterTableFc {
-public:
-    static constexpr float          PI  = 3.141592653589793238462643383279502884197;
-    static constexpr float          PI2 = 2.0f * PI;
-    static constexpr std::size_t    tableSizeExp = tableSizeX;
-    static constexpr std::size_t    tableSize = 1LL<<tableSizeExp;
-    static constexpr uint16_t       samplingFrequency = samplingFrequencyP;
+// NEWNEWNEWNEW
 
-    FilterTableFc()
-    :   FilterTableFc( 30.0, 15500.0 )
+class FilterTable : public FilterBase {
+public:
+    FilterTable()
+    :   limit(FilterTable::tableSize-2)
     {};
 
-    FilterTableFc( const double minFreq, const double maxFreq )
+    static constexpr int  maxOctave         = 31;  // to 48000
+    static constexpr int  minOctave         = 20;
+    static constexpr int  ycentOctaveExp    = 24;
+    static constexpr int  minYcent          = minOctave<<ycentOctaveExp;
+
+    static constexpr int  octavePointExp    = 12;
+    static constexpr int  octavePointCount  = 1<<octavePointExp;
+    static constexpr int  valueNormExp      = 31;
+    static constexpr int  tableSize         = ( maxOctave - minOctave ) * octavePointCount;
+    static constexpr int64_t valueNorm      = 1LL<<valueNormExp;
+    static constexpr float   valueNormf     = 1.0f / valueNorm;
+
+    // fast
+    // no interpolation
+    // valid between 20hz..20khz caller must ensure
+    inline int32_t getIntRaw( const int32_t valLog ) const
     {
-        const double mult   = 1.0f / samplingFrequency;
-        const double dfreq  = std::pow( 2.0f, std::log2( minFreq / maxFreq ) / tableSize ) ;
-        double fc = maxFreq/samplingFrequencyP;
-        for( int i = 0; i < tableSize; ++i ) {
-            f[ i ] =  fc;
-            fexp2pi[ i ] = std::exp( -PI2 * fc );
-            fc *= dfreq;
+        constexpr uint16_t rshv = ycentOctaveExp-octavePointExp; // right shift value
+        const int32_t valLog0 = std::abs(valLog - minYcent);
+        const int32_t idx = valLog0>>rshv;
+        return y[idx];
+    }
+
+    inline float getFloatRaw( const int32_t valLog ) const
+    {
+        return float ( getInt( valLog ) * valueNormf );
+    }
+
+    inline int32_t getInt( const int32_t valLog ) const
+    {
+        constexpr uint16_t rshv = ycentOctaveExp-octavePointExp; // right shift value
+        constexpr uint32_t rshvmsk = (1<<rshv) - 1;
+        const int32_t valLog0 = valLog - minYcent;
+        if( valLog0 <= 0 )
+            return y[0];
+        const int32_t idx   = valLog0>>rshv;
+        if( idx > limit )
+            return y[ limit ];
+        const int32_t y0 = y[idx];
+        const int16_t rest  = valLog0 & rshvmsk;
+        return y0 + ((( y[idx + 1] - y0 ) * rest )>>rshv);
+    }
+
+    inline float getFloat( const int32_t valLog ) const
+    {
+        return float ( getInt( valLog ) * valueNormf );
+    }
+
+#if 0
+    inline float getFloat( const float valLog )     const
+    {
+        const int32_t v = valLog * (1<<ycentOctaveExp);
+        return float ( getInt( v ) * valueNormf );
+    }
+#endif
+    // filter coeff functions
+    static inline double logF_fc( const double logF )
+    {
+        constexpr double onenorm = 1.0/(1L<<32);
+        return std::pow( 2.0, logF ) * onenorm;
+    }
+    static inline double fc_expPi2_F( const double fc )
+    {
+        return std::exp( -PI2 * fc );
+    }
+    static inline double fc_cosPi2_F( const double fc )
+    {
+        return std::cos( PI2 * fc );
+    }
+    static inline double fc_sinPi2_F( const double fc )
+    {
+        return std::sin( PI2 * fc );
+    }
+    static inline double fc_2sinPi_F( const double fc )
+    {
+        return 2.0 * std::sin( PI * fc );
+    }
+    static inline double fc_sinpercosPi2_F( const double fc )
+    {
+        if( std::abs( fc - 0.25 ) < 1e-15 ) {
+            return 0.0;
         }
-    };
-    float get( const uint64_t index ) { return index < tableSize ? f[ index ] : f[ tableSize - 1 ]; };
-    float getExp2pi( const uint64_t index ) { return index < tableSize ? fexp2pi[ index ] : fexp2pi[ tableSize - 1 ]; };
+        return ( fc_sinPi2_F(fc) - 1.0 ) / fc_cosPi2_F(fc);
+    }
+
+protected:
+    int32_t y[ tableSize ];
+    int32_t limit;
+};
+
+// exp( - 2 * pi * f / fs ) -- 1 pole filter
+
+class FilterTableExp2Pi : public FilterTable {
+public:
+    inline static FilterTableExp2Pi& getInstance(void)
+    {
+        static FilterTableExp2Pi instance;
+        return instance;
+    }
 
 private:
-    float           f[ tableSize ];
-    float           fexp2pi[ tableSize ];
-};
-
-// --------------------------------------------------------------------
-
-struct FilterParam {
-    void clear(void)
+    FilterTableExp2Pi()
     {
-        freq = q = gain = 0.0f;
-    }
-    float   freq;
-    float   q;
-    float   gain;
-};
-// --------------------------------------------------------------------
-using FilterTableFc48000    = FilterTableFc<10,48000>;
+        for( auto octave = FilterTable::minOctave; octave < FilterTable::maxOctave; ++octave ) {
+            const double xO = octave;
+            for( auto inOctave = 0; inOctave < FilterTable::octavePointCount; ++inOctave ) {
+                uint32_t  index = ((octave - FilterTable::minOctave)<<FilterTable::octavePointExp) + inOctave;
+                if( index >= FilterTable::tableSize )
+                    return;
+                const double x = xO + double(inOctave) / double(octavePointCount);
+                const double fc = logF_fc( x );
+                FilterTable::y[ index ] = std::lround( fc_expPi2_F(fc) * FilterTable::valueNorm );
+                if( fc > 0.46 ) {
+                    FilterTable::limit = index;
+                    const float lv = FilterTable::y[ index ];
+                    for( ; index<FilterTable::tableSize; ++index ) {
+                        FilterTable::y[ index ] = lv;
+                    }
+        std::cout
+            << "FilterTableExp2Pi index:" << index
+            << " tableSize " << tableSize
+            << std::endl;
 
-extern const FilterBase::FtableExp2Pi       ftableExp2Pi;
-extern const FilterBase::FtableSinCosPi2    ftableSinCosPi2;
-extern const FilterBase::Ftable2SinPi       ftable2SinPi;
+                    return;
+                }
+            }
+        }
+    }
+};
+
+class FilterTableSinCosPi2 : public FilterTable {
+public:
+    inline static FilterTableSinCosPi2& getInstance(void)
+    {
+        static FilterTableSinCosPi2 instance;
+        return instance;
+    }
+private:
+    FilterTableSinCosPi2()
+    {
+        for( auto octave = FilterTable::minOctave; octave < FilterTable::maxOctave; ++octave ) {
+            const double xO = octave;
+            for( auto inOctave = 0; inOctave < FilterTable::octavePointCount; ++inOctave ) {
+                uint32_t  index = ((octave - FilterTable::minOctave)<<FilterTable::octavePointExp) + inOctave;
+                if( index >= FilterTable::tableSize )
+                    return;
+                const double x = xO + double(inOctave) / double(octavePointCount);
+                const double fc = logF_fc( x );
+                FilterTable::y[ index ] = std::lround( fc_sinpercosPi2_F(fc) * FilterTable::valueNorm );
+                if( fc > 0.46 ) {
+                    FilterTable::limit = index;
+                    const float lv = FilterTable::y[ index ];
+                    for( ; index<FilterTable::tableSize; ++index ) {
+                        FilterTable::y[ index ] = lv;
+                    }
+        std::cout
+            << "FilterTableSinCosPi2 index:" << index
+            << " tableSize " << tableSize
+            << std::endl;
+                    return;
+                }
+            }
+        }
+    }
+};
+
+class FilterTable2SinPi : public FilterTable {
+public:
+    inline static FilterTable2SinPi& getInstance(void)
+    {
+        static FilterTable2SinPi instance;
+        return instance;
+    }
+private:
+    FilterTable2SinPi()
+    {
+        for( auto octave = FilterTable::minOctave; octave < FilterTable::maxOctave; ++octave ) {
+            const double xO = octave;
+            for( auto inOctave = 0; inOctave < FilterTable::octavePointCount; ++inOctave ) {
+                uint32_t  index = ((octave - FilterTable::minOctave)<<FilterTable::octavePointExp) + inOctave;
+                if( index >= FilterTable::tableSize )
+                    return;
+                const double x = xO + double(inOctave) / double(octavePointCount);
+                const double fc = logF_fc( x );
+                FilterTable::y[ index ] = std::lround( fc_2sinPi_F(fc) * FilterTable::valueNorm );
+                if( fc > 0.1666 ) {
+                    FilterTable::limit = index;
+                    const float lv = FilterTable::y[ index ];
+                    for( ; index<FilterTable::tableSize; ++index ) {
+                        FilterTable::y[ index ] = lv;
+                    }
+        std::cout
+            << "FilterTable2SinPi index:" << index
+            << " tableSize " << tableSize
+            << std::endl;
+
+                    return;
+                }
+            }
+        }
+    }
+};
+
+class FilterTableCos2Pi : public FilterTable {
+public:
+    inline static FilterTableCos2Pi& getInstance(void)
+    {
+        static FilterTableCos2Pi instance;
+        return instance;
+    }
+private:
+    FilterTableCos2Pi()
+    {
+        for( auto octave = FilterTable::minOctave; octave < FilterTable::maxOctave; ++octave ) {
+            const double xO = octave;
+            for( auto inOctave = 0; inOctave < FilterTable::octavePointCount; ++inOctave ) {
+                uint32_t  index = ((octave - FilterTable::minOctave)<<FilterTable::octavePointExp) + inOctave;
+                if( index >= FilterTable::tableSize )
+                    return;
+                const double x = xO + double(inOctave) / double(octavePointCount);
+                const double fc = logF_fc( x );
+                FilterTable::y[ index ] = std::lround( fc_cosPi2_F(fc) * FilterTable::valueNorm );
+                if( fc > 0.46 ) {
+                    FilterTable::limit = index;
+                    const float lv = FilterTable::y[ index ];
+                    for( ; index<FilterTable::tableSize; ++index ) {
+                        FilterTable::y[ index ] = lv;
+                    }
+        std::cout
+            << "FilterTableCos2Pi index:" << index
+            << " tableSize " << tableSize
+            << std::endl;
+                    return;
+                }
+            }
+        }
+    }
+};
+
+// --------------------------------------------------------------------
+
+// obsolate
+extern const FilterBaseOld::FtableExp2Pi       ftableExp2Pi;
+extern const FilterBaseOld::FtableSinCosPi2    ftableSinCosPi2;
+extern const FilterBaseOld::Ftable2SinPi       ftable2SinPi;
 
 
 } // end namespace filter

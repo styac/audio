@@ -34,7 +34,11 @@ typedef float   v4sf __attribute__((mode(SF)))  __attribute__ ((vector_size(16),
 
 namespace yacynth {
 
+<<<<<<< HEAD
 class OscillatorNoise : public FilterBase {
+=======
+class OscillatorNoise : public FilterBaseOld {
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
 public:
     static constexpr    uint8_t stateCountExp   = 4;
     static constexpr    uint8_t stateCount      = 1<<stateCountExp;

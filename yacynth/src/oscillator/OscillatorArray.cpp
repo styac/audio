@@ -36,9 +36,9 @@ OscillatorArray::OscillatorArray()
 ,   minVoice(0)
 ,   maxVoice(voiceCount)
 ,   commonFMPitch(0)
-,   pitchBend(  ControllerMatrix::C_INT_PITCHBEND  )
-//,   frequencyModulator( *ctrlm.attachLfo( ControllerMatrix::CLFO_GLOBAL_FM, false ) )
-{}
+{
+    pitchBend.index = InnerController::CC_PITCHBEND;
+}
 // --------------------------------------------------------
 bool OscillatorArray::initialize( void )
 {
@@ -52,7 +52,6 @@ bool OscillatorArray::initialize( void )
 void OscillatorArray::generate( OscillatorOut& out, Statistics& stat )
 {
     out.clear();
-    //oscillatorParamGenerate.pitchDelta = pitchBend.get();    // pitch bend + global FM
     getPitch();
     if( enableFM ) {
 //        oscillatorParamGenerate.pitchDelta += frequencyModulator.get() & 0x7FFFFF; // max +- 1/2 octave

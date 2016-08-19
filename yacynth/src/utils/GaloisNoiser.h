@@ -94,37 +94,62 @@ constexpr uint64_t seedThreadOscillator_random  = 0x2da068af77c909abULL;
 
 // i 8000000000 vv e4858c0e6cbc01b-- 
 
+<<<<<<< HEAD
 
 // --------------------------------------------------------------------
 class GaloisShifter {
+=======
+// --------------------------------------------------------------------
+class GaloisShifterCascade {
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
 public:
     //                                      7766554433221100
 //  static constexpr uint64_t feedback  = 0xd19850abe0000001ULL;
     static constexpr uint64_t feedback  = 0xd198000000000001ULL;
     static constexpr int shdownWhite    = 24; // spectrum looks white noise in this slice
 
+<<<<<<< HEAD
     GaloisShifter( const uint64_t seed = seedThreadEffect_noise ) // default should be deleted
 //    GaloisShifter( const uint64_t seed )
     :   lfsr(seed)
     {};
+=======
+    GaloisShifterCascade( const uint64_t seed )
+    { state2.lfsr = state1.lfsr = seed; };
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
 
     inline void reset( const uint64_t seed )
     {
-        lfsr = seed;
+        state1.lfsr = state2.lfsr = seed;
     }
 
     inline void inc(void)
     {
+<<<<<<< HEAD
         lfsr = (lfsr + lfsr) ^ (uint64_t(( int64_t(lfsr)>>63) & feedback ));        
     };
     inline uint64_t getState(void)
     {
         return lfsr;
+=======
+        const uint64_t s1 = int64_t(state1.lfsr)>>63;
+        const uint64_t s2 = int64_t(state2.lfsr)>>63;
+        state1.lfsr = (state1.lfsr + state1.lfsr) ^ ( s1 & feedback );  
+        if( (s1 & 0x070) == 0x070 ) {
+            state2.lfsr = (state2.lfsr + state2.lfsr) ^ ( s2 & feedback );                  
+        }
+        
+    };
+    inline uint64_t getState(void)
+    {
+        return state2.lfsr;
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
     };
     
     inline uint64_t get(void)
     {
         inc();
+<<<<<<< HEAD
         return lfsr;
     };
 
@@ -375,8 +400,162 @@ public:
         state.s[2] += ((state.s[1] + 0x08000 )>>16) * state.f[0];           
         
         return state.s[2];
+=======
+        return state2.lfsr;
     };
 
+    inline uint16_t get16(void)
+    {
+        inc();
+        return state2.lfsr16[7];   // most random part
+    };
+    
+    inline uint32_t getLow(void)
+    {
+        inc();
+        return state2.lfsr32[0];
+    };
+    
+    inline uint32_t getHigh(void)
+    {
+        inc();
+        return state2.lfsr32[1];
+    };
+    
+    // 24 bit significant
+    inline int32_t getWhite24(void)
+    {
+        union {
+            int32_t  res;
+            int16_t  res16[2];
+        };
+        inc();
+        // +3dB at 10kHz
+        res16[1] = state2.lfsr8[6]^state2.lfsr8[7]; 
+        res16[0] = state2.lfsr16[3];
+        return res;
+    };
+    
+    inline int32_t getWhiteRaw(void)
+    {
+        inc();
+        return (state2.lfsr >> shdownWhite);
+    };
+        
+    // 0..8 is BLUE
+    inline int32_t getWhiteRaw( const uint8_t sh )
+    {
+        inc();
+        return state2.lfsr >> sh;
+    };
+
+    struct State {
+        union {
+            uint64_t        lfsr;    
+            int32_t         lfsr32[2];
+            int16_t         lfsr16[4];
+            int8_t          lfsr8[8];
+        };        
+    };
+    
+protected:
+    State   state1;
+    State   state2;
+};
+
+// --------------------------------------------------------------------
+class GaloisShifter {
+public:
+    //                                      7766554433221100
+//  static constexpr uint64_t feedback  = 0xd19850abe0000001ULL;
+    static constexpr uint64_t feedback  = 0xd198000000000001ULL;
+    static constexpr int shdownWhite    = 24; // spectrum looks white noise in this slice
+
+    GaloisShifter( const uint64_t seed = seedThreadEffect_noise ) // default should be deleted
+//    GaloisShifter( const uint64_t seed )
+    :   lfsr(seed)
+    {};
+
+    inline void reset( const uint64_t seed )
+    {
+        lfsr = seed;
+    }
+
+    inline void inc(void)
+    {
+        lfsr = (lfsr + lfsr) ^ (uint64_t(( int64_t(lfsr)>>63) & feedback ));        
+    };
+    inline uint64_t getState(void)
+    {
+        return lfsr;
+    };
+    
+    inline uint64_t get(void)
+    {
+        inc();
+        return lfsr;
+    };
+
+    inline uint16_t get16(void)
+    {
+        inc();
+        return lfsr16[7];   // most random part
+    };
+    
+    inline uint32_t getLow(void)
+    {
+        inc();
+        return lfsr32[0];
+    };
+    
+    inline uint32_t getHigh(void)
+    {
+        inc();
+        return lfsr32[1];
+    };
+    
+    // 24 bit significant
+    inline int32_t getWhite24(void)
+    {
+        union {
+            int32_t  res;
+            int16_t  res16[2];
+        };
+        inc();
+        // +3dB at 10kHz
+        res16[1] = lfsr8[6]^lfsr8[7]; 
+        res16[0] = lfsr16[3];
+        return res;
+    };
+    
+    inline int32_t getWhiteRaw(void)
+    {
+        inc();
+        return (lfsr >> shdownWhite);
+    };
+        
+    // 0..8 is BLUE
+    inline int32_t getWhiteRaw( const uint8_t sh )
+    {
+        inc();
+        return lfsr >> sh;
+    };
+
+protected:
+    union {
+        uint64_t        lfsr;    
+        int32_t         lfsr32[2];
+        int16_t         lfsr16[4];
+        int8_t          lfsr8[8];
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
+    };
+};
+
+
+// --------------------------------------------------------------------
+// a singleton for the effect stage noise vectors
+
+<<<<<<< HEAD
     inline int32_t get2xsv( const int32_t sample  )
     {                                
         state.s[3] = state.s[2];
@@ -449,6 +628,476 @@ private:
     GaloisShifter&  galoisShifter;
 };
 
+class OscillatorNoiseFloat {
+public:
+    OscillatorNoiseFloat() = delete;
+    OscillatorNoiseFloat( GaloisShifter& gs )
+=======
+template< uint64_t seed >
+class GaloisShifterSingle : public GaloisShifter {
+public:
+    inline static GaloisShifterSingle& getInstance(void)
+    {
+        thread_local static GaloisShifterSingle instance;
+        return instance;
+    }
+    
+    inline static void reset(void)
+    {
+        static_cast<GaloisShifter>( GaloisShifterSingle<seed>::getInstance() ).reset(seed);
+    }
+    
+private:
+    GaloisShifterSingle()
+    :   GaloisShifter(seed)
+    {};    
+};
+
+// --------------------------------------------------------------------
+
+//
+// cutoff frequencies: (Hz) fs = 48000 Hz
+//  x = 1L<<k;
+//  -std::log( (x-1)/x ) / 3.1415 / 2.0 * 48000.0; 
+//      ( 2^k - 1 ) / 2^k
+//
+//
+/*
+k 1 f 5295.41
+k 2 f 2197.79 
+k 3 f 1020.13 -- 1323
+k 4 f 493.053
+k 5 f 242.549 -- 331 
+k 6 f 120.312
+k 7 f 59.9192 -- 82
+k 8 f 29.9009
+k 9 f 14.9358  -- 20.6
+k 10 f 7.46425
+k 11 f 3.73122 -- 5.17
+k 12 f 1.86538
+k 13 f 0.932633
+k 14 f 0.466302
+k 15 f 0.233148
+k 16 f 0.116573 -> random LFO
+k 17 f 0.0582862
+k 18 f 0.0291431
+k 19 f 0.0145715
+k 20 f 0.00728575
+ 
+*/
+
+// ----------------------------------------------------------
+// TESTING
+class OscillatorNoise {
+public:
+    OscillatorNoise() = delete;
+    OscillatorNoise( GaloisShifter& gs )
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
+    :   galoisShifter(gs)
+    { clear(); };
+        
+    struct State {
+        inline void clear(void)
+        {
+            sin = 0;
+<<<<<<< HEAD
+            vs[0] = vs[1] = vs[2] = vs[3] = v4sf{0};
+            g[0] = g[1] = g[2] = g[3] = 1.0f;            
+        }
+        union {
+            v4sf    vs[4];
+            float   s[16];
+        };     
+        union {
+            v4sf    vf;
+            float   f[4];
+        };     
+        union {
+            v4sf    vg;
+            float   g[4];
+        };     
+        int32_t     sin;
+    };
+=======
+            vs[0] = vs[1] = vs[2] = vs[3] = v4si{0};
+            g[0] = g[1] = g[2] = g[3] = 0;            
+        }
+        union {
+            v4si        vs[2];
+            int32_t     s[8];
+        };     
+        
+        union {
+            v4si    vf;
+            int32_t f[4];
+        };     
+        int32_t     sin;
+        uint8_t     g[4];
+    };
+    
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
+    inline void clear(void) 
+    {
+        state.clear();
+    }
+    
+<<<<<<< HEAD
+    inline void setF( const uint8_t index, const float f ) 
+    {
+        state.f[index&3] = f;
+    }
+    inline void setG( const uint8_t index, const float g ) 
+=======
+    inline void setF( const uint8_t index, const uint16_t f ) 
+    {
+        state.f[index&3] = f;
+    }
+    inline void setG( const uint8_t index, const uint8_t g ) 
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
+    {
+        state.g[index&3] = g;
+    }
+    
+
+<<<<<<< HEAD
+    template< std::size_t count >
+    inline void get1x4pole( float * out )
+    {                        
+        for( auto i = 0u; i < count; ++i ) {
+            const int32_t x0 = state.sin;
+            state.sin = galoisShifter.getWhiteRaw() >> 3;        
+            const float vx = static_cast<float>( state.sin + x0 ) - ( state.s[3] * 3.9999f );
+            state.s[0] = ( state.s[0] -          vx ) * state.f[0] + vx;
+            state.s[1] = ( state.s[1] - state.s[0] ) * state.f[0] + state.s[0];
+            state.s[2] = ( state.s[2] - state.s[1] ) * state.f[0] + state.s[1];  
+            const float vs = ( state.s[3] - state.s[2] ) * state.f[0];               
+            state.s[3] = vs + state.s[2];                               
+  
+            *out++ = vs;
+        }
+    }; 
+    
+    template< std::size_t count >
+    inline void get4x4pole( float * out )
+=======
+    inline int32_t get1x4pole( void )
+    {                                
+        const int32_t x0 = state.sin;
+        state.sin = galoisShifter.getWhiteRaw() >> 3;            
+        const int32_t vx =  state.sin + x0 - ( state.s[3] << 2 );
+        state.s[0] = (( state.s[0] - vx ) >> 16 ) * state.f[0] + vx;
+        state.s[1] = (( state.s[1] - state.s[0] ) >> 16 ) * state.f[0] + state.s[0];
+        state.s[2] = (( state.s[2] - state.s[1] ) >> 16 ) * state.f[0] + state.s[1];                                 
+        const int32_t vv = (( state.s[3] - state.s[2] + 0x08000 ) >> 16 ) * state.f[0];  // rounding --> noise at DC !                      
+        state.s[3] = vv + state.s[2];                               
+        return vv;
+    }; 
+    
+    inline int32_t get4x4pole( void )
+    {                                
+        const int32_t x0 = state.sin;
+        state.sin = galoisShifter.getWhiteRaw() >> 3;            
+        const v4si vx =  state.sin + x0 - ( state.vs[3] << 2 );
+        state.vs[0] = (( state.vs[0] - vx ) >> 16 ) * state.vf + vx;
+        state.vs[1] = (( state.vs[1] - state.vs[0] ) >> 16 ) * state.vf + state.vs[0];
+        state.vs[2] = (( state.vs[2] - state.vs[1] ) >> 16 ) * state.vf + state.vs[1];  
+        
+        const union {
+            v4si        vs3;
+            int32_t     s3[4];                                
+        } vv = { .vs3 = (( state.vs[3] - state.vs[2] + 0x08000 ) >> 16 ) * state.vf  };  // rounding --> noise at DC !                      
+        state.vs[3] = vv.vs3 + state.vs[2];                               
+        return ( vv.s3[0] >> state.g[0] ) + ( vv.s3[1] >> state.g[1] ) + ( vv.s3[2] >> state.g[2] ) + ( vv.s3[3] >> state.g[3] );
+    }; 
+/*
+ s[0] - low
+ s[1] - high
+ s[2] - band
+ 
+        channelA.low1   = channelA.low2         + channelA.band2 * param1.fEff;
+        channelA.high1  = in - channelA.low1    - channelA.band2 * param1.qEff;
+        channelA.band1  = channelA.band2        + channelA.high1 * param1.fEff;
+ 
+ */    
+    template< std::size_t count >
+    inline void get1xsv( int32_t * out )
+    {                        
+        for( auto i = 0u; i < count; ++i ) {
+            state.s[0] += ((state.s[2] + 0x08000 )>>16) * state.f[0];
+            state.s[1] =  ( galoisShifter.getWhiteRaw() >> 6 ) - state.s[0] - ( state.s[2] >> 9 );
+            const int32_t vv = state.s[2];
+            state.s[2] += ((state.s[1] + 0x08000 )>>16) * state.f[0];   
+            *out++ = state.s[2] + vv;
+        }
+    };
+    template< std::size_t count >
+    inline void get2xsv( int32_t * out )
+    {                        
+        for( auto i = 0u; i < count; ++i ) {
+            const int32_t nsampl = galoisShifter.getWhiteRaw() >> 6;
+            const int32_t vv = state.s[2] + state.s[6];
+            state.s[0] += ((state.s[2] + 0x08000 )>>16) * state.f[0];
+            state.s[4] += ((state.s[6] + 0x08000 )>>16) * state.f[1];
+            state.s[1] =  ( nsampl ) - state.s[0] - ( state.s[2] >> 6 );
+            state.s[5] =  ( nsampl ) - state.s[4] - ( state.s[6] >> 6 );
+            state.s[2] += ((state.s[1] + 0x08000 )>>16) * state.f[0];   
+            state.s[6] += ((state.s[5] + 0x08000 )>>16) * state.f[1];   
+            
+            *out++ =  state.s[2] + state.s[6] + vv;
+        }
+    };   
+    
+#if 0
+    template< std::size_t count >
+    inline void get1x4pole( int32_t * out )
+    {                        
+        for( auto i = 0u; i < count; ++i ) {
+            const int32_t vx = ( galoisShifter.getWhiteRaw() >> 3 );// - ( state.s[3] << 2 );
+            state.s[0] = (( state.s[0] - vx ) >> 16 ) * state.f[0] + vx;
+            state.s[1] = (( state.s[1] - state.s[0] ) >> 16 ) * state.f[0] + state.s[0];
+            state.s[2] = (( state.s[2] - state.s[1] ) >> 16 ) * state.f[0] + state.s[1];                                 
+            state.s[3] = (( state.s[3] - state.s[2] ) >> 16 ) * state.f[0] + state.s[2];                                 
+            state.s[4] = (( state.s[4] - state.s[3] ) >> 16 ) * state.f[0] + state.s[3];                                 
+            state.s[5] = (( state.s[5] - state.s[4] ) >> 16 ) * state.f[0] + state.s[4];                                 
+            const int32_t vv = state.sin;
+            state.sin = (( state.s[8] - state.s[5] + 0x08000 ) >> 16 ) * state.f[0];  // rounding --> noise at DC !                      
+            state.s[8] = state.sin + state.s[5];    
+            *out++ = state.s[8] -  state.s[3];
+        }
+    };     
+#endif
+    //state.s[2] >> 3,4 looks good
+    inline int32_t get1xsv( const int32_t sample  )
+    {                                        
+        state.s[0] += ((state.s[2] + 0x08000 )>>16) * state.f[0];
+        state.s[1] = sample - state.s[0] - ( state.s[2] >> 4 );        
+        state.s[2] += ((state.s[1] + 0x08000 )>>16) * state.f[0];           
+        
+        return state.s[2];
+    };
+
+    inline int32_t get2xsv( const int32_t sample  )
+    {                                
+        state.s[3] = state.s[2];
+        
+        state.s[0] += ((state.s[2] + 0x08000 )>>16) * state.f[0];
+
+        state.s[4] += ((state.s[6] + 0x08000 )>>16) * state.f[1];
+        state.s[1] = sample - state.s[0] - ( state.s[2] >> 4 );
+        
+        state.s[5] = state.s[3] - state.s[4] - ( state.s[6] >> 4 );
+
+        state.s[2] += ((state.s[1] + 0x08000 )>>16) * state.f[0];           
+        state.s[6] += ((state.s[5] + 0x08000 )>>16) * state.f[1];   
+        
+        return state.s[6];
+    };
+    
+    
+    inline int32_t get1x4pole( const int32_t sample  )
+    {                                
+        const int32_t vx = ( ( sample - state.s[3] ) << 2 );
+        state.s[0] = (( state.s[0] - vx ) >> 16 ) * state.f[0] + vx;
+        state.s[1] = (( state.s[1] - state.s[0] ) >> 16 ) * state.f[0] + state.s[0];
+        state.s[2] = (( state.s[2] - state.s[1] ) >> 16 ) * state.f[0] + state.s[1];   
+        const int32_t xx = state.s[7];
+        state.s[7] = (( state.s[3] - state.s[2] + 0x08000 ) >> 16 ) * state.f[0];  // rounding --> noise at DC !                      
+        state.s[3] = state.s[7] + state.s[2];                               
+        return state.s[7] + xx;
+    };
+    
+    
+    template< std::size_t count >
+    inline void get1x4pole( int32_t * out )
+    {                        
+        for( auto i = 0u; i < count; ++i ) {
+//            const int32_t vx = ( galoisShifter.getWhiteRaw() >> 3 ) - i32LimitClip<0x08000000>( state.s[3] << 3 );
+            const int32_t vx = ( galoisShifter.getWhiteRaw() >> 3 ) - ( state.s[3] << 2 );
+            state.s[0] = (( state.s[0] - vx ) >> 16 ) * state.f[0] + vx;
+            state.s[1] = (( state.s[1] - state.s[0] ) >> 16 ) * state.f[0] + state.s[0];
+            state.s[2] = (( state.s[2] - state.s[1] ) >> 16 ) * state.f[0] + state.s[1];                                 
+            const int32_t vv = state.sin;
+            state.sin = (( state.s[3] - state.s[2] + 0x08000 ) >> 16 ) * state.f[0];  // rounding --> noise at DC !                      
+            state.s[3] = state.sin + state.s[2];    
+            *out++ = vv + state.sin;
+        }
+    }; 
+
+    template< std::size_t count >
+    inline void get4x4pole( int32_t * out )
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
+    {                        
+        for( auto i = 0u; i < count; ++i ) {
+            const int32_t x0 = state.sin;
+            state.sin = galoisShifter.getWhiteRaw() >> 3;        
+<<<<<<< HEAD
+            const v4sf vx = static_cast<float>( state.sin + x0 ) - ( state.vs[3] * 3.9999f );
+            state.vs[0] = ( state.vs[0] -          vx ) * state.vf + vx;
+            state.vs[1] = ( state.vs[1] - state.vs[0] ) * state.vf + state.vs[0];
+            state.vs[2] = ( state.vs[2] - state.vs[1] ) * state.vf + state.vs[1];  
+            const v4sf vs = ( state.vs[3] - state.vs[2] ) * state.vf;               
+            state.vs[3] = vs + state.vs[2];                               
+            
+            const union {
+                v4sf      vs3;
+                float     s3[4];
+            } vv = { .vs3 = vs * state.vg };   
+            
+            *out++ = vv.s3[0] + vv.s3[1] + vv.s3[2] + vv.s3[3];
+        }
+    }; 
+   
+    
+=======
+            const v4si vx =  state.sin + x0 - ( state.vs[3] << 2 );
+            state.vs[0] = (( state.vs[0] -          vx ) >> 16 ) * state.vf + vx;
+            state.vs[1] = (( state.vs[1] - state.vs[0] ) >> 16 ) * state.vf + state.vs[0];
+            state.vs[2] = (( state.vs[2] - state.vs[1] ) >> 16 ) * state.vf + state.vs[1];  
+            const union {
+                v4si        vs3;
+                int32_t     s3[4];
+            } vv = { .vs3 = (( state.vs[3] - state.vs[2] + 0x08000 ) >> 16 ) * state.vf };  // rounding --> noise at DC !      
+            
+            state.vs[3] = vv.vs3 + state.vs[2];                               
+            *out++ = ( vv.s3[0] >> state.g[0] ) + ( vv.s3[1] >> state.g[1] ) + ( vv.s3[2] >> state.g[2] ) + ( vv.s3[3] >> state.g[3] );
+        }
+    }; 
+       
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
+private:
+    State           state;    
+    GaloisShifter&  galoisShifter;
+};
+
+<<<<<<< HEAD
+
+// ----------------------------------------------------------
+#if 0
+class NoiseFrameFilter {
+public:
+    NoiseFilterMultiColor() = delete;
+    NoiseFilterMultiColor( GaloisShifter& gs )
+    :   galoisShifter(gs)
+    {};
+    
+    static constexpr float range    = 1.0f/(1L<<30);
+    
+    struct State {
+        union {
+            v4si  v4[2];
+            struct {
+                int32_t s[8];
+            };
+        }; 
+    };
+    
+        
+    inline void getWhite( float& v )
+    {
+        v = static_cast< float > ( getWhite() ) * range;
+    };
+    
+    inline void getWhite( int32_t& v )
+    {
+        v = getWhite();
+    };
+    
+    inline void getBlue( float& v )
+    {
+        v = static_cast< float > ( getBlue() ) * range;
+    };
+    
+    inline void getBlue( int32_t& v )
+    {
+        v = getBlue();
+    };
+    
+    // average of 2 consecutive samples
+    inline int32_t getWhiteBasic(void)
+    {
+        const int32_t x = state.s[0][0];
+        state.s[0][0] = galoisShifter.getWhiteRaw() >> 2;
+        return  x + state.s[0][0];
+    };
+    inline int32_t getWhiteBasic(const uint8_t sh)
+    {
+        const int32_t x = state.s[0][0];
+        state.s[0][0] = galoisShifter.getWhiteRaw(sh) >> 2;
+        return  x + state.s[0][0];
+    };
+
+    // dc-cut .. high cut white
+    inline int32_t getWhite( void )
+    {
+        const int32_t x0 = state.s[0][0];
+        const int32_t x1 = state.s[0][1]; 
+        state.s[0][0] = galoisShifter.getWhiteRaw() >> 2;
+        state.s[0][1] += x0 - state.s[0][0] - (state.s[0][1]>>11);
+        return x1 + state.s[0][1];
+    }; 
+    
+    inline void getWhite( int32_t& outA, int32_t& outB )
+    {
+        const int32_t x0A = state.s[0][0];
+        const int32_t x1A = state.s[0][1]; 
+        const int32_t x0B = state.s[0][2];
+        const int32_t x1B = state.s[0][3]; 
+        state.s[0][0] = galoisShifter.getWhiteRaw() >> 2;
+        state.s[0][1] += x0A - state.s[0][0] - (state.s[0][1]>>11);
+        state.s[0][2] = galoisShifter.getWhiteRaw() >> 2;
+        state.s[0][3] += x0B - state.s[0][2] - (state.s[0][3]>>11);
+        outA = x1A + state.s[0][1];
+        outB = x1B + state.s[0][3];
+    };    
+    
+    inline int32_t getBlue(void)
+    {
+        const int32_t x0 = state.s[0][0];
+        const int32_t x1 = state.s[0][1];
+        state.s[0][0] = galoisShifter.getWhiteRaw() >> 2;
+        state.s[0][1] = x0 - state.s[0][0];
+        return state.s[0][1] + x1;
+    };
+    
+    inline int32_t getRed(void)
+    {
+        const int32_t x0 = state.s[0][0];
+        const int32_t x2 = state.s[0][2]; 
+        state.s[0][0] = galoisShifter.getWhiteRaw() >> 2;
+        state.s[0][1] += x0 - state.s[0][0] - (state.s[0][1]>>9);
+        state.s[0][2] += ( state.s[0][1]>>5 ) - (state.s[0][2]>>9);        
+        return x2 + state.s[0][2];
+    };
+
+    inline int32_t getCrimson(void)
+    {
+        const int32_t x0 = state.s[0][0];
+        const int32_t x3 = state.s[0][3]; 
+        state.s[0][0] = galoisShifter.getWhiteRaw() >> 2;
+        state.s[0][1] += ( x0 - state.s[0][0] ) - (state.s[0][1]>>9);
+        state.s[0][2] += ( state.s[0][1]>>5 ) - (state.s[0][2]>>9);        
+        state.s[0][3] += ( state.s[0][2]>>8 ) - (state.s[0][3]>>9);        
+        return x3 + state.s[0][3];
+    };
+
+#if 0
+
+    inline void getCrimson( float& v )
+    {
+        v = static_cast< float > ( getCrimson() ) * range;
+    };
+    
+    inline void getCrimson( int32_t& v )
+    {
+        v = getCrimson();
+    };
+    inline int32_t getRed(void)
+    {
+        const int32_t x0 = state.s[0][0]; 
+        state.s[0][0] += (galoisShifter.getWhiteRaw()>>8) - (state.s[0][0]>>10);
+        return x0 + state.s[0][0];
+    };
+=======
 class OscillatorNoiseFloat {
 public:
     OscillatorNoiseFloat() = delete;
@@ -663,6 +1312,7 @@ public:
         state.s[0][0] += (galoisShifter.getWhiteRaw()>>8) - (state.s[0][0]>>10);
         return x0 + state.s[0][0];
     };
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
     
     inline int32_t getCrimson(void)
     {
@@ -795,6 +1445,7 @@ public:
         // zero gain at fs/2
         return yn3 + state.s[1][1];
     };  
+<<<<<<< HEAD
 
     
     
@@ -803,6 +1454,16 @@ public:
         const int32_t x0 = state.s[0][0];
         state.s[0][0] = galoisShifter.getWhiteRaw() >> 5;
 
+=======
+
+    
+    
+    inline int32_t getColor( const int64_t f )
+    {                        
+        const int32_t x0 = state.s[0][0];
+        state.s[0][0] = galoisShifter.getWhiteRaw() >> 5;
+
+>>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
         
         const int32_t xin = x0 + state.s[0][0] - ( state.s[1][0] << 2 );              
         state.s[0][1] = ((( state.s[0][1] - xin ) * f ) >> 32 ) + xin;

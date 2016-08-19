@@ -26,11 +26,13 @@
  */
 
 #include    "yacynth_globals.h"
+#include    "v4.h"
 
 #include    <iostream>
 #include    <array>
 
 namespace yacynth {
+
 
 
 // GOES TO fastexp

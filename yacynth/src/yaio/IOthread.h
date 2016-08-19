@@ -31,7 +31,8 @@
 #include    "../control/Controllers.h"
 #include    "../router/SimpleMidiRouter.h"
 #include    "../effects/Panmix.h"
-#include    "../effects/Mixer.h"
+#include    "../effects/FxMixer.h"
+#include    "../effects/FxOscillatorMixer.h"
 
 #include    <cstddef>
 #include    <cstdint>
@@ -56,14 +57,16 @@ public:
 
     static void midiInCB(   void *data, uint8_t *eventp, uint32_t eventSize, bool lastEvent );
     static void audioOutCB( void *data, uint32_t nframes, float *outp1, float *outp2, int16_t bufferSizeMult );
+    auto&   getFxRunner(void) { return fxRunner; }
 
 private:
     void    printEvent( uint8_t *eventp, uint32_t eventSize, bool lastEvent);
     YaIoInQueueVector&              queueIn;
     OscillatorOutVector&            queueOut; 
-    AbstractRouter&                 midiRouter;
-    Panmix                          panMixer;    
-    EndMixer<mixerChannelCount>     endMixer;
+    AbstractRouter&                 midiRouter;    
+    FxMixer                         fxEndMixer;
+    FxOscillatorMixer               fxOscillatorMixer;
+    FxRunner<64>                    fxRunner;   // max number of effects !!!
     
     // profiling
     uint64_t    timer;
