@@ -44,10 +44,7 @@ Panmix::Panmix()
 ,   noiseFrameF(GaloisShifterSingle<seedThreadEffect_noise>::getInstance())
 ,   noiseFrameE(GaloisShifterSingle<seedThreadEffect_noise>::getInstance())
 ,   noiseSample(GaloisShifterSingle<seedThreadEffect_noise>::getInstance())
-<<<<<<< HEAD
-=======
 //,   galoisShifterCascade(seedThreadEffect_noise)
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
 
 //,   noiseFilter(noiseFrame)
 
@@ -85,26 +82,19 @@ Panmix::Panmix()
     
     noiselength = 1000;
     noiseinterleave = 1;
-<<<<<<< HEAD
-=======
     
 //    fxOutNoise.setProcMode(2);
 //    fxOutNoiseNode.set(fxOutNoise);
 
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
 };
 
 
 // --------------------------------------------------------------------
 void Panmix::process( OscillatorOut& inp )
 {
-<<<<<<< HEAD
-    noiseFrame.fillWhite ();
-=======
     //LowOscillatorArray::getInstance().inc();    // increment lfo's
     
     //noiseFrame.fillWhite ();
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
     
     // put the amplitude value to the global controller
     amplitudeFilter( inp.amplitudeSumm );
@@ -223,23 +213,16 @@ void Panmix::summOscillatorOut( OscillatorOut& inp ) {
 
         
 //    noiseFrameF.fillPurple();
-<<<<<<< HEAD
-=======
     //fxOutNoiseNode.exec();
 //    fxOutNoise.exec();
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
     
     for( uint16_t si = 0u; si < oscillatorOutSampleCount; ++si ) {
 //        *outBpf++ = *outApf++ = static_cast<float>( addbuff.v[si] );
         
-<<<<<<< HEAD
-        *outBpf++ = *outApf++ = static_cast<float>( noiseSample.getPink() );
-=======
 //        *outBpf++ = *outApf++ = static_cast<float>( noiseSample.getPink() );
 //        *outBpf++ = *outApf++ = static_cast<float>( galoisShifterCascade.getWhite24()  );
 //        *outApf++ = fxOutNoise.channelA[si];
 //        *outBpf++ = fxOutNoise.channelB[si];
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
         
 //        const int64_t x =  addbuff.v[si];
 //        *outApf++ = static_cast<float>(filterComb4.getAllPass( filterComb3.getAllPass( filterComb2.getAllPass( filterComb1.getAllPass( x ) ))));

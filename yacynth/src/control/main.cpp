@@ -118,92 +118,16 @@ void teststuff(void)
 
         << "\n Filter4Pole: "               << sizeof(Filter4PoleOld<3>)
         << "\n ControlledValueMapped: "     << sizeof(ControlledValue)
-        
+
         << std::endl;
-    
-    double f0 = 20.0;
-    const double df = 1.2;
-#if 0   
-    for( auto k=0; k<32; k++ ) {
-        const uint16_t ff = std::round( std::exp( -2.0 * 3.1415 * f0 / 48000.0 ) * double(0xFFFF) );
-        std::cout 
-            << "f0 " << f0
-            << " ff " << ff
-            << std::endl;
-            f0 *= df;
-
-    }
-           
-    
-    for( auto k=1; k<16; k++ ) {
-        constexpr double      PI2  = 2.0 * 3.141592653589793238462643383279502884197;
-
-        const double x = 1L<<k;    
-        const double x1 = 1L<<(k+1);    
-        const double x2 = 1L<<(k+3);    
-
-        const double y2k  = -std::log( 1.0 - 1.0 / x  ) / PI2 * 48000.0;                
-        const double y2ka  = -std::log( 1.0 - 1.0 / x - 1.0 / x1 ) / PI2 * 48000.0;                
-        const double y2kb  = -std::log( 1.0 - 1.0 / x - 1.0 / x2 ) / PI2 * 48000.0;                
-        
-        const double y2k48000_1  = -std::log( 1.0 - 1.0 / x ) / PI2 * 48000.0;                
-        const double y2k44100_1  = -std::log( 1.0 - 1.0 / x ) / PI2 * 44100.0;                
-        const double y2k48000_3  = -std::log( 1.0 - 3.0 / x ) / PI2 * 48000.0;                
-        const double y2k44100_3  = -std::log( 1.0 - 3.0 / x ) / PI2 * 44100.0;                
-        const double y2k48000_5  = -std::log( 1.0 - 5.0 / x ) / PI2 * 48000.0;                
-        const double y2k44100_5  = -std::log( 1.0 - 5.0 / x ) / PI2 * 44100.0;                
-        const double y2k48000_7  = -std::log( 1.0 - 7.0 / x ) / PI2 * 48000.0;                
-        const double y2k44100_7  = -std::log( 1.0 - 7.0 / x ) / PI2 * 44100.0;                
-        const double y2k48000_9  = -std::log( 1.0 - 9.0 / x ) / PI2 * 48000.0;                
-        const double y2k44100_9  = -std::log( 1.0 - 9.0 / x ) / PI2 * 44100.0;                
-        std::cout 
-            << "k " << k
-            << " y2k " << y2k
-            << " y2ka " << y2ka
-            << " y2kb " << y2kb
-            
-            << " y2k48000_1 " << y2k48000_1
-            << " y2k48000_3 " << y2k48000_3
-            << " y2k48000_5 " << y2k48000_5
-            << " y2k48000_7 " << y2k48000_7
-            << " y2k48000_9 " << y2k48000_9
-            << " y2k44100_1 " << y2k44100_1
-            << " y2k44100_3 " << y2k44100_3
-            << " y2k44100_5 " << y2k44100_5
-
-            
-            << std::endl;        
-    }
-#endif
-#if 0    
-    GaloisShifter gs;
-    for( uint64_t k=0; k < (1L<<33); k++ ) {
-        const uint64_t st = gs.get();
-        if( k > 0xFFFFFFFAL && k < 0x100000004L ) {
-            std::cout << std::hex
-                << "k " << k
-                << " st " << st
-                << " cycle " << gs.cycle
-                << " ls 0 " << gs.lfsr[0]
-                << " ls 1 " << gs.lfsr[1]
-            
-                << std::endl;        
-            
-        }
-
-    }
-
-    exit(0);
-#endif
-    
 #if 0
     float freq = 10.0;
     float df = 1.059;
-    
+
     for( auto i=0; i<140; ++i ) {
-        
+
         const int32_t ycent = freq2ycent(freq);
-        
+
 //       const float intp = FilterTableSinCosPi2::getInstance().getFloat( ycent );
 //       const float exa = FilterTableSinCosPi2::getInstance().fc_sinpercosPi2_F( freq/48000.0 );
 
@@ -215,34 +139,34 @@ void teststuff(void)
 
         const float intp = FilterTable2SinPi::getInstance().getFloat( ycent );
         const float exa = FilterTable2SinPi::getInstance().fc_2sinPi_F( freq/48000.0 );
-        
-        
+
+
 
         std::cout << std::setprecision(8)
             << "freq:" << freq
             << " intp:"  << intp
-            << " exa:"  << exa 
+            << " exa:"  << exa
             << " dev:"  << (exa - intp)/exa
-            
+
             << std::endl;
 
         freq *= df;
     }
-    
+
     exit(0);
-#endif    
+#endif
 #if 0
-    
+
     for(auto i=0; i<130; ++i ) {
         const auto rr = InnerController::getInstance().getPhaseValue(i);
         std::cout << std::hex
             << "i: "       << i
             << "  "       << rr
-        
+
             << std::endl;
-        
+
     }
-    
+
     double f0 = 20.0;
     const double df = 1.2;
     for( auto k=0; k<32; k++ ) {
@@ -912,13 +836,8 @@ exit(0);
 #endif
 
 
-<<<<<<< HEAD
-           
-//    GNoise<galoisShifter, 2> gNoise;  
-=======
 
 //    GNoise<galoisShifter, 2> gNoise;
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
 }
 
 
@@ -941,38 +860,26 @@ int main( int argc, char** argv )
     teststuff();
     // to test things end
 
-<<<<<<< HEAD
-    //  singletons first    
-=======
     //  singletons first
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
     // random generators
     GaloisShifterSingle<seedThreadEffect_noise>& gs0        = GaloisShifterSingle<seedThreadEffect_noise>::getInstance();
     GaloisShifterSingle<seedThreadOscillator_noise>& gs1    = GaloisShifterSingle<seedThreadOscillator_noise>::getInstance();
     GaloisShifterSingle<seedThreadEffect_random>& gs2       = GaloisShifterSingle<seedThreadEffect_random>::getInstance();
     GaloisShifterSingle<seedThreadOscillator_random>& gs3   = GaloisShifterSingle<seedThreadOscillator_random>::getInstance();
 
-<<<<<<< HEAD
-    std::cout 
-=======
     FilterTableExp2Pi::getInstance();
     FilterTableSinCosPi2::getInstance();
     FilterTable2SinPi::getInstance();
     FilterTableCos2Pi::getInstance();
-    
-    
+
+
     std::cout
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
         << "\ngs0 " << static_cast< void *>(&gs0)
         << "\ngs1 " << static_cast< void *>(&gs1)
         << "\ngs2 " << static_cast< void *>(&gs2)
         << "\ngs3 " << static_cast< void *>(&gs3)
         << std::endl;
-<<<<<<< HEAD
-    
-=======
 
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
 #if 0
     for( uint64_t i=0u; i<0x1000000000000UL; ++i) {
 
@@ -982,25 +889,17 @@ int main( int argc, char** argv )
                 << "i " << i
                 << " vv " << vv
                 << std::endl;
-<<<<<<< HEAD
-            
-        }
-    }
-#endif
-    
-=======
 
         }
     }
 #endif
 
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
     // inter thread communication
     YaIoInQueueVector&      queuein     = YaIoInQueueVector::getInstance();
     OscillatorOutVector&    oscOutVec   = OscillatorOutVector::getInstance();
 //    ControllerMatrix&       contrVect   = ControllerMatrix::getInstance();
     InnerController&             controller  = InnerController::getInstance();
-    
+
     LowOscillatorArray::getInstance().reset();
     FxCollector::getInstance();
 
@@ -1021,23 +920,19 @@ int main( int argc, char** argv )
         << " iOThread: " << (void *)iOThread
         << " synthFe: " << (void *)synthFe
         << std::endl;
-    
-// start going up
-<<<<<<< HEAD
-//    effects.check();
 
-=======
+// start going up
     // put the standard components into here
     // sequence important !!
     FxOutNoise      * fxnoise = new FxOutNoise();
     FxOutOscillator * fxosc   = new FxOutOscillator();
     FxModulator     * fxmod   = new FxModulator();
     FxFilter        * fxfilt  = new FxFilter();
-        
-    FxCollector::getInstance().check(); 
+
+    FxCollector::getInstance().check();
 
     auto& fxRunner = iOThread->getFxRunner();
-    
+
 #if 1
 
     fxRunner.add(3);
@@ -1048,16 +943,16 @@ int main( int argc, char** argv )
     fxRunner.list();
     fxmod->setProcMode(1);
     fxosc->setProcMode(1);
-    fxfilt->setProcMode(1);
+    fxfilt->setProcMode(2);
     fxnoise->setProcMode(1);
-    
+
     //fxRunner.connect(2,0);    // connect fxOscillatorMixer to fxEndMixer,0
-    
+
     fxRunner.connect(2,3,0);
     //fxRunner.connect(4,2,1);
     //fxRunner.connect(8,0); // modulator
     fxRunner.connect(9,0);
-    
+
 #else
     fxRunner.add(3);
     fxRunner.add(4);
@@ -1067,19 +962,18 @@ int main( int argc, char** argv )
     fxRunner.list();
     fxmod->setProcMode(1);
     fxosc->setProcMode(1);
-    fxfilt->setProcMode(1); 
+    fxfilt->setProcMode(2);
     fxnoise->setProcMode(1);
-    
+
     //fxRunner.connect(2,0);    // connect fxOscillatorMixer to fxEndMixer,0
-    
+
     fxRunner.connect(3,3,0);
     //fxRunner.connect(4,2,1);
     //fxRunner.connect(8,0); // modulator
     fxRunner.connect(9,0);
-    
-#endif    
-    
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
+
+#endif
+
     jack.setProcessCB( iOThread, IOThread::midiInCB,  IOThread::audioOutCB );
     if( ! synthFe->initialize() )
         exit(-1);

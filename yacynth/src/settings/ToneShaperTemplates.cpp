@@ -33,38 +33,6 @@ ToneShaper::ToneShaper()
 // these are for testing -- same for each overtone
 
     for( auto i = 0; i < transientKnotCount; i++ ) {
-<<<<<<< HEAD
-        transient[ i ].tickFrameLF      = 0;
-        transient[ i ].tickFrameHF      = 0;
-        transient[ i ].curveSpeed       = 0;
-        transient[ i ].targetValueLF    = 0;
-        transient[ i ].targetValueHF    = 0;
-    }
-    
-    // obsolate
-    transient[ envelopeKnotRelease ].tickFrameLF    = 100;
-    transient[ envelopeKnotRelease ].curveSpeed     = 2;
-    transient[ envelopeKnotRelease ].targetValueLF  = 0;      // ignored
-    
-    // NEW
-    tickFrameReleaseLF  = 100;
-    tickFrameReleaseHF  = 50;
-    curveSpeedRelease   = 2;
-    
-    transient[ 2 ].tickFrameLF      = 10;
-    transient[ 2 ].tickFrameHF      = 5;
-    transient[ 2 ].curveSpeed       = -1;
-    transient[ 2 ].targetValueLF    = 65534 * (1L<<16); // NEW uin32
-    transient[ 2 ].targetValueHF    = 65534 * (1L<<16); // NEW uin32
-
-    transient[ 1 ].tickFrameLF      = 300;
-    transient[ 1 ].tickFrameHF      = 200;
-    transient[ 1 ].curveSpeed       = 1;
-    transient[ 1 ].targetValueLF    = 20000 * (1L<<16); // NEW uin32
-    transient[ 1 ].targetValueHF    = 30000 * (1L<<16); // NEW uin32
-
-    sustain.decayCoeffLF        = 1000;
-=======
         transient[ i ].clear();
     }
 #if 0       
@@ -82,7 +50,6 @@ ToneShaper::ToneShaper()
     transient[ 1 ].targetValue.set(20000 * (1L<<16)); // NEW uin32
 
     sustain.decayCoeff.set( 1000 );
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
     sustain.sustainModDepth     = 0;      // 100 / 256
 //    sustain.sustainModDepth     = 170;      // 100 / 256
     sustain.sustainModPeriod    = 300;

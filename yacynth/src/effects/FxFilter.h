@@ -48,6 +48,8 @@ namespace yacynth {
 
 class FxFilterParam {
 public:
+    FxFilterParam();
+
     // mandatory fields
     static constexpr char const * const name    = "Filter";
     static constexpr std::size_t maxMode        = 2; // 0 is always exist> 0,1,2
@@ -63,6 +65,12 @@ public:
 
     ControlledValue freq[filterCount];
     ControlledValue q[filterCount];
+
+    ControlledValue testMasterLfo1;
+    ControlledValue testSlaveLfo1;
+    ControlledValue testMasterLfoDeltaPhase1;
+    ControlledValue testSlaveLfoDeltaPhase1;
+
 
 };
 
@@ -192,17 +200,44 @@ private:
     void process_01(void)
     {
 
- //       param.pitch4p.update(); // pull the values from controllers
-//        param.q4p.update();
-//        for( auto i = 0u; i < FxFilterParam::filterSampleCount; ++i ) {
-//            filter4pole.set<4>( inp().channel[EbufferPar::chA][i] );
-    //        out.channel[out.chA][i] = out.channel[out.chB][i] = filter.getLBP<filter.SD,filter.SC,0,2>();
-    // update gain for AM
-//            out.channel[out.chA][i] = out.channel[out.chB][i] = filter.getLBP<filter.SD,filter.SC,0,4>();
+//        param.testMasterLfo1.updateLfoTriangle();
+//        param.testSlaveLfo1.updateLfoTriangle();
+        param.testMasterLfo1.updateLfoSin();
+        param.testSlaveLfo1.updateLfoSin();
+        int32_t ycentKA = param.testMasterLfo1.getYcent8Value();
+        int32_t ycentKB = param.testSlaveLfo1.getYcent8Value();
+        int32_t ycentK0 = freq2ycent(200.0f);
+        
+        // stage 1 tan
+        filterAllpass.setYcent<0,0>(ycentK0,0);
+        filterAllpass.setYcent<1,0>(ycentK0,0);
+        filterAllpass.setYcent<0,0>(ycentK0,1);
+        filterAllpass.setYcent<1,0>(ycentK0,1);
+        filterAllpass.setYcent<0,0>(ycentK0,2);
+        filterAllpass.setYcent<1,0>(ycentK0,2);
+        filterAllpass.setYcent<0,0>(ycentK0,3);
+        filterAllpass.setYcent<1,0>(ycentK0,3);
+        
+        // stage 2 cos
+        filterAllpass.setYcent<0,1>(ycentKA,0);
+        filterAllpass.setYcent<1,1>(ycentKB+0x1000000,0);
+        filterAllpass.setYcent<0,1>(ycentKA+0x2000000,1);
+        filterAllpass.setYcent<1,1>(ycentKB+0x3000000,1);
+        filterAllpass.setYcent<0,1>(ycentKA+0x4000000,2);
+        filterAllpass.setYcent<1,1>(ycentKB+0x5000000,2);
+        filterAllpass.setYcent<0,1>(ycentKA+0x6000000,3);
+        filterAllpass.setYcent<1,1>(ycentKB+0x7000000,3);
+        
+        filterAllpass.setFeedback(0.7f);
+        
+        for( auto si=0u; si < sectionSize; ++si ) {
+          filterAllpass.allpass2x8( 
+            inp<0>().channel[0][si],inp<0>().channel[1][si], 
+            out().channel[0][si], out().channel[1][si] );
 
-            // param.pitch4p.coeff.v
- //       }
-
+            out().channel[0][si] += inp<0>().channel[0][si];
+            out().channel[1][si] += inp<0>().channel[1][si];
+        }        
     }
 
     void process_02(void)
@@ -222,6 +257,44 @@ private:
 
                 ++si;
             }
+        }
+    }
+
+    // ok
+    inline void test_lfoController(void)
+    {
+//        param.testMasterLfo1.updateLfoTriangle();
+//        param.testSlaveLfo1.updateLfoTriangle();
+        param.testMasterLfo1.updateLfoTriangle();
+        param.testSlaveLfo1.updateLfoTriangle();
+//        float A = param.testMasterLfo1.getValue() * (1.0/(1L<<16));
+//        float B = param.testSlaveLfo1.getValue() * (1.0/(1L<<16));
+        int32_t ycentKA = param.testMasterLfo1.getYcent8Value();
+        int32_t ycentKB = param.testSlaveLfo1.getYcent8Value();
+        int32_t ycentK0 = freq2ycent(200.0f);
+        
+        filterAllpass.setYcent<0,0>(ycentK0);  // tan
+        filterAllpass.setYcent<0,1>(ycentKA);  // cos
+        filterAllpass.setYcent<1,0>(ycentK0);  // tan
+        filterAllpass.setYcent<1,1>(ycentKB);  // cos
+        
+        for( auto si=0u; si < sectionSize; ++si ) {
+//            out().channel[1][si] = A;
+//            out().channel[0][si] = B;
+          filterAllpass.allpass2( 
+            inp<0>().channel[0][si],inp<0>().channel[1][si], 
+            out().channel[0][si], out().channel[1][si] );
+//          filterAllpass.allpass2_1mult<0>( inp<0>().channel[0][si], out().channel[0][si] );
+//          filterAllpass.allpass2_transposed<1>( inp<0>().channel[1][si], out().channel[1][si] );
+//          filterAllpass.allpass2_direct<1>( inp<0>().channel[1][si], out().channel[1][si] );
+//          filterAllpass.allpass2_1mult_transposed<1>( inp<0>().channel[1][si], out().channel[1][si] );
+
+           // filterAllpass.allpass2ch0( inp<0>().channel[0][si], out().channel[0][si] );
+            // notch filter for testing
+//            out().channel[1][si] = out().channel[0][si] - out().channel[1][si];
+            out().channel[0][si] += inp<0>().channel[0][si];
+            out().channel[1][si] += inp<0>().channel[1][si];
+
         }
     }
 

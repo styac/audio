@@ -184,7 +184,7 @@ private:
 
     inline void mix_01(void)
     {
-        if( param.gainTarget.update() ) {
+        if( param.gainTarget.updateDiff() ) {
             out().fade( inp(), gain, ( param.gainTarget.getExpValue() - gain ) * (1.0f/(1<<6)) );
         } else {
             out().mult( inp(), gain );

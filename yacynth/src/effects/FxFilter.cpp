@@ -27,10 +27,35 @@
 
 namespace yacynth {
 
+FxFilterParam::FxFilterParam()
+{
+    const uint16_t masterLfo = 0;
+    const uint16_t slaveLfo = 0;
+    // test lfo 0, 0
+    InnerController& inco = InnerController::getInstance();
+    testMasterLfo1.index = inco.getIndexMasterLfoPhase(masterLfo);
+    testSlaveLfo1.index = inco.getIndexSlaveMasterLfoPhase(masterLfo,slaveLfo);
+
+   // set test values for delta phase
+    testMasterLfoDeltaPhase1.index = inco.getIndexMasterLfoDeltaPhase(masterLfo);
+    testSlaveLfoDeltaPhase1.index = inco.getIndexSlaveMasterLfoDeltaPhase(masterLfo,slaveLfo);
+
+    uint32_t masterDDP = freq2deltaPhase(0.2f) << 6; // 1 Hz - 1/64 sampling freq
+    uint32_t slaveDDP = 0x80000000 ;
+
+    testMasterLfoDeltaPhase1.set( masterDDP );
+    testSlaveLfoDeltaPhase1.set( slaveDDP );
+    
+    const int32_t freq_01 = freq2ycent(200.0f);
+    testMasterLfo1.setYcent8Parameter(freq_01 , 600);
+    testSlaveLfo1.setYcent8Parameter(freq_01 , 600);
+  
+
+}
     // 00 is always clear for output or bypass for in-out
 void FxFilter::sprocess_00( void * thp )
 {
-//        static_cast< MyType * >(thp)->clear();
+    static_cast< MyType * >(thp)->clear();
 }
 void FxFilter::sprocess_01( void * thp )
 {
@@ -38,7 +63,7 @@ void FxFilter::sprocess_01( void * thp )
 }
 void FxFilter::sprocess_02( void * thp )
 {
-    static_cast< MyType * >(thp)->test_allpass2();
+    static_cast< MyType * >(thp)->test_lfoController();
 }
 
 

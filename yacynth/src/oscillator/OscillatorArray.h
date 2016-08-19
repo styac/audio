@@ -53,7 +53,7 @@ public:
         constexpr  int32_t  pitchBendMax        = 1<<pitchBendMaxExp;    
         constexpr  float    octaveResolution    = 1<<24;        
         constexpr  uint32_t pitchMult           = octaveResolution / 6; // fix range 
-        if( pitchBend.update() ) {
+        if( pitchBend.updateDiff() ) {
             const int64_t pitchInd = (pitchBend.getValue()<<10) - pitchBendMax;
             oscillatorParamGenerate.pitchDelta = (pitchInd * pitchMult)>>pitchBendMaxExp;
         }

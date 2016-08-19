@@ -35,6 +35,11 @@
 #include    <array>
 #include    <atomic>
 #include    <cstring>
+//
+//
+// http://stackoverflow.com/questions/109710/likely-unlikely-macros-in-the-linux-kernel-how-do-they-work-whats-their
+// likely unlikely
+//
 
 using namespace tables;
 
@@ -56,10 +61,16 @@ public:
     static constexpr std::size_t maxIndex           = arraySize;
     static constexpr std::size_t filteredRangeV4    = 8;
     static constexpr std::size_t filteredRange      = filteredRangeV4*4;
-    static constexpr std::size_t lfoMasterRangeV4   = 2;
-    static constexpr std::size_t lfoMasterRange     = lfoMasterRangeV4*4;
-    // 1 master + 7 slave = 8 phase
-    static constexpr std::size_t lfoSlaveSet        = 7;
+
+    // LFO
+    static constexpr std::size_t lfoMasterCountV4   = 2;
+    static constexpr std::size_t lfoMasterCount     = lfoMasterCountV4*4;
+    static constexpr std::size_t lfoMasterCountMask = lfoMasterCount-1;
+    // 1 master + 8 slave = 9 phase
+    static constexpr std::size_t lfoSlaveSetCount   = 8;
+    static constexpr std::size_t lfoSlaveSetCountMask    = lfoSlaveSetCount-1;
+
+
     static constexpr std::size_t norm               = 24;
     static constexpr std::size_t kshift             = 3;
     static constexpr std::size_t kround             = 1<<(kshift-1);
@@ -67,37 +78,68 @@ public:
     static constexpr std::size_t midiStepMask       = midiStep-1;
 
     enum  {
-        CC_NULL,        // never set -- must be yero
-        CC_AMPLITUDE,   // internal -- amplitude summ
+        CC_NULL                         = 0, // never set -- must be zero
         CC_MAINVOLUME,
         CC_PITCHBEND,
-        CC_CHANNEL_AFTERTOUCH,       
-        CC_MODULATOR_PHASEDIFF0,       
-        CC_MODULATOR_FREQ0,       
-        CC_MODULATOR_FREQ1,       
-
-        CC_FILTER_FREQ0,       
-        CC_FILTER_Q0,       
-        
-        CC_BEGIN_FILTER     = 128,
-        CC_SINK             = 255,  // never get -- all unused controllers go here
-        CC_BEGIN_FILTERED   = 256,
-        CC_END_FILTERED     = CC_BEGIN_FILTERED + filteredRange,
-          
-        // -------------
-        
-        CC_LFO_RUNNING_PHASE_BEGIN,
-        CC_LFO_DELTA_PHASE_BEGIN    = CC_LFO_RUNNING_PHASE_BEGIN + lfoMasterRange * (1+lfoSlaveSet),
-        CC_LFO_DELTA_PHASE_END      = 2 * CC_LFO_DELTA_PHASE_BEGIN - CC_LFO_RUNNING_PHASE_BEGIN,
+        CC_CHANNEL_AFTERTOUCH,
+        CC_MODULATOR_PHASEDIFF0,
+        CC_MODULATOR_FREQ0,
+        CC_MODULATOR_FREQ1,
+        CC_FILTER_FREQ0,
+        CC_FILTER_Q0,
+        // ------------- filtered range begin
+        CC_BEGIN_FILTER                 = 128,
+        CC_END_FILTER                   = CC_BEGIN_FILTER + filteredRange,
+        // ------------- filtered range end
+        CC_SINK                         = 255,  // never get -- all unused controllers go here
+        // ------------- internal range begin
+        CC_AMPLITUDE                    = 256,       // internal -- amplitude summ
+        // ------------- internal range end
+        // ------------- LFO range begin
+        CC_LFO_MASTER_PHASE_BEGIN       = 260,
+        CC_LFO_SLAVE_PHASE_BEGIN        = CC_LFO_MASTER_PHASE_BEGIN + lfoMasterCount,
+        CC_LFO_MASTER_DELTA_PHASE_BEGIN = CC_LFO_SLAVE_PHASE_BEGIN + lfoMasterCount * lfoSlaveSetCount,
+        CC_LFO_SLAVE_DELTA_PHASE_BEGIN  = CC_LFO_MASTER_DELTA_PHASE_BEGIN + lfoMasterCount,
+        CC_LFO_DELTA_PHASE_END          = CC_LFO_SLAVE_DELTA_PHASE_BEGIN + lfoMasterCount * lfoSlaveSetCount,
+        // ------------- LFO range end
+        // ------------- filtered range begin
+        CC_BEGIN_FILTERED               = 514,
+        CC_END_FILTERED                 = CC_BEGIN_FILTERED + filteredRange,
+        // ------------- filtered range end
         CC_END
     };
-    
+
     static_assert( CC_END < arraySize, "array is too small" );
-    
+
+    inline uint16_t getCountMasterLfo(void)
+    {
+        return lfoMasterCount;
+    }
+    inline uint16_t getCountSlaveLfo(void)
+    {
+        return lfoSlaveSetCount;
+    }
+    inline uint16_t getIndexMasterLfoPhase( uint16_t masterLfoNumber )
+    {
+        return CC_LFO_MASTER_PHASE_BEGIN + ( masterLfoNumber & lfoMasterCountMask );
+    }
+    inline uint16_t getIndexMasterLfoDeltaPhase( uint16_t masterLfoNumber )
+    {
+        return CC_LFO_MASTER_DELTA_PHASE_BEGIN + ( masterLfoNumber & lfoMasterCountMask );
+    }
+    inline uint16_t getIndexSlaveMasterLfoPhase( uint16_t masterLfoNumber, uint16_t slaveLfoNumber )
+    {
+        return CC_LFO_SLAVE_PHASE_BEGIN + ( masterLfoNumber & lfoMasterCountMask ) + lfoSlaveSetCount * (slaveLfoNumber & lfoSlaveSetCountMask );
+    }
+    inline uint16_t getIndexSlaveMasterLfoDeltaPhase( uint16_t masterLfoNumber, uint16_t slaveLfoNumber )
+    {
+        return CC_LFO_SLAVE_DELTA_PHASE_BEGIN + ( masterLfoNumber & lfoMasterCountMask ) + lfoSlaveSetCount * (slaveLfoNumber & lfoSlaveSetCountMask );
+    }
+
     inline void clear(void)
     {
         value.clear();
-        for( auto i =0; i<arraySize ; ++i ) 
+        for( auto i =0; i<arraySize ; ++i )
             shiftleft[i] = norm-7;
     }
     /*
@@ -124,7 +166,7 @@ k 9 f 14.9358  -- 20.6
     {
         value.v[ ind & V4size::arraySizeMask ] = v;
     }
-    
+
     inline void setShift( uint16_t ind, uint8_t v )
     {
         shiftleft[ ind & V4size::arraySizeMask ] = v;
@@ -151,8 +193,8 @@ k 9 f 14.9358  -- 20.6
     inline void setMidi( uint8_t ind, uint8_t v )
     {
         value.v[ ind & V4size::arraySizeMask ] = v << shiftleft[ind & V4size::arraySizeMask];
-        std::cout << "InnerController ind "  << uint16_t(ind)  
-            << " val " << uint16_t(v) 
+        std::cout << "InnerController ind "  << uint16_t(ind)
+            << " val " << uint16_t(v)
             << " stored " << value.v[ ind & V4size::arraySizeMask ]
             << std::endl;
     }
@@ -177,93 +219,129 @@ k 9 f 14.9358  -- 20.6
     static float getExpValue( uint8_t v )
     {
         return expFuncTable[ v & midiStepMask ];
-    } 
+    }
     static uint32_t getPhaseValue( uint8_t v )
     {
         return phaseFuncTable[ v & midiStepMask ];
     }
-    
-    // 
-    // MMM-PHASE
-    // SS0-PHASE MMM+delta0
+
+    // LFO range -- updated 1x / frame
+    //  - sampling rate = sampling rate audio / sample count in frame -- 48000/64
+    //  - lfoMasterRange = n*4^k -- 4k because of v4 req.
+    //  - each master has s*4^k slaves with
+    //
+    // MMM-PHASE                -- master current phase [mci]
+    // SS0-PHASE MMM+delta0     -- slave current phase [sci]
     // SS1-PHASE MMM+delta1
     // SS2-PHASE MMM+delta2
-    //     
+    //
     // SS3-PHASE MMM+delta3
     // SS4-PHASE MMM+delta4
     // SS5-PHASE MMM+delta5
     // SS6-PHASE MMM+delta6
-    // 
-    // deltaPhase MMM -- freq
-    // delta0
+    //
+    // deltaPhase MMM -- freq   -- master delta phase[mi] -- frequency
+    // delta0                   -- slave delta[si] to master[mi]
     // delta1
     // delta2
-    // 
+    //
     // delta3
     // delta4
     // delta5
     // delta6
-    
-    inline void incLfo(void)
+
+    // V4 processing !!
+    inline void incrementFrameLFOscillatorPhases(void)
     {
-        int iMLFO;
-        int iRPB = CC_LFO_RUNNING_PHASE_BEGIN;
-        int iDPB = CC_LFO_DELTA_PHASE_BEGIN;
-        for( int i=0; i<lfoMasterRangeV4; ++i, ++iRPB, ++iDPB ) {
-            value.v4[iRPB] += value.v4[iDPB] ;
+        int16_t currentPhaseInd = CC_LFO_MASTER_PHASE_BEGIN/4;
+        int16_t deltaPhaseInd = CC_LFO_MASTER_DELTA_PHASE_BEGIN/4;
+        // update master current phase [mi]
+        for( int16_t mci=0; mci<lfoMasterCountV4; ++mci, ++currentPhaseInd, ++deltaPhaseInd ) {
+            value.v4[currentPhaseInd] += value.v4[deltaPhaseInd] ;
         }
-        for( int slave=0; slave <lfoSlaveSet; ++slave ) {
-            iMLFO = CC_LFO_RUNNING_PHASE_BEGIN;
-            for( int i=0; i<lfoMasterRangeV4; ++i, ++iRPB, ++iDPB, ++iMLFO ) {
-                value.v4[iRPB] = value.v4[iDPB] + value.v4[iMLFO];
-            }            
+        for( int16_t sci=0; sci <lfoSlaveSetCount/4; ++sci ) {
+            int16_t currentPhaseMasterInd = CC_LFO_MASTER_PHASE_BEGIN/4;
+            for( int16_t i=0; i<lfoMasterCountV4; ++i, ++currentPhaseInd, ++deltaPhaseInd, ++currentPhaseMasterInd ) {
+                value.v4[currentPhaseInd] = value.v4[deltaPhaseInd] + value.v4[currentPhaseMasterInd];
+            }
         }
     }
-    
+
 private:
     InnerController();
-    V4array<int32_t,arraySizeExp>   value;   // low half > filtered, high half original
-    uint8_t                         shiftleft[arraySize];   
-    
+    V4array<int32_t,arraySizeExp>   value; 
+    uint8_t                         shiftleft[arraySize];
+
     // volume control characteristic
     static float expFuncTable[midiStep];
-    
-    // lfo phase control 0 .. PI 
+
+    // lfo phase control 0 .. PI
     static uint32_t phaseFuncTable[midiStep];
 };
 
+// get sin, saw, triangle -> 16 bit
+// set by ycent, (1/64 sampling)
+// set phase
 
 struct ControlledValue {
     int32_t     value;  // updated value from the InnerController
     int32_t     y0;     // y(0) for linear mapping
     int16_t     slope;  // multiplier for linear mapping
     uint16_t    index;  // index in InnerController
-    
-    inline bool update(void) 
+
+    // value == signed 16 bit
+    inline bool updateLfoSaw(void)
+    {
+        value = (int32_t(InnerController::getInstance().get( index ))>>16);
+        return true;
+    }
+    // value == signed 16 bit
+    inline bool updateLfoSin(void)
+    {
+        value = tables::waveSinTable[ uint16_t(InnerController::getInstance().get( index )>>16) ];
+        return true;
+    }
+    // value == signed 16 bit
+    inline bool updateLfoTriangle(void)
+    {
+        const int32_t tmp = (int32_t(InnerController::getInstance().get( index ))>>15);
+        value = ((tmp>>16) ^ tmp ) - 0x7FFF;
+        return true;
+    }    
+    inline bool updateDiff(void)
     {
         const auto tmp = value;
         value = InnerController::getInstance().get( index );
         return tmp != value;
-    }
-    inline void setShift(uint8_t shv) const 
+    }    
+    inline void setShift(uint8_t shv) const
     {
         if( shv > 24 )
             shv = 24;
         InnerController::getInstance().setShift(index,shv);
-    }    
-    inline int32_t getValue(void) const 
+    }
+
+    // to InnerController !
+    inline void set( uint32_t v  )
+    {
+        value = v;
+        InnerController::getInstance().set( index, v );
+    }
+
+    inline int32_t getValue(void) const
     {
         return value;
     }
-    inline float getExpValue(void) const 
+    inline float getExpValue(void) const
     {
+
         return InnerController::getInstance().getExpValue(value);
     }
-    inline uint32_t getPhaseValue(void) const 
+    inline uint32_t getPhaseValue(void) const
     {
         return InnerController::getInstance().getPhaseValue(value);
-    }    
-    
+    }
+
     // ycent -- max 8 octave
     // shift == 0
     inline void setYcent8Parameter( int32_t y0p, int16_t slopep )
@@ -272,8 +350,8 @@ struct ControlledValue {
         constexpr int32_t minY =  0x8000000;
                           // 19990:1ebacfd9
         constexpr int32_t maxY = 0x1EF00000;
-        
-        InnerController::getInstance().setShift(index,5);        
+
+        InnerController::getInstance().setShift(index,5);
         slope = slopep;
         if( y0p <= minY ) {
             y0 = minY;
@@ -285,9 +363,9 @@ struct ControlledValue {
         }
         y0 = y0p;
     }
-    // 7 + 5 == 12 -- 
-    // 12 * 15 == 27 -- 
-    // 27-24 == 3 -- 
+    // 7 + 5 == 12 --
+    // 12 * 15 == 27 --
+    // 27-24 == 3 --
     // 2^3 == 8
     inline int32_t getYcent8Value(void) const
     {
@@ -354,221 +432,5 @@ private:
     uint8_t    index[channelCount][controllerCountAll];
 };
 
-
-#if 0
-
-union ControllerT {
-    int32_t i;
-    float   f;  // not needed
-};
-// obsolate
-
-class ControllerMatrix {
-public:
-    static constexpr uint16_t controllerCountExp    = 8;
-    static constexpr uint16_t controllerCount       = 1<<controllerCountExp;
-    static constexpr uint16_t controllerCountMask   = controllerCount-1;
-    enum {
-        C_NULL,                 // always 0 -- null controller -- shouid not be assigned
-        C_FLOAT_AMPLITUDE,      // internal - current amplitude summ from osc unit
-        C_INT_PITCHBEND,
-        C_INT_CHANNELAFTERTOUCH,
-        C_INT_FILTER_Q,
-        C_INT_FILTER_FREQUENCY1,
-        C_INT_FILTER_FREQUENCY2,
-
-        // ...
-        // phaser....
-        // flanger...
-        // reverb....
-        // echo....
-        C_END  // end marker -- not used as controller
-    };
-
-    static_assert( C_END <= controllerCount, "controller matrix too small");
-
-    inline static ControllerMatrix& getInstance(void)
-    {
-        static ControllerMatrix instance;
-        return instance;
-    }
-
-    void reset(void)
-    {
-        memset(value,0, sizeof(value));
-        value[C_INT_PITCHBEND].i = 1<<13;  // this is the zero bend
-    }
-
-    inline void setFloat( uint16_t ind, const float v )
-    {
-        value[ind&controllerCountMask].f = v;
-    }
-
-    inline float getFloat( uint16_t ind ) const
-    {
-        return value[ind&controllerCountMask].f;
-    }
-
-    inline int32_t get( uint16_t ind ) const
-    {
-        return value[ind&controllerCountMask].i;
-    }
-
-    inline void setMidiHL( const uint16_t ind, const uint8_t hv, const uint8_t lv )
-    {
-        value[ind&controllerCountMask].i = (hv<<7) + lv;
-    }
-
-    inline void setMidiL( const uint16_t ind, const uint8_t lv )
-    {
-        value[ind&controllerCountMask].i = lv;
-    }
-
-    inline void setMidiH( const uint16_t ind, const uint8_t lv )
-    {
-        value[ind&controllerCountMask].i = (lv<<7) + lv;
-    }
-
-    // OSC : 16 bit unsigned -> as negative
-    inline void setOSC( const uint16_t ind, const uint16_t v )
-    {
-        value[ind&controllerCountMask].i = -v;
-    }
-
-private:
-    ControllerMatrix()
-    { reset(); };
-<<<<<<< HEAD
-    
-=======
-
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
-    ControllerT     value[controllerCount];
-};
-// --------------------------------------------------------------------
-// obsolate
-
-class ControllerOld {
-public:
-    ControllerOld( const uint16_t ind )
-    :   index(ind)
-    {};
-    ControllerOld()
-    :   index(ControllerMatrix::C_NULL)
-    {};
-
-    inline bool update(void)
-    {
-        const int32_t tmp = value.i;
-        return tmp != ( value.i = ( ControllerMatrix::getInstance().get(index)) );
-    }
-    inline int32_t get(void)
-    {
-        return value.i;
-    }
-    inline float getFloat(void)
-    {
-        return value.f;
-    }
-    inline void setIndex( const uint16_t indexP )
-    {
-        index = indexP;
-    }
-
-protected:
-    ControllerT value;
-    uint16_t    index;
-};
-// --------------------------------------------------------------------
-// TODO - normalize iterated
-// 7777 6666 5555 4444 3333 2222 1111 0000
-//-----------------------------------------
-// 0000 0000 xxxx xxx0 0000 0000 0000 0000 7 bit MIDI simple
-// 0000 0000 xxxx xxxx xxxx xx00 0000 0000 7 bit MIDI duplicated
-// 0000 0000 xxxx xxxx xxxx xx00 0000 0000 14 bit MIDI
-// 0000 0000 xxxx xxxx xxxx xxxx 0000 0000 16 bit osc
-
-// on the MIDI side:
-// 7777 6666 5555 4444 3333 2222 1111 0000
-//-----------------------------------------
-// 14 bit
-// 0000 0000 0000 0000 0044 4444 4444 4444
-// 7 bit -> setMidiH
-// 0000 0000 0000 0000 0077 7777 7777 7777
-// 0000 0000 0000 0000 0000 0000 0777 7777 -> for indexing &0x7 -> X-Y
-
-
-class ControllerIterated : public ControllerOld {
-public:
-    ControllerIterated( const uint16_t ind )
-    :   ControllerOld(ind)
-    {};
-    ControllerIterated()
-    :   ControllerOld()
-    {};
-    static constexpr uint8_t  rangeExp      = 10;    // 10 -> 24 bit
-    static constexpr uint8_t  normExp       = 24;
-    static constexpr uint8_t  itrangeExp    = 7;
-    static constexpr int32_t  dvalueLimit   = 1<<itrangeExp;
-
-    inline static float renorm ( const int32_t v, const uint8_t unorm = 0 )
-    {
-        return static_cast<float>( v ) / (1<<(normExp-unorm));
-    };
-
-    // OSC TODO -> 16 bit as negative
-    inline bool update(void)   // hide base class update()
-    {
-        if( ++xcount & 0xF )
-            return false;
-
-        const int32_t tmp = value.i;
-        value.i = ControllerMatrix::getInstance().get(index)<<rangeExp;
-        if( tmp == value.i ) {
-            return 0 <= dcount;
-        }
-
-        const int32_t dy = value.i - current;
-        dvalue  = dy >> itrangeExp ;
-        if( dvalue > dvalueLimit ) {
-            dcount  = 1 << itrangeExp;
-            return true;
-        } else if( dvalue < -dvalueLimit ) {
-            ++dvalue; // round up
-            dcount  = 1 << itrangeExp;
-            return true;
-        } else {
-            current = value.i;
-            dvalue  = 0;
-            dcount  = 0;
-            return true;
-        }
-    }
-
-    inline int32_t get(void)  // hide base class get()
-    {
-        if( 0 < dcount ) {
-            --dcount;
-            return current += dvalue;
-        }
-        dcount = -1;
-        return value.i;
-    }
-
-    // get normalized float : default: 1.0f
-
-    inline float getNorm( const uint8_t unorm=0 )
-    {
-        return renorm( get(), unorm );
-    }
-
-protected:
-    int32_t current;
-    int32_t dvalue;
-    int8_t  dcount;
-    int8_t  xcount;
-};
-
-#endif
 // --------------------------------------------------------------------
 } // end namespace yacynth

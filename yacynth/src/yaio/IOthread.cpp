@@ -38,17 +38,12 @@ IOThread:: IOThread(
 :   queueIn(in)
 ,   queueOut(out)
 ,   midiRouter(router)
-<<<<<<< HEAD
-,   panMixer()
-,   cycleNoise(0)
-=======
 //,   panMixer()
 ,   cycleNoise(0)
 ,   fxEndMixer()
 ,   fxOscillatorMixer()
 ,   fxRunner(fxEndMixer)
 
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
 {
     fxEndMixer.setProcMode(1); // TODO > endMixed mode
 };
@@ -124,21 +119,20 @@ void IOThread::audioOutCB( void *data, uint32_t nframes, float *outp1, float *ou
     const uint64_t begint   = tv.tv_sec*1000000ULL + tv.tv_usec;
 
     for( auto fi=0u; fi < bufferSizeMult; ++fi ) {
-        const int ri = thp.queueOut.getReadIndex();       
+        // main cycle for the effect stage -- called according to the frames rate:
+        // dev state: 64 sample internal, 256 external
+        // one frame cycle
+        InnerController::getInstance().incrementFrameLFOscillatorPhases();
+        const int ri = thp.queueOut.getReadIndex();
         thp.fxOscillatorMixer.process( thp.queueOut.out[ri] ); // this has a special interface
         thp.queueOut.readOk();
         thp.fxRunner.run();
-        thp.fxEndMixer.exec();  // must be the last 
-        thp.fxEndMixer.dump( outp1, outp2 ); // get the result       
+        thp.fxEndMixer.exec();  // must be the last
+        thp.fxEndMixer.dump( outp1, outp2 ); // get the result
         outp1 += thp.fxEndMixer.sectionSize;
         outp2 += thp.fxEndMixer.sectionSize;
     }
-    
-    if( 0 == ++thp.cycleNoise ) { // reset after 2^32 cycles
-        GaloisShifterSingle<seedThreadEffect_noise>::getInstance().reset();
-        GaloisShifterSingle<seedThreadEffect_random>::getInstance().reset();
-    }
-    
+
     if( 0 == ++thp.cycleNoise ) { // reset after 2^32 cycles
         GaloisShifterSingle<seedThreadEffect_noise>::getInstance().reset();
         GaloisShifterSingle<seedThreadEffect_random>::getInstance().reset();

@@ -177,13 +177,8 @@ struct AmplitudeTransient  {
     void set( const uint32_t target, uint16_t tick, int8_t curve, uint32_t freqDep = 0 )
     {
         clear();
-<<<<<<< HEAD
-        targetValueLF = target;
-        tickFrameLF= std::min( uint32_t(tick), tickLimit ); // std::min wants the same types
-=======
         targetValue.set( target );
         tickFrame.set( std::min( uint32_t(tick), tickLimit ) ); // std::min wants the same types
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
         curveSpeed  = saturate<int8_t,curveSpeedLimit>(curve);
 //        curveSpeed  = curve <= -curveSpeedLimit ? -curveSpeedLimit : curve >= curveSpeedLimit ? curveSpeedLimit : curve;
     };
@@ -199,17 +194,9 @@ struct AmplitudeTransient  {
     }
 
     //------- data ----------
-<<<<<<< HEAD
-    uint32_t    targetValueLF;   //freq dependent amplitude
-    uint32_t    targetValueHF;   //freq dependent amplitude    
-    uint16_t    tickFrameLF;     // number of frames (64 samples at 48kHz: 1.3msec) - freq dependent
-    uint16_t    tickFrameHF;     // number of frames (64 samples at 48kHz: 1.3msec) - freq dependent
-    int16_t     amplitudeDetune;    // pitch + amplitudeDetune * amplitude >> ??
-=======
     Interpolated<uint32_t,256> targetValue;
     Interpolated<uint16_t,8> tickFrame;
     int16_t     amplitudeDetune;    // TODO: pitch + amplitudeDetune * amplitude >> ??
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
     int8_t      curveSpeed;         // -3 .. 0 .. +3 : curve concave-lin-convex
     int8_t      rfu1;               // padding
 };
@@ -217,15 +204,8 @@ struct AmplitudeTransient  {
 inline void serialize( std::stringstream& ser, const AmplitudeTransient& val )
 {
     serialize(ser, val.sermagic);
-<<<<<<< HEAD
-    serialize(ser, val.targetValueLF);
-    serialize(ser, val.targetValueHF);
-    serialize(ser, val.tickFrameLF);
-    serialize(ser, val.tickFrameHF);
-=======
     serialize(ser, val.targetValue);
     serialize(ser, val.tickFrame);
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
     serialize(ser, val.amplitudeDetune);
     serialize(ser, val.curveSpeed);
 };
@@ -234,15 +214,8 @@ inline bool deserialize( std::stringstream& ser, AmplitudeTransient& val )
 {
     bool ret = true;
     ret = ret && deserialize(ser, val.sermagic);
-<<<<<<< HEAD
-    ret = ret && deserialize(ser, val.targetValueLF);
-    ret = ret && deserialize(ser, val.targetValueHF);
-    ret = ret && deserialize(ser, val.tickFrameLF);
-    ret = ret && deserialize(ser, val.tickFrameHF);
-=======
     ret = ret && deserialize(ser, val.targetValue);
     ret = ret && deserialize(ser, val.tickFrame);
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
     ret = ret && deserialize(ser, val.amplitudeDetune);
     ret = ret && deserialize(ser, val.curveSpeed);
     return ret;
@@ -274,12 +247,7 @@ struct AmplitudeSustain {
     uint16_t    antiDecayCoeff; // used as (1 + antiDecayCoeff/64k)
     uint16_t    antiDecayCyles; // antiDecayCyles * 1.3 msec
     //----------------------------------
-<<<<<<< HEAD
-    uint16_t    decayCoeffLF;
-    uint16_t    decayCoeffHF;
-=======
     Interpolated<uint16_t,8> decayCoeff;
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
     
     uint16_t    sustainModPeriod;
     uint8_t     sustainModDepth;    // modulation depth 0==disable -> sustainModDepth/256
@@ -295,8 +263,7 @@ inline void serialize( std::stringstream& ser, const AmplitudeSustain& val )
     serialize( ser, val.sermagic );
     serialize( ser, val.antiDecayCoeff );
     serialize( ser, val.antiDecayCyles );
-    serialize( ser, val.decayCoeffLF );
-    serialize( ser, val.decayCoeffHF );
+    serialize( ser, val.decayCoeff );
     serialize( ser, val.sustainModPeriod );
     serialize( ser, val.sustainModDepth );
     serialize( ser, val.sustainModType );
@@ -310,8 +277,7 @@ inline bool deserialize( std::stringstream& ser, AmplitudeSustain& val )
     ret = ret && deserialize( ser, val.sermagic );
     ret = ret && deserialize( ser, val.antiDecayCoeff );
     ret = ret && deserialize( ser, val.antiDecayCyles );
-    ret = ret && deserialize( ser, val.decayCoeffLF );
-    ret = ret && deserialize( ser, val.decayCoeffHF );
+    ret = ret && deserialize( ser, val.decayCoeff );
     ret = ret && deserialize( ser, val.sustainModPeriod );
     ret = ret && deserialize( ser, val.sustainModDepth );
     ret = ret && deserialize( ser, val.sustainModType );
@@ -345,20 +311,6 @@ struct ToneShaper {
         return true;
     };
 
-<<<<<<< HEAD
-    int32_t             pitch;              // may be negative !! - undertones
-    AmplitudeTransient  transient[transientKnotCount];
-    AmplitudeSustain    sustain;
-    uint16_t            tickFrameReleaseLF;
-    uint16_t            tickFrameReleaseHF;    // TODO : change
-    int8_t              curveSpeedRelease;      // TODO : change
-    uint8_t             oscillatorType;
-
-    uint8_t             outChannel;         // TODO : which channel to write
-    uint8_t             rfu1;
-    uint8_t             rfu2;
-    uint8_t             rfu3;
-=======
     int32_t                 pitch;              // may be negative !! - undertones
     AmplitudeTransient      transient[transientKnotCount];
     AmplitudeSustain        sustain;
@@ -371,7 +323,6 @@ struct ToneShaper {
     uint8_t                 rfu1;
     uint8_t                 rfu2;
     uint8_t                 rfu3;
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
 
 };
 // --------------------------------------------------------------------
@@ -379,8 +330,7 @@ inline void serialize( std::stringstream& ser, const ToneShaper& val )
 {
     serialize( ser, val.sermagic );
     serialize( ser, val.pitch );
-    serialize( ser, val.tickFrameReleaseLF );
-    serialize( ser, val.tickFrameReleaseHF );
+    serialize( ser, val.tickFrameRelease );
     serialize( ser, val.curveSpeedRelease );
     serialize( ser, val.oscillatorType );
     serialize( ser, val.outChannel );
@@ -393,8 +343,7 @@ inline bool deserialize( std::stringstream& ser, ToneShaper& val )
     bool ret = true;
     ret = ret && deserialize( ser, val.sermagic );
     ret = ret && deserialize( ser, val.pitch );
-    ret = ret && deserialize( ser, val.tickFrameReleaseLF );
-    ret = ret && deserialize( ser, val.tickFrameReleaseHF );
+    ret = ret && deserialize( ser, val.tickFrameRelease );
     ret = ret && deserialize( ser, val.curveSpeedRelease );
     ret = ret && deserialize( ser, val.oscillatorType );
     ret = ret && deserialize( ser, val.outChannel );
@@ -471,11 +420,7 @@ struct ToneShaperVector {
         for( auto vi = 0u; vi < overtoneCountOscDef; ++vi ) {
             const float onevi = 1.0f/float(vi+1);
             for( auto ni = 0u; ni < transientKnotCount; ++ni ) {
-<<<<<<< HEAD
-                toneShaperVec[vi].transient[ni].targetValueLF *= onevi;
-=======
                 toneShaperVec[vi].transient[ni].targetValue.mult( onevi );
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
             }
         }
     }

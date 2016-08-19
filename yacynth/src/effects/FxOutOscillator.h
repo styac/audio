@@ -192,16 +192,16 @@ private:
 
     inline void updateParam(void)
     {
-        if( param.phaseDiff.update() ) {    
+        if( param.phaseDiff.updateDiff() ) {    
             phase[1] -= phaseDiff;            
             phaseDiff = param.phaseDiff.getPhaseValue();
             phase[1] += phaseDiff;            
         }
         
-        if( param.phaseDelta0.update() ) {            
+        if( param.phaseDelta0.updateDiff() ) {            
             phaseDelta0 = tables::ExpTable::getInstance().ycent2deltafi( param.phaseDelta0.getYcent8Value() );
         }        
-        if( param.phaseDelta1.update() ) {            
+        if( param.phaseDelta1.updateDiff() ) {            
             phaseDelta1 = tables::ExpTable::getInstance().ycent2deltafi( param.phaseDelta1.getYcent8Value() );
         }        
     }

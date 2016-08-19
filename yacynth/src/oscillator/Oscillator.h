@@ -85,11 +85,7 @@ struct SustainModulator {
     }
     inline int64_t decay ( const int64_t in, const AmplitudeSustain& env )
     {
-<<<<<<< HEAD
-        return env.decayCoeffLF ? -(( ( env.decayCoeffLF * in ) >> 28 ) + 1 ) : 0 ;
-=======
         return env.decayCoeff.get() ? -(( ( env.decayCoeff.get() * in ) >> 28 ) + 1 ) : 0 ;
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
     }
     inline int64_t mod( const int64_t in, const AmplitudeSustain& env  )
     {
@@ -153,22 +149,14 @@ struct OscillatorState {
     uint32_t            phase;
     int32_t             tickFrame;  // int16_t ???
     uint16_t            envelopMultiplierExpChecked; // int8_t ???
-<<<<<<< HEAD
-    int16_t             envelopePhase;  // int8_t ???                // run max..0  , -1 end
-=======
     int8_t              envelopePhase; 
     int8_t              rfu1; 
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
     SustainModulator    sustainModulator;
 };
 // --------------------------------------------------------------------
 class alignas(16) Oscillator {
 public:
-<<<<<<< HEAD
-      // j 30 freq2ycent 155b2c3e
-=======
       // 30 Hz -- freq2ycent 155b2c3e
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
     static constexpr int32_t minPitchDep = 0x155b2c3e;  // j 30 freq2ycent 155b2c3e
 
     enum OscType {
@@ -251,37 +239,12 @@ private:
         //  24-13 = 11
         //
 /*
-<<<<<<< HEAD
- 
-  j 20 freq2ycent 14c56c23
-  j 21 freq2ycent 14d7712c
-  j 22 freq2ycent 14e89f92
-  j 23 freq2ycent 14f90a6a
-  j 24 freq2ycent 1508c25c
-  j 25 freq2ycent 1517d605
-  j 26 freq2ycent 15265247
-=======
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
   j 27 freq2ycent 15344291
   j 28 freq2ycent 1541b112
   j 29 freq2ycent 154ea6e7
   j 30 freq2ycent 155b2c3e
   j 31 freq2ycent 15674878
   j 32 freq2ycent 15730242
-<<<<<<< HEAD
-  j 33 freq2ycent 157e5fac
-  j 34 freq2ycent 15896639
-  j 35 freq2ycent 15941af3
-  j 36 freq2ycent 159e8277
-  j 37 freq2ycent 15a8a0ff
-  j 38 freq2ycent 15b27a70
-  j 39 freq2ycent 15bc1261
-
- 
- 
- 
-=======
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
  */        
         constexpr uint8_t   prExp = 11;
         constexpr uint32_t  maxPd = 0x0FFFF;
@@ -296,35 +259,17 @@ private:
         }
         pitchDepDx  = dp >> prExp;
     }
-<<<<<<< HEAD
-    
-    inline uint32_t interpolatePitchDependency( const int64_t lowLim, const int64_t highLim )
-    {
-        return lowLim + ((( highLim - lowLim ) * pitchDepDx ) >> 16 );
-    }
-    
-    GaloisShifter                   random4SustainModulator; // obsolate
-=======
         
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
     OscillatorState                 state[ overtoneCountOscDef ];
     NoiseSample                     noiseWide;      // only 1 for a voice
     OscillatorNoise                 noiseNarrow;    // only 1 for a voice
     int32_t                         basePitch;
-<<<<<<< HEAD
-    uint16_t                        velocity;  // NEW TODO -- velocity: set by note on
-=======
     uint16_t                        velocity; 
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
     uint16_t                        delay;
     uint16_t                        toneShaperSelect;
     uint16_t                        oscillatorCountUsed;
     uint16_t                        pitchDepDx;
-<<<<<<< HEAD
-    static GaloisShifter            gRandom;  // obsolate
-=======
     voice_state_t                   voiceState;
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
     static NoiseFrame<FrameInt<oscillatorOutSampleCountExp>>   
                                     whiteNoiseFrame;
     static const ToneShaperMatrix   toneShaperMatrix;

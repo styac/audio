@@ -78,30 +78,18 @@ inline float noisefloor( const float val )
 // possible oversampling rate 1<<EffectOversamplingRateExp
 //
 
-<<<<<<< HEAD
-// remove template !
-using EDataType  = float;
-=======
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
 // --------------------------------------------------------------------
 
-struct EbufferPar {    
+struct EbufferPar {
     static constexpr std::size_t EffectFrameSizeExp          = 6;
     static constexpr std::size_t EffectOversamplingRateExp   = 0;
     static constexpr std::size_t sectionSizeExp     = EffectFrameSizeExp+EffectOversamplingRateExp;
     static constexpr std::size_t sectionSize        = 1<<sectionSizeExp;
     static constexpr std::size_t sectionSizeMask    = sectionSize-1;
-<<<<<<< HEAD
-    static constexpr std::size_t vsectionSizeExp    = sectionSizeExp-2;    
-    static constexpr std::size_t vsectionSize       = 1<<vsectionSizeExp;    
-    static constexpr std::size_t vsectionSizeMask   = vsectionSize-1;    
-    
-=======
     static constexpr std::size_t vsectionSizeExp    = sectionSizeExp-2;
     static constexpr std::size_t vsectionSize       = 1<<vsectionSizeExp;
     static constexpr std::size_t vsectionSizeMask   = vsectionSize-1;
 
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
     static constexpr std::size_t chA                = 0;
     static constexpr std::size_t chB                = 1;
 
@@ -117,13 +105,6 @@ struct EbufferPar {
 
 // --------------------------------------------------------------------
 // Effect stage IO buffer
-<<<<<<< HEAD
-// this will be only float
-template< typename Tstore >
-struct EIObufferT : public EbufferPar {
-    typedef Tstore value_type;
-    EIObufferT()
-=======
 struct FadeBufferTag {
     FadeBufferTag() = default;
 };
@@ -131,7 +112,6 @@ struct FadeBufferTag {
 struct EIObuffer : public EbufferPar {
 
     EIObuffer()
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
     { clear(); };
 
     // fast hack to make fade buffer
@@ -140,12 +120,7 @@ struct EIObuffer : public EbufferPar {
 
     void clear(void)
     {
-<<<<<<< HEAD
-        for( auto& ichn : channel ) memset( ichn, 0, sectionSize*sizeof(Tstore) );
-        channelGain = 1.0f;
-=======
         for( auto& ichn : channel ) memset( ichn, 0, sectionSize*sizeof(float) );
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
     }
 
     // chA fadeIn
@@ -306,11 +281,7 @@ struct EIObuffer : public EbufferPar {
 
     union alignas(16) {
         v4sf    vchannel[ channelCount ][ vsectionSize ];
-<<<<<<< HEAD
-        Tstore  channel[ channelCount ][ sectionSize ];
-=======
         float   channel[ channelCount ][ sectionSize ];
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
         struct {
             float  channelA[ sectionSize ];
             float  channelB[ sectionSize ];
@@ -614,17 +585,5 @@ struct EDelayLine : public EbufferPar {
 };
 
 // --------------------------------------------------------------------
-<<<<<<< HEAD
-// --------------------------------------------------------------------
-using EIObuffer         = EIObufferT<EDataType>;
-//using EIObufferInt      = EIObufferT<int32_t>;
-//using EIObufferFloat    = EIObufferT<float>;
-
-using EDelayLine        = EDelayLineT<EDataType>;
-// --------------------------------------------------------------------
-extern const EIObuffer nullEBuffer;
-// --------------------------------------------------------------------
-=======
->>>>>>> ba07e31dc2378caab3f0e381e4c636f8e4c63262
 } // end namespace yacynth
 
