@@ -1,7 +1,5 @@
-#pragma once
-
 /*
- * Copyright (C) 2016 Istvan Simon
+ * Copyright (C) 2017 ist
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,30 +16,17 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-/*
- * File:   SimpleMidiRouter.h
- * Author: Istvan Simon
- *
- * Created on February 27, 2016, 10:15 PM
- */
-#include    "AbstractRouter.h"
+#include    "../include/Serialize.h"
 
 namespace yacynth {
+//                                      0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
+const char spaceStr[spaceStrSize+1] = {"                                                                "};
 
-class SimpleMidiRouter : public AbstractRouter {
-public:
-    SimpleMidiRouter()
-    {};
-    virtual ~SimpleMidiRouter() = default;
+const char *const lastVecStr = "].";
+const char *const contVecStr = "],";
+const char *const localSym = "%";
+const char *const emptyToken = " ";
 
-    void clear(void) {};
-    
-    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
-
-    virtual Yamsgrt     translate( const RouteIn& in ) override;
-    virtual uint32_t    getPitch( int32_t noteNr, uint16_t tableNr = 0 );
-    virtual void        setTransposition( int8_t val ) override;
-};
 
 } // end namespace yacynth
 

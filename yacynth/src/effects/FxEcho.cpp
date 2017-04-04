@@ -42,6 +42,11 @@ void FxEcho::testvect(void)
 }
 // --------------------------------------------------------------------
 
+void FxEcho::clearTransient()
+{
+    EIObuffer::clear();
+    delay.clear();
+}
 
 // --------------------------------------------------------------------
 void FxEcho::process(void)

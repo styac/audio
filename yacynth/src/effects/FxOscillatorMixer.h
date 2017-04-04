@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-/* 
+/*
  * File:   FxOscillatorMixer.h
  * Author: Istvan Simon -- stevens37 at gmail dot com
  *
@@ -26,12 +26,15 @@
  */
 
 #include    "yacynth_globals.h"
+#include    "protocol.h"
+
 #include    "v4.h"
 #include    "FxBase.h"
 #include    "../oscillator/OscillatorOutput.h"
 
 
 namespace yacynth {
+using namespace TagEffectTypeLevel_02;
 
 class FxOscillatorMixerParam {
 public:
@@ -40,16 +43,19 @@ public:
     {};
     // mandatory fields
     static constexpr char const * const name = "OscillatorMixer";
-    static constexpr std::size_t maxMode     = 1; // 0 is always exist> 0,1,2
-    static constexpr std::size_t inputCount  = 0; // input is different
+    static constexpr TagEffectType  type     = TagEffectType::FxOscillatorMixer;
+    static constexpr std::size_t maxMode     = 1; // 
+    static constexpr std::size_t inputCount  = 0; // input is oscillator thread out 
 
     // temp
     static constexpr   float   gainref = 1.0f/(1L<<23);
-
+    
+    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
+    
     // optional fields
     float gain;
-    
-    // index to put the amplitudeSumm 
+
+    // index to put the amplitudeSumm
     // interface to controller
     float amplitudeSumm;
 };
@@ -65,17 +71,21 @@ public:
 //        fillSprocessv<2>(sprocess_02);
 //        fillSprocessv<3>(sprocess_03);
 //        fillSprocessv<4>(sprocess_04);
-//        fillSprocessv<5>(sprocess_05);        
-    
+//        fillSprocessv<5>(sprocess_05);
+
     }
     
-    // real process 
+    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override; 
+        
+    virtual void clearTransient() override;    
+
+    // real process
     void process( const OscillatorOut& inp );
     virtual bool connect( const FxBase * v, uint16_t ind ) override
     {
         doConnect(v,ind);
-    }; 
-    
+    };
+
 private:
     struct alignas(16) AddVector {
         union {

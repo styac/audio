@@ -26,6 +26,7 @@
  */
 
 
+#include    "protocol.h"
 #include    "FxBase.h"
 #include    "../oscillator/NoiseFrame.h"
 #include    "../utils/GaloisNoiser.h"
@@ -33,13 +34,17 @@
 using namespace noiser;
 
 namespace yacynth {
+using namespace TagEffectTypeLevel_02;
 
 class FxOutNoiseParam {
 public:
     // mandatory fields
-    static constexpr char const * const name = "NoiseSource";
-    static constexpr std::size_t maxMode     = 2; // 0 is always exist> 0,1,2
-    static constexpr std::size_t inputCount  = 0;
+    static constexpr char const * const name    = "NoiseSource";
+    static constexpr TagEffectType  type        = TagEffectType::FxOutNoise;
+    static constexpr std::size_t maxMode        = 2; // 0 is always exist> 0,1,2
+    static constexpr std::size_t inputCount     = 0;
+    
+    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
 
     // optional fields
     uint8_t redPole;
@@ -58,9 +63,13 @@ public:
         fillSprocessv<2>(sprocess_02);
 //        fillSprocessv<3>(sprocess_03);
 //        fillSprocessv<4>(sprocess_04);
-//        fillSprocessv<5>(sprocess_05);        
-        
+//        fillSprocessv<5>(sprocess_05);
+
     }
+    
+    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override; 
+    
+    virtual void clearTransient() override;    
 
 
     // go up to Fx ??
@@ -109,8 +118,8 @@ public:
     virtual bool connect( const FxBase * v, uint16_t ind ) override
     {
         doConnect(v,ind);
-    }; 
-    
+    };
+
 private:
     // go up to Fx ???
     static void sprocessTransient( void * thp )
@@ -122,7 +131,7 @@ private:
             th.sprocessp = th.sprocesspSave =  th.sprocessv[ th.procMode ];
             th.sprocesspSave(thp);
             return;
-            
+
         // clear then switch to nop
         case FadePhase::FPH_fadeOutClear:
             th.clear();

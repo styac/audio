@@ -33,7 +33,13 @@
 #include    <cmath>
 #include    <algorithm>
 
+#define YAC_DEBUG    1
+
 namespace yacynth {
+
+#define cArrayElementCount(T)    (sizeof(T) / sizeof(T[0]))
+
+constexpr   uint16_t    cacheLineSize               = 64;
 
 constexpr   double      PI  = 3.141592653589793238462643383279502884197169399375105820974944592307816406286;
 constexpr   double      PI2 = PI * 2.0;
@@ -153,7 +159,24 @@ inline Tdata saturate ( const Tdata x )
 
 //====================================================
 
+// for generating the parameter mapping
+//#define     JSONNET_GENERATOR_ENABLE     1
+#if 0
+template<typename T>
+T saturate(T val, T min, T max) {
+    return std::min(std::max(val, min), max);
+}
 
+template<typename T>
+T saturate(T val, T lim) {
+    return std::min(std::max(val, -lim), lim);
+}
+
+template<typename T, std::size_t lim>
+T saturate(T val) {
+    return std::min(std::max(val, -lim), lim);
+}
+#endif
 
 } // end namespace yacynth
 

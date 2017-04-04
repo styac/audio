@@ -70,7 +70,7 @@ using namespace tables;
 typedef float v4sf __attribute__((mode(SF)))  __attribute__ ((vector_size(16),aligned(16)));
 
 namespace filter {
-
+constexpr   uint16_t    cacheLineSize               = 64;
 // --------------------------------------------------------------------
 // OBSOLATE
 

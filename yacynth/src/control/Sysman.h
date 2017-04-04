@@ -32,6 +32,7 @@
 #include    "../oscillator/ToneShaper.h"
 #include    "../yaio/YaIoJack.h"
 #include    "../yaio/IOthread.h"
+#include    "Tags.h"
 
 #include    <boost/array.hpp>
 #include    <boost/asio.hpp>
@@ -54,45 +55,24 @@ class Sysman {
 public:
     explicit Sysman(
         OscillatorArray&    oscillatorArrayP,
-        IOThread&           iOThreadP
-                    );
+        IOThread&           iOThreadP );
 
     Sysman() = delete;
     Sysman(const Sysman&) = delete;
     Sysman& operator=(const Sysman&) = delete;
-
-    enum unitType {
-        UNIT_NOP,
-        UNIT_SYSTEM,        // system parameters
-        UNIT_OSCILLATOR,    // oscillator params - tone shaper
-        UNIT_EFFECT,        // effect params config
-        UNIT_TUNING,        // tuning table/routing
-        UNIT_CONTROLLER,    // controller routing
-        UNIT_MIDIROUTER,    // midi routing
-    };
-
     bool eval( ip::tcp::socket&   socketAccept );
-
+    
+    // for testing 
+    void testParameter();
+    bool evalParameterMessage( Yaxp::Message& msg );
+    
 private:
-//    ip::tcp::socket socketAccept;
-    bool getLine( std::string& line );
-    bool evalAscii( void);
-    bool evalBin( void);
-
-    bool queryUnit( const unitType ut, std::stringstream& ser );
-    bool fillUnit(  const unitType ut, std::stringstream& ser );
-
-    bool evalUnitSystem ( void);
-    bool evalUnitTuning ( void);
-    bool evalUnitController ( void);
-    bool evalUnitMidirouter ( void);
-    bool evalUnitOscillator ( void);
-    bool evalUnitEffect ( void);
+    
+    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );     
     OscillatorArray&            oscillatorArray;
     ToneShaperMatrix&           toneShaperMatrix;
     IOThread&                   iOThread;
     boost::asio::streambuf      inStreambuf;
-
 };
 
 } // end namespace yacynth

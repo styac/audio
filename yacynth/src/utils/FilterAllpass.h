@@ -47,9 +47,10 @@ public:
     static constexpr  std::size_t filterCount       = 1<<filterCountExp;
     static constexpr  std::size_t filterCountMask   = filterCount-1;
     static constexpr  std::size_t stateCount        = 1<<stateCountExp;
-    static constexpr  std::size_t channelCount      = 1<<filterCountExp;
+    static constexpr  std::size_t channelCount      = 1<<channelCountExp;
+    static constexpr  std::size_t channelCountMask  = channelCount-1;
     static constexpr  std::size_t v4count           = (filterCount+stateCount+channelCount+3)/4;
-    static constexpr  std::size_t klinCount         = 1<<(filterCountExp+filterCountExp);
+    static constexpr  std::size_t klinCount         = 1<<(filterCountExp+channelCountExp);
     static constexpr  std::size_t klinCountMask     = klinCount-1;
 
     static constexpr  std::size_t ZD0   = 0;    // z delay
@@ -89,7 +90,7 @@ public:
 
     // parameter set with ycent
     template< std::size_t CH, std::size_t ZD >
-    inline void setYcent( uint32_t ycent, std::size_t index=0 )
+    inline void setYcent( int32_t ycent, std::size_t index=0 )
     {
         if( ZD0 == ZD ) {
             k[ZD][ index & filterCountMask ][CH] = FilterTableSinCosPi2::getInstance().getFloat( ycent );
@@ -101,10 +102,10 @@ public:
     }
 
     // index 0..2^k-1 -- filter  2^k -- channel
-    // TODO TEST !!!
     template< std::size_t ZD >
-    inline void setYcent( uint32_t ycent, std::size_t index )
+    inline void setYcent( int32_t ycent, std::size_t index )
     {
+        static_assert(sizeof(klin) == sizeof(k), "different sizes");
         if( ZD0 == ZD ) {
             klin[ZD][ index & klinCountMask ] = FilterTableSinCosPi2::getInstance().getFloat( ycent );
         } else if( ZD1 == ZD ) {
@@ -113,7 +114,26 @@ public:
             static_assert(ZD==0 || ZD==1,"illegal parameter");
         }
     }
-    
+
+    template< std::size_t ZD >
+    inline void setYcentAll( int32_t ycent, int32_t ycentDelta )
+    {
+        static_assert(sizeof(klin) == sizeof(k), "different sizes");
+        if( ZD0 == ZD ) {
+            for( auto fi=0u; fi < klinCount; ++fi ) {
+                klin[ZD][ fi ] = FilterTableSinCosPi2::getInstance().getFloat( ycent );
+                ycent += ycentDelta;
+            }
+        } else if( ZD1 == ZD ) {
+            for( auto fi=0u; fi < klinCount; ++fi ) {
+                klin[ZD][ fi ] = FilterTableCos2Pi::getInstance().getFloat( ycent );
+                ycent += ycentDelta;
+            }
+        } else {
+            static_assert(ZD==0 || ZD==1,"illegal parameter");
+        }
+    }
+
     inline void setFeedback( float fb)
     {
         feedback = fb;
@@ -271,15 +291,16 @@ public:
         static_assert(stateCount>1,"state count low");
         static_assert(channelCount>1,"channel count low");
         static_assert(filterCount>3,"filter count low");
+        static_assert(sizeof(klin) == sizeof(k), "different sizes");
 
         union {
-            v4sf    tv[2];
+            v4sf    tv4[2];
             float   t[4][2];
         };
-        
+
         // feedback
-//        const float t0y0 = x0 ;//+ b[CH0];
-//        const float t0y1 = x1 ;//+ b[CH1];
+//        const float t0y0 = x0;
+//        const float t0y1 = x1;
         const float t0y0 = x0 + b[CH0];
         const float t0y1 = x1 + b[CH1];
         // 1th stage
@@ -297,16 +318,15 @@ public:
         const float t3y1 = z[ZD0][FL2][CH1] - t2y1 * k[ZD0][FL2][CH1];
         t[FL2][CH0] = t2y0 + t3y0 * k[ZD0][FL2][CH0];
         t[FL2][CH1] = t2y1 + t3y1 * k[ZD0][FL2][CH1];
-        
+
         y0 = z[ZD0][FL3][CH0] - t3y0 * k[ZD0][FL3][CH0];
         y1 = z[ZD0][FL3][CH1] - t3y1 * k[ZD0][FL3][CH1];
         t[FL3][CH0] = t3y0 + y0 * k[ZD0][FL3][CH0];
         t[FL3][CH1] = t3y1 + y1 * k[ZD0][FL3][CH1];
         b[CH0] = feedback * y0;
         b[CH1] = feedback * y1;
-#if 1        
+#if 1
         // 2nd stage
-        // v4 ?? 
         z[ZD0][FL0][CH0] = z[ZD1][FL0][CH0] - t[FL0][CH0] * k[ZD1][FL0][CH0];
         z[ZD0][FL0][CH1] = z[ZD1][FL0][CH1] - t[FL0][CH1] * k[ZD1][FL0][CH1];
         z[ZD0][FL1][CH0] = z[ZD1][FL1][CH0] - t[FL1][CH0] * k[ZD1][FL1][CH0];
@@ -327,33 +347,31 @@ public:
         z[ZD1][FL3][CH0] = t[FL3][CH0] + z[ZD0][FL3][CH0] * k[ZD1][FL3][CH0];
         z[ZD1][FL3][CH1] = t[FL3][CH1] + z[ZD0][FL3][CH1] * k[ZD1][FL3][CH1];
 #else
-        z[ZD0][FL0][CH0] = z[ZD1][FL0][CH0] - t[FL0][CH0] * k[ZD1][FL0][CH0];
-        z[ZD0][FL0][CH1] = z[ZD1][FL0][CH1] - t[FL0][CH1] * k[ZD1][FL0][CH1];
-        z[ZD1][FL0][CH0] = t[FL0][CH0] + z[ZD0][FL0][CH0] * k[ZD1][FL0][CH0];
-        z[ZD1][FL0][CH1] = t[FL0][CH1] + z[ZD0][FL0][CH1] * k[ZD1][FL0][CH1];
+        const v4sf& tf01ch01 = tv4[0];
+        const v4sf& tf23ch01 = tv4[1];
 
-        z[ZD0][FL1][CH0] = z[ZD1][FL1][CH0] - t[FL1][CH0] * k[ZD1][FL1][CH0];
-        z[ZD0][FL1][CH1] = z[ZD1][FL1][CH1] - t[FL1][CH1] * k[ZD1][FL1][CH1];
-        z[ZD1][FL1][CH0] = t[FL1][CH0] + z[ZD0][FL1][CH0] * k[ZD1][FL1][CH0];
-        z[ZD1][FL1][CH1] = t[FL1][CH1] + z[ZD0][FL1][CH1] * k[ZD1][FL1][CH1];
+        const v4sf& k0fl01ch01 = v4[0];
+        const v4sf& k0fl23ch01 = v4[1];
+        const v4sf& k1fl01ch01 = v4[2];
+        const v4sf& k1fl23ch01 = v4[3];
 
-        z[ZD0][FL2][CH0] = z[ZD1][FL2][CH0] - t[FL2][CH0] * k[ZD1][FL2][CH0];
-        z[ZD0][FL2][CH1] = z[ZD1][FL2][CH1] - t[FL2][CH1] * k[ZD1][FL2][CH1];
-        z[ZD1][FL2][CH0] = t[FL2][CH0] + z[ZD0][FL2][CH0] * k[ZD1][FL2][CH0];
-        z[ZD1][FL2][CH1] = t[FL2][CH1] + z[ZD0][FL2][CH1] * k[ZD1][FL2][CH1];
+        v4sf& z0fl01ch01 = v4[4];
+        v4sf& z0fl23ch01 = v4[5];
+        v4sf& z1fl01ch01 = v4[6];
+        v4sf& z1fl23ch01 = v4[7];
 
-        z[ZD0][FL3][CH0] = z[ZD1][FL3][CH0] - t[FL3][CH0] * k[ZD1][FL3][CH0];
-        z[ZD0][FL3][CH1] = z[ZD1][FL3][CH1] - t[FL3][CH1] * k[ZD1][FL3][CH1];
-        z[ZD1][FL3][CH0] = t[FL3][CH0] + z[ZD0][FL3][CH0] * k[ZD1][FL3][CH0];
-        z[ZD1][FL3][CH1] = t[FL3][CH1] + z[ZD0][FL3][CH1] * k[ZD1][FL3][CH1];
+        z0fl01ch01  = z1fl01ch01 - tf01ch01 * k1fl01ch01;
+        z1fl01ch01  = tf01ch01 + z0fl01ch01 * k1fl01ch01;
+        z0fl23ch01  = z1fl23ch01 - tf23ch01 * k1fl23ch01;
+        z1fl23ch01  = tf23ch01 + z0fl23ch01 * z1fl23ch01;
 #endif
-        
+
         // 1. 1 Hz 1st order fix allpass --> changes phase -- forward signal minus ! - to supresss DC
     }
 
 //----------------------------------------------
 private:
-    union {
+    union alignas(cacheLineSize) {
         v4sf    v4[v4count];
         struct {
             union {
@@ -363,6 +381,8 @@ private:
             float   z[stateCount][filterCount][channelCount];
         };
     };
+
+    // this should go from here to FxFilter param
     float b[channelCount];  // feedback
     float feedback;         // feedback coeff
 };

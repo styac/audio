@@ -38,7 +38,7 @@ constexpr   uint64_t bufCountExp    = 3;
 constexpr   uint64_t bufCount       = (1LL<<bufCountExp);
 constexpr   uint64_t bufCountMask   = bufCount-1LL;
 
-class OscillatorOut {
+class alignas(cacheLineSize) OscillatorOut {
 public:
     OscillatorOut()
         { clear(); };

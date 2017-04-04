@@ -95,8 +95,8 @@ struct alignas(16) V4array<float, v4Exp> : public V4size<v4Exp> {
     }
 
     union {
-        v4sf    v4[ V4size<v4Exp>::varraySize ];
-        float   v[  V4size<v4Exp>::arraySize  ];
+        v4sf    v4[ V4size<v4Exp>::varraySize   ];
+        float    v[ V4size<v4Exp>::arraySize    ];
     };
 };
 
@@ -108,8 +108,8 @@ struct alignas(16) V4array<int32_t, v4Exp> : public V4size<v4Exp> {
     }
 
     union {
-        v4si    v4[ V4size<v4Exp>::varraySize ];
-        int32_t v[  V4size<v4Exp>::arraySize  ];
+        v4si    v4[ V4size<v4Exp>::varraySize   ];
+        int32_t  v[ V4size<v4Exp>::arraySize    ];
     };
 };
 
@@ -121,8 +121,8 @@ struct alignas(16) V4array<uint32_t, v4Exp> : public V4size<v4Exp> {
     }
 
     union {
-        v4si    v4[ V4size<v4Exp>::varraySize ];
-        uint32_t v[  V4size<v4Exp>::arraySize  ];
+        v4si    v4[ V4size<v4Exp>::varraySize   ];
+        uint32_t v[ V4size<v4Exp>::arraySize    ];
     };
 };
 

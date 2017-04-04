@@ -38,7 +38,7 @@
 // usage: sintable.fastcosDiv2PI
 
 namespace tables {
-
+constexpr uint16_t  cacheLineSize               = 64;
 constexpr uint32_t  sinTableSizeExp  = 16;
 constexpr uint32_t  sinTableSize     = 1<<sinTableSizeExp;
 extern  int16_t     waveSinTable[ sinTableSize + 1 ];
@@ -58,7 +58,7 @@ public:
         static SinTable instance;
         return instance;
     }
-#if  0   
+#if  0
     inline int16_t sinWaveindex0(   const uint16_t index ) const
     {
         return waveSinTable[index];
@@ -226,7 +226,7 @@ public:
         return -sin1pcos[ uint16_t( 0x0FFFF - std::lround( (fpfs-0.25f) * (1<<18) ) ) + 1 ];
     };
 #endif
-    
+
 private:
     SinTable()
     {
@@ -251,14 +251,14 @@ private:
             summ += sinTable[ i ];
             summi += waveSinTable[ i ];
         }
-        std::cout 
-            << "\n\n **** sin summ " << summ 
-            << "\n\n **** sin summi " << summi 
-            
-            << "\n\n **** sin ldsumm " << ldsumm 
-            << "\n\n **** sin ldsummi " << ldsummi 
+        std::cout
+            << "\n\n **** sin summ " << summ
+            << "\n\n **** sin summi " << summi
+
+            << "\n\n **** sin ldsumm " << ldsumm
+            << "\n\n **** sin ldsummi " << ldsummi
             << std::endl;
-#endif        
+#endif
     };
 };
 

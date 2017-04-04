@@ -142,15 +142,15 @@ struct SustainModulator {
     uint8_t             rfu3;
 };
 // --------------------------------------------------------------------
-struct OscillatorState {
-    
+struct alignas(int64_t) OscillatorState { // or cacheLineSize ?
+
     int64_t             amplitudoOsc;                   // ok - must be signed to handle underflows
     int64_t             envelopeTargetValueVelocity;    // ok - must be signed to handle underflows
     uint32_t            phase;
     int32_t             tickFrame;  // int16_t ???
     uint16_t            envelopMultiplierExpChecked; // int8_t ???
-    int8_t              envelopePhase; 
-    int8_t              rfu1; 
+    int8_t              envelopePhase;
+    int8_t              rfu1;
     SustainModulator    sustainModulator;
 };
 // --------------------------------------------------------------------
@@ -182,7 +182,7 @@ public:
         OSC_NOISE_WHITE   = 0x80,
         OSC_NOISE_RED,
         OSC_NOISE_PURPLE,
-        OSC_NOISE_BLUE,        
+        OSC_NOISE_BLUE,
         OSC_NOISE_PEEK1,
         OSC_NOISE_PEEK2,
         OSC_NOISE_PEEK3,
@@ -226,9 +226,9 @@ public:
     {
         whiteNoiseFrame.fillWhiteBlue(); // fillWhiteBlue ??
     }
-    
+
 private:
-    
+
     inline void setPitchDependency(void)
     {
         // pitch:
@@ -245,7 +245,7 @@ private:
   j 30 freq2ycent 155b2c3e
   j 31 freq2ycent 15674878
   j 32 freq2ycent 15730242
- */        
+ */
         constexpr uint8_t   prExp = 11;
         constexpr uint32_t  maxPd = 0x0FFFF;
         const int32_t dp = basePitch - minPitchDep;
@@ -259,18 +259,18 @@ private:
         }
         pitchDepDx  = dp >> prExp;
     }
-        
+
     OscillatorState                 state[ overtoneCountOscDef ];
     NoiseSample                     noiseWide;      // only 1 for a voice
     OscillatorNoise                 noiseNarrow;    // only 1 for a voice
     int32_t                         basePitch;
-    uint16_t                        velocity; 
+    uint16_t                        velocity;
     uint16_t                        delay;
     uint16_t                        toneShaperSelect;
     uint16_t                        oscillatorCountUsed;
     uint16_t                        pitchDepDx;
     voice_state_t                   voiceState;
-    static NoiseFrame<FrameInt<oscillatorOutSampleCountExp>>   
+    static NoiseFrame<FrameInt<oscillatorOutSampleCountExp>>
                                     whiteNoiseFrame;
     static const ToneShaperMatrix   toneShaperMatrix;
 }; // end class Oscillator

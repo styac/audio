@@ -16,7 +16,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-/* 
+/*
  * File:   FxOutOscillator.cpp
  * Author: Istvan Simon -- stevens37 at gmail dot com
  *
@@ -27,6 +27,7 @@
 #include    "yacynth_globals.h"
 
 namespace yacynth {
+using namespace TagEffectFxOutOscillatorModeLevel_03;
 
 const char slavename[]  = " slave";
 
@@ -42,10 +43,53 @@ FxOutOscillatorParam::FxOutOscillatorParam()
     phaseDelta0.setYcent8Parameter(freq_01 , 0x7FFF);
 }
 
-bool FxOutOscillator::connect( const FxBase * v, uint16_t ind ) 
+bool FxOutOscillatorParam::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+{
+    const uint8_t tag = message.getTag(tagIndex);
+//    switch(  ( message.getTag(tagIndex) ) ) {
+//    case  :
+//        TAG_DEBUG(TagMidiController::ClearChannelVector, tagIndex, paramIndex, " " );
+//        return true;
+//    }
+    
+    switch( TagEffectFxOutOscillatorMode( tag ) ) {
+    case TagEffectFxOutOscillatorMode::Clear :
+        TAG_DEBUG(TagEffectFxOutOscillatorMode::Clear, tagIndex, paramIndex, " " );
+        return true;
+    }
+            
+    message.setStatus( Yaxp::MessageT::illegalTag, tag );
+    return false;
+    
+}
+
+void FxOutOscillator::clearTransient()
+{
+    EIObuffer::clear();
+}
+
+bool FxOutOscillator::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+{
+    // 1st tag is tag effect type
+    const uint8_t tagType = message.getTag(tagIndex);    
+    if( uint8_t(param.type) != tagType ) {
+        message.setStatus( Yaxp::MessageT::illegalTagEffectType, uint8_t(param.type) );
+        TAG_DEBUG(Yaxp::MessageT::illegalTagEffectType, uint8_t(param.type), tagType, "FxOutOscillator" );
+        return false;        
+    }
+    // 2nd tag is tag operation
+    const uint8_t tag = message.getTag(++tagIndex);
+    if( uint8_t(TagEffectFxOutOscillatorMode::Clear) == tag ) {
+        clearTransient(); // this must be called to cleanup
+    }
+    // forward to param
+    return param.parameter( message, tagIndex, paramIndex ); 
+ }
+
+bool FxOutOscillator::connect( const FxBase * v, uint16_t ind )
 {
     doConnect(v,ind);
-}; 
+};
 
 
 void FxOutOscillator::sprocessTransient( void * thp )
@@ -128,6 +172,31 @@ void FxOutOscillator::sprocess_05( void * thp )
     static_cast< MyType * >(thp)->updateParam();
     static_cast< MyType * >(thp)->processSinePd3();
 }
+
+template<>
+bool FxSlave<FxOutOscillatorParam>::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) 
+{
+    // 1st tag is tag effect type
+    const uint8_t tagType = message.getTag(tagIndex);    
+    if( uint8_t(TagEffectType::FxSlave) != tagType ) {
+        message.setStatus( Yaxp::MessageT::illegalTagEffectType, uint8_t(TagEffectType::FxSlave) );
+        TAG_DEBUG(Yaxp::MessageT::illegalTagEffectType, uint8_t(TagEffectType::FxSlave), tagType, "FxFilter" );
+        return false;        
+    }
+    // 2nd tag is tag operation
+    const uint8_t tag = message.getTag(++tagIndex);
+//    if( uint8_t(TagEffectFxFilterMode::Clear) == tag ) {
+//        clearTransient(); // this must be called to cleanup
+//    }
+    // forward to param
+    return true;    
+};
+
+template<>
+void FxSlave<FxOutOscillatorParam>::clearTransient() 
+{
+
+};
 
 
 } // end namespace yacynth

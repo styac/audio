@@ -20,7 +20,7 @@
 
 namespace tables {
 
-int16_t waveSinTable[ sinTableSize + 1 ];
+int16_t  waveSinTable [ sinTableSize + 1 ];
 //float   sin1pcos[ sinTableSize + 1 ];
 float   sinTable[ sinTableSize + 1 ];
 

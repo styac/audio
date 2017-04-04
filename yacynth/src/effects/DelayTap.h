@@ -46,7 +46,7 @@ struct Gains {
 // --------------------------------------------------------------------
 // store/create
 struct StereoDelayTap {
-    static constexpr Sermagic sermagic = "DTAP:01";
+//    static constexpr Sermagic sermagic = "DTAP:01";
     void clear(void)
     {
         delaySrc = delayDst = 0;
@@ -83,6 +83,7 @@ struct StereoDelayTap {
     };
 };
 // --------------------------------------------------------------------
+#if 0
 inline void serialize( std::stringstream& ser, const StereoDelayTap& val )
 {
     serialize(ser, val.sermagic);
@@ -112,6 +113,7 @@ inline bool deserialize( std::stringstream& ser, StereoDelayTap& val )
 //    ret = ret && deserialize(ser, val.delayDst);
     return ret;
 };
+#endif
 // --------------------------------------------------------------------
 // working
 //
@@ -121,7 +123,7 @@ inline bool deserialize( std::stringstream& ser, StereoDelayTap& val )
 //  v = v0 * gain   : gain = wet/dry/decay
 //
 struct alignas(16) StereoDelayTapVar /* : public StereoDelayTap */ {
-    static constexpr Sermagic sermagic = "DTAP:01";
+//    static constexpr Sermagic sermagic = "DTAP:01";
     static constexpr uint64_t invalid = -1L;
     void clear(void)
     {
@@ -183,10 +185,10 @@ struct alignas(16) StereoDelayTapVar /* : public StereoDelayTap */ {
         int32_t         modulationFrequency;
         int32_t         modulationDepth;
         float           filterFc;
-        int8_t          modulationType;    //  phase diff between A,B        
-        int8_t          rfu1; 
-        int8_t          rfu2; 
-        int8_t          rfu3; 
+        int8_t          modulationType;    //  phase diff between A,B
+        int8_t          rfu1;
+        int8_t          rfu2;
+        int8_t          rfu3;
     };
     struct {
         float           filterA;
@@ -277,11 +279,11 @@ struct alignas(16) StereoDelayTapVector {
     uint16_t fill( std::stringstream& ser ) {
         StereoDelayTap    tmp;
         clear();
-        deserializeBegin(ser);
+//        deserializeBegin(ser);
         for( auto i = 0u; i < vectorSize; ++i ) {
-            if( ! deserialize( ser, tmp ) ) {
-                return usedTapCount;
-            }
+//            if( ! deserialize( ser, tmp ) ) {
+//                return usedTapCount;
+//            }
             add(tmp);
         }
         return usedTapCount;

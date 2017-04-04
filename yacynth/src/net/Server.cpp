@@ -41,7 +41,11 @@ Server::Server( const std::string& addressP, const uint16_t portP, Sysman&  sysm
     signals.add(SIGINT);
     signals.add(SIGTERM);
     signals.add(SIGQUIT);
-    signals.async_wait( std::bind( &Server::doAwaitStop, this) );
+    try {
+        signals.async_wait( std::bind( &Server::doAwaitStop, this) );
+    } catch ( ... ) {
+        acceptor.close();
+    }
             
 } // end Server::Server
 

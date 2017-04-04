@@ -58,6 +58,7 @@ class FxEchoParam {
 public:
     // mandatory fields
     static constexpr char const * const name = "Echo";
+    static constexpr TagEffectType  type     = TagEffectType::FxEcho;    
     static constexpr std::size_t maxMode     = 1; // 0 is always exist> 0,1,2
     static constexpr std::size_t inputCount  = 1; //  0-base signal 1-modulation
 
@@ -105,7 +106,8 @@ public:
 
 //    virtual bool fill( std::stringstream& ser )         override;
 
-    void clear(void) {  delay.clear(); };
+    // void clear(void) {  delay.clear(); };
+    virtual void clearTransient() override ;
     void mixInput( const bool v = true ) { inMix=v; };
     void setGains( const float wet, const float decay )
     {

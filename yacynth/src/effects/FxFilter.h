@@ -28,10 +28,17 @@
 #include    "FxBase.h"
 #include    "../utils/Filter4Pole.h"
 #include    "../utils/FilterAllpass.h"
+#include    "protocol.h"
 
 using namespace filter;
 
 namespace yacynth {
+using namespace TagEffectCollectorLevel_01;
+using namespace TagEffectTypeLevel_02;
+
+// --------------------------------------------------------------------
+// FxFilterParam ------------------------------------------------------
+// --------------------------------------------------------------------
 
 // modes:
 //
@@ -44,17 +51,21 @@ namespace yacynth {
 //  4 LP+BP+BP+BP | BP+BP+BP+BP
 // control : controller(1..8)( y0 + slope ), amplitude (1) ( y0 + slope ), oscillator (1..8) ( y0 + slope )
 //
+// key>     keyprefix+instance
+// key-refix> /effect/filter/...
+// data>    comment+const+var
+// data-const> inputcount,maxmode,filtercount,channelcount,
 
-
+// interface to save load DB !!
 class FxFilterParam {
 public:
     FxFilterParam();
 
     // mandatory fields
     static constexpr char const * const name    = "Filter";
-    static constexpr std::size_t maxMode        = 2; // 0 is always exist> 0,1,2
+    static constexpr TagEffectType  type        = TagEffectType::FxFilter;
+    static constexpr std::size_t maxMode        = 9; // 0 is always exist> 0,1,2
     static constexpr std::size_t inputCount     = 1;
-
 
     static constexpr uint8_t  filterCount       = 8;
     static constexpr uint8_t  vfilterCount      = 2;
@@ -63,16 +74,51 @@ public:
     static constexpr uint8_t  channelCountMask  = channelCount-1;
     static constexpr uint8_t  filterSampleCount = EIObuffer::sectionSize;
 
-    ControlledValue freq[filterCount];
-    ControlledValue q[filterCount];
+    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
-    ControlledValue testMasterLfo1;
-    ControlledValue testSlaveLfo1;
-    ControlledValue testMasterLfoDeltaPhase1;
-    ControlledValue testSlaveLfoDeltaPhase1;
+    // OBSOLETE
+    // to control the effect with manual ()
+    ControlledValue<filterCount>    freq[filterCount];   // 8 controller - 8 filter ???
+    ControlledValue<1>              q[filterCount];
 
+    // OBSOLETE
+    // to control the effect with lfo
+    ControlledValue<1> testMasterLfo1;
+    ControlledValue<1> testSlaveLfo1;
+    ControlledValue<1> testMasterLfoDeltaPhase1;
+    ControlledValue<1> testSlaveLfoDeltaPhase1;
 
+    // NEW
+    // each mode has own param set
+    struct Mode_01_ap22x4x {
+        // used by setter
+        bool check(void) const
+        {
+            return true;
+        }
+        ControllerIndex         cindex_masterLfoDeltaPhase; // to control the frequency
+        ControllerIndex         cindex_masterLfo;           // actual phase
+        ControllerMapLinear<8>  cmaplin_masterLfo;          // mapping to amplitude to control
+    } mode_01_ap4x;
+
+    struct Mode_02_ap4x {
+        // used by setter
+        bool check(void) const
+        {
+            return true;
+        }
+        ControllerIndex         cindex_masterLfoDeltaPhase; // to control the frequency
+        ControllerIndex         cindex_slaveLfoDeltaPhase;  // to control the phase diff
+        ControllerIndex         cindex_masterLfo;           // actual phase
+        ControllerIndex         cindex_slaveLfo;            // actual phase
+        ControllerMapLinear<4>  cmaplin_masterLfo;          // mapping to amplitude to control
+        ControllerMapLinear<4>  cmaplin_slaveLfo;           // mapping to amplitude to control
+    } mode_02_ap4x ;
 };
+
+// --------------------------------------------------------------------
+// FxFilter -----------------------------------------------------------
+// --------------------------------------------------------------------
 
 class FxFilter : public Fx<FxFilterParam>  {
 public:
@@ -80,14 +126,22 @@ public:
     FxFilter()
     :   Fx<FxFilterParam>()
     {
+        // fill the call table
         fillSprocessv<0>(sprocess_00);
         fillSprocessv<1>(sprocess_01);
         fillSprocessv<2>(sprocess_02);
-//        fillSprocessv<3>(sprocess_03);
-//        fillSprocessv<4>(sprocess_04);
-//        fillSprocessv<5>(sprocess_05);
+        fillSprocessv<3>(sprocess_03);
+        fillSprocessv<4>(sprocess_04);
+        fillSprocessv<5>(sprocess_05);
+        fillSprocessv<6>(sprocess_06);
+        fillSprocessv<7>(sprocess_07);
+        fillSprocessv<8>(sprocess_08);
+        fillSprocessv<9>(sprocess_09);
     }
 
+    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override;
+
+    virtual void clearTransient() override;
 
     // go up to Fx ??
     // might change -> set sprocessTransient
@@ -132,12 +186,23 @@ public:
         }
     }
 #endif
-//    virtual bool connect( const FxBase * v, uint16_t ind ) override;
     virtual bool connect( const FxBase * v, uint16_t ind ) override
     {
         doConnect(v,ind);
     };
+
 private:
+    // 00 is always clear for output or bypass for in-out
+    static void sprocess_00( void * thp );
+    static void sprocess_01( void * thp );
+    static void sprocess_02( void * thp );
+    static void sprocess_03( void * thp );
+    static void sprocess_04( void * thp );
+    static void sprocess_05( void * thp );
+    static void sprocess_06( void * thp );
+    static void sprocess_07( void * thp );
+    static void sprocess_08( void * thp );
+    static void sprocess_09( void * thp );
     // go up to Fx ???
     static void sprocessTransient( void * thp )
     {
@@ -187,28 +252,32 @@ private:
 
     }
 
-    // 00 is always clear for output or bypass for in-out
-    static void sprocess_00( void * thp );
-    static void sprocess_01( void * thp );
-    static void sprocess_02( void * thp );
 
-
-    void process_00(void)
+    // 2nd order allpass 2x channel 4x filter -- phaser
+    void process_01_ap4x(void)
     {
+        // new
+//        ControllerValue    cval_masterLfo;
+        cval_masterLfo.updateLfoSin( param.mode_01_ap4x.cindex_masterLfo );
 
-    }
-    void process_01(void)
-    {
+        const auto mult = param.mode_01_ap4x.cmaplin_masterLfo.scale( cval_masterLfo.value );
+        const auto k1f0 = param.mode_01_ap4x.cmaplin_masterLfo.offset( mult, 0 );
+        const auto k1f1 = param.mode_01_ap4x.cmaplin_masterLfo.offset( mult, 1 );
+        const auto k1f2 = param.mode_01_ap4x.cmaplin_masterLfo.offset( mult, 2 );
+        const auto k1f3 = param.mode_01_ap4x.cmaplin_masterLfo.offset( mult, 3 );
 
 //        param.testMasterLfo1.updateLfoTriangle();
 //        param.testSlaveLfo1.updateLfoTriangle();
-        param.testMasterLfo1.updateLfoSin();
-        param.testSlaveLfo1.updateLfoSin();
+        param.testMasterLfo1.updateLfoTriangle();
+        //param.testSlaveLfo1.updateLfoSin();
         int32_t ycentKA = param.testMasterLfo1.getYcent8Value();
-        int32_t ycentKB = param.testSlaveLfo1.getYcent8Value();
-        int32_t ycentK0 = freq2ycent(200.0f);
-        
+//        int32_t ycentKB = param.testSlaveLfo1.getYcent8Value();
+//        int32_t ycentKA = 0x16000000;
+//        int32_t ycentKB = 0x17000000;
+        int32_t ycentK0 = freq2ycent(800.0f);
+
         // stage 1 tan
+        /*
         filterAllpass.setYcent<0,0>(ycentK0,0);
         filterAllpass.setYcent<1,0>(ycentK0,0);
         filterAllpass.setYcent<0,0>(ycentK0,1);
@@ -217,31 +286,47 @@ private:
         filterAllpass.setYcent<1,0>(ycentK0,2);
         filterAllpass.setYcent<0,0>(ycentK0,3);
         filterAllpass.setYcent<1,0>(ycentK0,3);
-        
+        */
+        filterAllpass.setYcentAll<0>(ycentK0, 0);
+#if 0
         // stage 2 cos
         filterAllpass.setYcent<0,1>(ycentKA,0);
-        filterAllpass.setYcent<1,1>(ycentKB+0x1000000,0);
+        filterAllpass.setYcent<1,1>(ycentKA+0x1000000,0);
         filterAllpass.setYcent<0,1>(ycentKA+0x2000000,1);
-        filterAllpass.setYcent<1,1>(ycentKB+0x3000000,1);
+        filterAllpass.setYcent<1,1>(ycentKA+0x3000000,1);
         filterAllpass.setYcent<0,1>(ycentKA+0x4000000,2);
-        filterAllpass.setYcent<1,1>(ycentKB+0x5000000,2);
+        filterAllpass.setYcent<1,1>(ycentKA+0x5000000,2);
         filterAllpass.setYcent<0,1>(ycentKA+0x6000000,3);
-        filterAllpass.setYcent<1,1>(ycentKB+0x7000000,3);
-        
-        filterAllpass.setFeedback(0.7f);
-        
+        filterAllpass.setYcent<1,1>(ycentKA+0x7000000,3);
+
+        filterAllpass.setYcent<1>(ycentKA,0);
+        filterAllpass.setYcent<1>(ycentKA+0x1000000,1);
+        filterAllpass.setYcent<1>(ycentKA+0x2000000,2);
+        filterAllpass.setYcent<1>(ycentKA+0x3000000,3);
+        filterAllpass.setYcent<1>(ycentKA+0x4000000,4);
+        filterAllpass.setYcent<1>(ycentKA+0x5000000,5);
+        filterAllpass.setYcent<1>(ycentKA+0x6000000,6);
+        filterAllpass.setYcent<1>(ycentKA+0x7000000,7);
+#else
+
+        filterAllpass.setYcentAll<1>(ycentKA, 0x1000000);
+#endif
+
+        filterAllpass.setFeedback(0.8f);
+
         for( auto si=0u; si < sectionSize; ++si ) {
-          filterAllpass.allpass2x8( 
-            inp<0>().channel[0][si],inp<0>().channel[1][si], 
+          filterAllpass.allpass2x8(
+            inp<0>().channel[0][si],inp<0>().channel[1][si],
             out().channel[0][si], out().channel[1][si] );
 
             out().channel[0][si] += inp<0>().channel[0][si];
             out().channel[1][si] += inp<0>().channel[1][si];
-        }        
+        }
     }
 
     void process_02(void)
     {
+
         uint32_t si=0;
         for( auto sik=0u; sik < 8; ++sik ) {
             // update 1x k0, 1x k1 -- set masks modulo 2^k
@@ -259,7 +344,7 @@ private:
             }
         }
     }
-
+#if 0
     // ok
     inline void test_lfoController(void)
     {
@@ -272,17 +357,17 @@ private:
         int32_t ycentKA = param.testMasterLfo1.getYcent8Value();
         int32_t ycentKB = param.testSlaveLfo1.getYcent8Value();
         int32_t ycentK0 = freq2ycent(200.0f);
-        
+
         filterAllpass.setYcent<0,0>(ycentK0);  // tan
         filterAllpass.setYcent<0,1>(ycentKA);  // cos
         filterAllpass.setYcent<1,0>(ycentK0);  // tan
         filterAllpass.setYcent<1,1>(ycentKB);  // cos
-        
+
         for( auto si=0u; si < sectionSize; ++si ) {
 //            out().channel[1][si] = A;
 //            out().channel[0][si] = B;
-          filterAllpass.allpass2( 
-            inp<0>().channel[0][si],inp<0>().channel[1][si], 
+          filterAllpass.allpass2(
+            inp<0>().channel[0][si],inp<0>().channel[1][si],
             out().channel[0][si], out().channel[1][si] );
 //          filterAllpass.allpass2_1mult<0>( inp<0>().channel[0][si], out().channel[0][si] );
 //          filterAllpass.allpass2_transposed<1>( inp<0>().channel[1][si], out().channel[1][si] );
@@ -429,21 +514,25 @@ private:
 //            out().channel[0][si] = out().channel[1][si];
         }
     }
-
-    // obsolate
-    union {
-        v4sf v4[FxFilterParam::channelCount];
-        Filter4PoleOld<FxFilterParam::channelCountExp>    filter4pole;
-    };
+#endif
+// obsolate
+//    union {
+//        v4sf v4[FxFilterParam::channelCount];
+//        Filter4PoleOld<FxFilterParam::channelCountExp>    filter4pole;
+//    };
 
     FilterAllpass<2,1,1> filterAllpass;
+    // new controller
+    // for each ControllerIndex
+    ControllerCache    cval_Ext[8]; // to control the modulation and or filter directly
+    ControllerCache    cval_masterLfo;
+    ControllerCache    cval_slaveLfo;
 
+    // temp
     float k0;
     float k1;
     float kbw;
     int count;
-    uint16_t    k0index;    // 0...7
-    uint16_t    k1index;    // 4..7,0..3
 };
 
 

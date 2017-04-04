@@ -258,10 +258,10 @@ inline int64_t i64LimitClip ( const int64_t x )
     return std::min( limit, std::max( -limit, x ));
 } // end i64LimitClip
 template< int32_t limit>
-inline int64_t i32LimitClip ( const int32_t x )
+inline int32_t i32LimitClip ( const int32_t x )
 {
     return std::min( limit, std::max( -limit, x ));
-} // end i64LimitClip
+} // end i32LimitClip
 
 inline int64_t i64LimitClip ( const int64_t x, const int64_t limit )
 {
@@ -275,6 +275,7 @@ inline float i64tofNormLimitClip ( const int64_t x )
 {
     return float( std::min( limit, std::max( -limit, x ))) * (1.0f/limit);
 } // end i64tofNormLimitClip
+
 
 // --------------------------------------------------------------------
 // linear under 0.5

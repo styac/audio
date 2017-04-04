@@ -26,16 +26,22 @@
  */
 
 #include    "ToneShaper.h"
+#include    "Tags.h"
+#include    "protocol.h"
+
 
 namespace yacynth {
 
 class ToneShaperMatrix {
+private:
+
 public:
     ToneShaperMatrix() {};
-    bool fill(  std::stringstream& ser );
-    void dump(  std::stringstream& ser );
-    void query( std::stringstream& ser );
+    bool fill(  YsifInpStream& ser );
+    void dump(  YsifOutStream& ser );
     void clear( void );
+
+    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
     std::array< ToneShaperVector,  settingVectorSize>   toneShapers;
 };
 

@@ -122,8 +122,13 @@ public:
     void    fillEqualTempered(  uint8_t tableNr );
     void    fillPartch43(       uint8_t tableNr );
 
+    inline MidiController&  getMidiController(void) { return midiController; }
+
+    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
+
+    
 protected:
-    MidiRangeController  midiRangeController;
+    MidiController  midiController;
     std::array< std::array<uint32_t, tuningTableSize>, tuningTableCount> pitch;
     Yamsgrt     out;
     tuned_t     tuned;

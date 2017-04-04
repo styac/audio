@@ -28,24 +28,33 @@
 #include    "FxBase.h"
 #include    "Ebuffer.h"
 #include    "yacynth_globals.h"
+#include    "protocol.h"
+
 
 #include    <array>
 #include    <iostream>
 
 namespace yacynth {
+using namespace TagEffectTypeLevel_02;
 // --------------------------------------------------------------------
 
 class FxMixerParam {
 public:
     FxMixerParam();
     // mandatory fields
-    static constexpr char const * const name = "Mixer4";
-    static constexpr std::size_t maxMode     = 1;
-    static constexpr std::size_t inputCount  = 4;
+    static constexpr char const * const name    = "Mixer4";
+    static constexpr TagEffectType  type        = TagEffectType::FxMixer;
+    static constexpr std::size_t maxMode        = 1;
+    static constexpr std::size_t inputCount     = 4;
 
-    // optional fields
+    inline void clear()
+    {
 
-    ControlledValue gainTarget;
+    }
+    
+    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
+    
+    ControlledValue<1> gainTarget;
 };
 
 class FxMixer : public Fx<FxMixerParam>  {
@@ -53,8 +62,9 @@ public:
     using MyType = FxMixer;
     FxMixer()
     :   Fx<FxMixerParam>()
-    ,   gain(1.0f)
+
     {
+        gain[0] = 1.0f;
         fillSprocessv<0>(sprocess_00);
         fillSprocessv<1>(sprocess_01);
 //        fillSprocessv<2>(sprocess_02);
@@ -62,8 +72,6 @@ public:
 //        fillSprocessv<4>(sprocess_04);
 //        fillSprocessv<5>(sprocess_05);
     }
-
-
     // go up to Fx ??
     // might change -> set sprocessTransient
     // FIRST TEST WITHOUT TRANSIENT
@@ -115,7 +123,12 @@ public:
 
     virtual bool connect( const FxBase * v, uint16_t ind ) override;
 
+    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override; 
+    
+    virtual void clearTransient() override;
+
 private:
+
     // go up to Fx ???
     static void sprocessTransient( void * thp )
     {
@@ -170,28 +183,30 @@ private:
     {
        // static_cast< FxOutNoise * >(thp)->clear();
     }
-    
+
     static void sprocess_01( void * thp )
     {
         static_cast< MyType * >(thp)->mix_01();
     }
-    
+
     static void sprocess_02( void * thp )
     {
         // static_cast< FxOutNoise * >(thp)->fillWhiteStereo();
     }
 
 
+    // TODO check ControllerCacheDelta usage 
     inline void mix_01(void)
     {
+        constexpr float fadeGain =  (1.0f/(1<<6));
         if( param.gainTarget.updateDiff() ) {
-            out().fade( inp(), gain, ( param.gainTarget.getExpValue() - gain ) * (1.0f/(1<<6)) );
+            out().fade( inp(), gain[0], ( param.gainTarget.getExpValue() - gain[0] ) * fadeGain );
         } else {
-            out().mult( inp(), gain );
-        }        
+            out().mult( inp(), gain[0] );
+        }
     }
 
-    float   gain;
+    float   gain[ FxMixerParam::inputCount ];
 };
 
 // --------------------------------------------------------------------

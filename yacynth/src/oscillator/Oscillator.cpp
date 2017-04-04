@@ -26,7 +26,7 @@
 
 namespace yacynth {
 
-NoiseFrame< FrameInt< oscillatorOutSampleCountExp > >   
+NoiseFrame< FrameInt< oscillatorOutSampleCountExp > >
                         Oscillator::whiteNoiseFrame( GaloisShifterSingle<seedThreadOscillator_noise>::getInstance() );
 
 const ToneShaperMatrix  Oscillator::toneShaperMatrix;
@@ -52,7 +52,7 @@ bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, 
 {
     // under this amplitude value the signal will not be generated
     constexpr uint64_t hearingThreshold = 1L<<23;
-    
+
     bool        isEnd       = false;
     switch( voiceState ) {
     case VOICE_DOWN:
@@ -68,16 +68,16 @@ bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, 
         const auto& tsvec     = toneShaperMatrix.toneShapers[ toneShaperSelect ];
         oscillatorCountUsed = tsvec.oscillatorCountUsed;
 //        oscillatorCountUsed = 10;
-        
+
         if( out.overtoneCount < oscillatorCountUsed ) {
             out.overtoneCount = oscillatorCountUsed;
         }
-        oscillatorCountUsed = 11;
+        //oscillatorCountUsed = 13;
         for( auto oscindex = 0; oscindex < oscillatorCountUsed; ++oscindex ) {
             const auto& toneshaper      = tsvec.toneShaperVec[ oscindex ];
             // high osc only sine
 //            const auto& oscillatorType  = ( oscindex & 0x80 ) ? OSC_SIN : toneshaper.oscillatorType;
-            const auto& oscillatorType  = toneshaper.oscillatorType;
+            const auto oscillatorType  = toneshaper.oscillatorType;
 
             // TODOs
             // go to fastexp !
@@ -105,7 +105,7 @@ bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, 
                 // normal release: input stateOsc.tickFrame == 0
                 // fast release  : input stateOsc.tickFrame > 0 -- legato - envelopMultiplierExpChecked fix
                 if( 0 == stateOsc.tickFrame ) { // if fastRelease then stateOsc.tickFrame == 1
-                    stateOsc.tickFrame = toneshaper.tickFrameRelease.get();
+                    stateOsc.tickFrame = toneshaper.tickFrameRelease.get();  // TODO interpolate
                     stateOsc.envelopMultiplierExpChecked = oscillatorOutSampleCountExp - toneshaper.curveSpeedRelease;
                 } else {
                     stateOsc.envelopMultiplierExpChecked = oscillatorOutSampleCountExp + 1;
@@ -114,7 +114,7 @@ bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, 
             } else {
                 while( 0 == stateOsc.tickFrame ) {
                     changeEnvPhase = true;
-                    stateOsc.tickFrame = toneshaper.transient[stateOsc.envelopePhase].tickFrame.get();
+                    stateOsc.tickFrame = toneshaper.transient[stateOsc.envelopePhase].tickFrame.get(); // TODO interpolate
                     if( 0 < stateOsc.tickFrame )
                         break;
                     if( 0 > --stateOsc.envelopePhase ) {
@@ -125,12 +125,13 @@ bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, 
                 if( changeEnvPhase ) {
                     // TODO:  frequency dependency -- amplitude,time
                     const auto& currentEnvelopeKnot  = toneshaper.transient[stateOsc.envelopePhase];
+                     // TODO interpolate
                     stateOsc.envelopeTargetValueVelocity =
                         (velocity * static_cast<uint64_t>(currentEnvelopeKnot.targetValue.get() )) >> 10; // 25 bit for the signal
                     stateOsc.envelopMultiplierExpChecked = oscillatorOutSampleCountExp - currentEnvelopeKnot.curveSpeed;
                 }
             } // end if( envelopeKnotRelease == stateOsc.envelopePhase )
-            
+
             switch( stateOsc.tickFrame ) {
             case 0:
                 break;
@@ -158,7 +159,7 @@ L_sustain:
             deltaAddAcc = stateOsc.sustainModulator.mod( stateOsc.amplitudoOsc, toneshaper.sustain );
             ++stat.cycleCounter[Statistics::COUNTER_SUSTAIN];
 //============================
-L_innerloop:                
+L_innerloop:
             if( ( hearingThreshold > stateOsc.amplitudoOsc ) && ( 0 >= deltaAddAcc )) {
                 stateOsc.amplitudoOsc = 0;
                 stateOsc.phase += deltaPhase<<oscillatorOutSampleCountExp; // no signal but move the phase by a tick
@@ -171,7 +172,6 @@ L_innerloop:
                 ++deltaAddAcc;
             }
             out.amplitudeSumm += stateOsc.amplitudoOsc;
-            auto layp = &outLayer[ 0 ];
 
 //---------------------------
             // envelope 32 * 16 = 48 - 10 = 38 bit
@@ -179,8 +179,31 @@ L_innerloop:
             // 64 signed >> 32 -> 32 bit/osc
             // 256 osc -> +8 -> 40 bit
             // 256 voice  +8 -> 48 bit output
-            switch( oscillatorType ) {
+
 //---------------------------
+//  speed up
+// run in 2 threads? : envelope + multiplier
+// run 1st all the envelopes then multiply
+// input  stateOsc (read-write) ,  deltaAddAcc, oscillatorType (read-only)
+// this could be an other thread
+// stateOsc.phase, stateOsc.amplitudoOsc - local, then write back
+// {
+//      auto   oscillatorType
+//      auto   deltaAddAcc
+//      auto   deltaPhase
+//      auto   amplitudoOsc = stateOsc.amplitudoOsc
+//      auto   phase = stateOsc.phase
+//            layp ????
+//      loop
+//      stateOsc.amplitudoOsc = amplitudoOsc
+//      stateOsc.phase = phase
+// }
+//--------------------------- check the speed ! asm
+
+//            auto amplitudoOsc = stateOsc.amplitudoOsc;
+//            auto phase = stateOsc.phase;
+            auto layp = &outLayer[ 0 ];
+            switch( oscillatorType ) {
             case OSC_SIN:
                 for( auto buffindex = 0; buffindex < oscillatorOutSampleCount; ++buffindex ) {
                     *layp++ +=  ( tables::waveSinTable[ uint16_t((( stateOsc.phase += deltaPhase ) >> normFactorPhaseIndexExp))]
@@ -205,45 +228,45 @@ L_innerloop:
                 }
                 break;
 //-----------------------------------------------------------------------------
-// noise: 1 narrow + 1 wide for a voice !!!!!!!!!!!!!!!!                
-// only 1 for a voice !!! 
+// noise: 1 narrow + 1 wide for a voice !!!!!!!!!!!!!!!!
+// only 1 for a voice !!!
 // this will not be checked in this place -- parameter setting must ensure
-// the wide has own galoisshifter -- uncorrelated                
+// the wide has own galoisshifter -- uncorrelated
 // the narrow uses the common NoiseFrame -- correlated
-//                
+//
             case OSC_NOISE_WHITE:
                 for( auto buffindex = 0; buffindex < oscillatorOutSampleCount; ++buffindex ) {
                     *layp++ +=  ( noiseWide.getWhite() * stateOsc.amplitudoOsc ) >> (normAmplitudeOscillatorExp+2);
                     stateOsc.amplitudoOsc += deltaAddAcc;
                 }
                 break;
-//---------------------------                
+//---------------------------
             case OSC_NOISE_RED:
                 for( auto buffindex = 0; buffindex < oscillatorOutSampleCount; ++buffindex ) {
                     *layp++ +=  ( noiseWide.getRed() * stateOsc.amplitudoOsc ) >> (normAmplitudeOscillatorExp+2);
                     stateOsc.amplitudoOsc += deltaAddAcc;
                 }
-//---------------------------                
+//---------------------------
             case OSC_NOISE_PURPLE:
                 for( auto buffindex = 0; buffindex < oscillatorOutSampleCount; ++buffindex ) {
                     *layp++ +=  ( noiseWide.getPurple() * stateOsc.amplitudoOsc ) >> (normAmplitudeOscillatorExp+2);
                     stateOsc.amplitudoOsc += deltaAddAcc;
                 }
                 break;
-//---------------------------                
+//---------------------------
             case OSC_NOISE_BLUE:
                 for( auto buffindex = 0; buffindex < oscillatorOutSampleCount; ++buffindex ) {
                     *layp++ +=  ( noiseWide.getBlue() * stateOsc.amplitudoOsc ) >> (normAmplitudeOscillatorExp+2);
                     stateOsc.amplitudoOsc += deltaAddAcc;
                 }
                 break;
-//---------------------------                
+//---------------------------
             case OSC_NOISE_PEEK1:
                 for( auto buffindex = 0; buffindex < oscillatorOutSampleCount; ++buffindex ) {
                     *layp++ +=  ( noiseNarrow.getSv1( whiteNoiseFrame.getFrame()[buffindex] ) * stateOsc.amplitudoOsc ) >> (normAmplitudeOscillatorExp+2);
                     stateOsc.amplitudoOsc += deltaAddAcc;
                 }
-//---------------------------                
+//---------------------------
             case OSC_NOISE_PEEK2:
                 for( auto buffindex = 0; buffindex < oscillatorOutSampleCount; ++buffindex ) {
                     *layp++ +=  ( noiseNarrow.getSv2( whiteNoiseFrame.getFrame()[buffindex] ) * stateOsc.amplitudoOsc ) >> (normAmplitudeOscillatorExp+2);
@@ -263,6 +286,9 @@ L_innerloop:
 //            case OSC_PAIRxx
 
             } // end switch( oscillatorType )
+
+//            stateOsc.amplitudoOsc = amplitudoOsc;
+//            stateOsc.phase = phase;
 
             ++stat.cycleCounter[Statistics::COUNTER_INNER_LOOP];
             isEnd = false;
@@ -327,7 +353,7 @@ void Oscillator::voiceRelease( const OscillatorInChange& in )
     for( auto oscindex = 0; oscindex < oscillatorCountUsed; ++oscindex ) {
         auto& stateOsc = state[ oscindex ];
         stateOsc.tickFrame      = in.tickFrameRelease;  // used if not 0
-        stateOsc.envelopePhase  = envelopeKnotRelease;  
+        stateOsc.envelopePhase  = envelopeKnotRelease;
     }
 } // end Oscillator::voiceRelease( const OscillatorInChange& in )
 // --------------------------------------------------------------------

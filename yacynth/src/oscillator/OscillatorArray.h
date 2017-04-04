@@ -68,7 +68,7 @@ private:
     bool                    enableFM;
     int16_t                 fastReleaseTick;
     int32_t                 commonFMPitch;
-    ControlledValue         pitchBend;
+    ControlledValue<1>      pitchBend;
     std::array<Oscillator,overtoneCountOscDef> array;
 };
 

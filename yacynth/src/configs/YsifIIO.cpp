@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  * Copyright (C) 2016 Istvan Simon
  *
@@ -18,30 +16,21 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-/*
- * File:   SimpleMidiRouter.h
+/* 
+ * File:   YsifIIO.h
  * Author: Istvan Simon
  *
- * Created on February 27, 2016, 10:15 PM
+ * Created on March 4, 2017, 9:31 PM
  */
-#include    "AbstractRouter.h"
+
+#include "YsifIIO.h"
+
 
 namespace yacynth {
 
-class SimpleMidiRouter : public AbstractRouter {
-public:
-    SimpleMidiRouter()
-    {};
-    virtual ~SimpleMidiRouter() = default;
 
-    void clear(void) {};
-    
-    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
-    virtual Yamsgrt     translate( const RouteIn& in ) override;
-    virtual uint32_t    getPitch( int32_t noteNr, uint16_t tableNr = 0 );
-    virtual void        setTransposition( int8_t val ) override;
-};
+
 
 } // end namespace yacynth
 

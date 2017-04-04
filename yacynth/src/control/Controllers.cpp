@@ -27,15 +27,18 @@
 
 namespace yacynth {
 
+using namespace TagInnerControllerLevel_01;
+using namespace TagMidiControllerLevel_01;
+
 float InnerController::expFuncTable[midiStep];
 uint32_t InnerController::phaseFuncTable[midiStep];
 
-InnerController::InnerController() 
+InnerController::InnerController()
 {
     clear();
     constexpr float dy          = 0.97;
     float y = 1.0f;
-    
+
     for( int i=midiStep-1; i>0; --i ) {
         expFuncTable[i] = y;
         y *= dy;
@@ -46,38 +49,131 @@ InnerController::InnerController()
     phaseFuncTable[midiStep-1] = phaseFuncTable[midiStep-2] = 0x80000000; // ????
     value.v[InnerController::CC_PITCHBEND] = 0x2000;
 }
-    
-MidiRangeController::MidiRangeController()
+
+bool InnerController::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+{
+    const uint8_t tag = message.getTag(tagIndex);
+    switch( TagInnerController( tag ) ) {
+    case TagInnerController::Clear:
+        TAG_DEBUG(TagInnerController::Clear, tagIndex, paramIndex, "InnerController" );
+        clear();
+        return true;
+
+    case TagInnerController::ClearController: {
+            TAG_DEBUG(TagInnerController::ClearController, tagIndex, paramIndex, "InnerController" );
+            const uint16_t controller = message.params[paramIndex];
+            if( controller >= maxIndex ) {
+                message.setStatus( Yaxp::MessageT::illegalTargetIndex );
+                return false;
+            }
+            value.v[controller] = 0;
+            return true;
+        }
+
+    case TagInnerController::SetController: {
+            TAG_DEBUG(TagInnerController::SetController, tagIndex, paramIndex, "InnerController" );
+            const uint16_t countParam = message.params[paramIndex];
+            if( countParam * sizeof(InnerControllerSetting) != message.length ) {
+                message.setStatus( Yaxp::MessageT::illegalDataLength );
+                return false;
+            }
+            InnerControllerSetting *data = static_cast<InnerControllerSetting *>((void *)(message.data));            
+            for( uint16_t ind = 0; ind < countParam; ++ind, ++data ) {
+                set( data->index, data->value );
+            }
+            return true;
+        }
+    }
+
+    message.setStatus( Yaxp::MessageT::illegalTag, tag );
+    return false;
+}
+
+MidiController::MidiController()
 {
     clear();
     // test setup
     // novation impulse 49 -- basic
     // channel 0 -- slide 9
-    index[0][0x29] = InnerController::CC_SINK;      // 0
-    index[0][0x2A] = InnerController::CC_SINK;
-    index[0][0x2B] = InnerController::CC_SINK;
-    index[0][0x2C] = InnerController::CC_SINK;
-    index[0][0x2D] = InnerController::CC_SINK;
-    index[0][0x2E] = InnerController::CC_MODULATOR_FREQ1;
-    index[0][0x2F] = InnerController::CC_MODULATOR_FREQ0;
-    
-    index[0][0x30] = InnerController::CC_MODULATOR_PHASEDIFF0;
-    index[0][0x31] = InnerController::CC_MAINVOLUME; // 8
-    
-    index[0][0x15] = InnerController::CC_SINK;      // upper
-    index[0][0x16] = InnerController::CC_SINK;
-    index[0][0x17] = InnerController::CC_SINK;
-    index[0][0x18] = InnerController::CC_SINK;
-    
-    index[0][0x19] = InnerController::CC_SINK;      // lower
-    index[0][0x1A] = InnerController::CC_SINK;
-    index[0][0x1B] = InnerController::CC_SINK;
-    index[0][0x1C] = InnerController::CC_SINK;
+    cdt[0][0x29].index = InnerController::CC_SINK;      // 0
+    cdt[0][0x2A].index = InnerController::CC_SINK;
+    cdt[0][0x2B].index = InnerController::CC_SINK;
+    cdt[0][0x2C].index = InnerController::CC_SINK;
+    cdt[0][0x2D].index = InnerController::CC_SINK;
+    cdt[0][0x2E].index = InnerController::CC_MODULATOR_FREQ1;
+    cdt[0][0x2F].index = InnerController::CC_MODULATOR_FREQ0;
 
-    index[0][controllerAftertouch]  = InnerController::CC_CHANNEL_AFTERTOUCH;
-    index[0][controllerPitchbend]   = InnerController::CC_PITCHBEND;
-    
-    
+    cdt[0][0x30].index = InnerController::CC_MODULATOR_PHASEDIFF0;
+    cdt[0][0x31].index = InnerController::CC_MAINVOLUME; // 8
+
+    cdt[0][0x15].index = InnerController::CC_SINK;      // upper
+    cdt[0][0x16].index = InnerController::CC_SINK;
+    cdt[0][0x17].index = InnerController::CC_SINK;
+    cdt[0][0x18].index = InnerController::CC_SINK;
+
+    cdt[0][0x19].index = InnerController::CC_SINK;      // lower
+    cdt[0][0x1A].index = InnerController::CC_SINK;
+    cdt[0][0x1B].index = InnerController::CC_SINK;
+    cdt[0][0x1C].index = InnerController::CC_SINK;
+
+    cdt[0][controllerPolyAftertouch].index  = InnerController::CC_CHANNEL_AFTERTOUCH;
+    cdt[0][controllerPitchbend].index   = InnerController::CC_PITCHBEND;
+}
+
+// needs 3 param:
+
+bool MidiController::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+{
+    const uint8_t tag = message.getTag(tagIndex);
+    if( !message.checkParamIndex(paramIndex) )
+        return false;
+
+    const uint8_t channel = message.params[paramIndex];
+    switch(  TagMidiController( tag ) ) {
+    case  TagMidiController::Clear:
+        TAG_DEBUG(TagMidiController::Clear, tagIndex, paramIndex, "MidiController" );
+        clear();
+        return true;
+
+    case  TagMidiController::ClearChannelVector:
+        TAG_DEBUG(TagMidiController::ClearChannelVector, tagIndex, paramIndex, "MidiController" );
+        if( channel >= getChannelCount() ) {
+            message.setStatus( Yaxp::MessageT::illegalParam );
+            return false;
+        }
+        clearChannel( channel );
+        return true;
+
+    case  TagMidiController::SetChannelVector:
+        TAG_DEBUG(TagMidiController::SetChannelVector, tagIndex, paramIndex, "MidiController" );
+        if( channel >= getChannelCount() ) {
+            message.setStatus( Yaxp::MessageT::illegalParam );
+            return false;
+        }
+        if( message.length != sizeof(cdt[channel]) ) {
+            message.setStatus( Yaxp::MessageT::illegalDataLength );
+            return false;
+        }
+        std::memcpy( &cdt[channel][0], message.data, sizeof(cdt[channel]) );
+        return true;
+
+    case TagMidiController::SetController: {
+        TAG_DEBUG(TagMidiController::SetController, tagIndex, paramIndex, "MidiController" );
+            const uint16_t countParam = message.params[paramIndex];
+            if( countParam * sizeof(MidiSetting) != message.length ) {
+                message.setStatus( Yaxp::MessageT::illegalDataLength );
+                return false;
+            }
+            MidiSetting *data = static_cast<MidiSetting *>((void *)(message.data));            
+            for( uint16_t ind = 0; ind < countParam; ++ind, ++data ) {
+                set( data->channel, data->midiCC, data->innerIndex, CMode(data->midiCC) );
+            }
+            return true;            
+        }
+        return false;
+    }
+    message.setStatus( Yaxp::MessageT::illegalTag, tag );
+    return false;
 }
 
 

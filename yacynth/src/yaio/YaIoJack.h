@@ -39,8 +39,6 @@ namespace yacynth {
 
 class   YaIoJack : public YaIo {
 public:
-    YaIoJack();
-    NON_COPYABLE_NOR_MOVABLE(YaIoJack)
     virtual ~YaIoJack();
     bool initialize(    void );
     void shutdown(      void );
@@ -64,6 +62,12 @@ public:
     // change sample rate  - not allowed
     static JackSampleRateCallback          samplerateCB;
 
+    static inline YaIoJack&   getInstance(void) 
+    {
+        static YaIoJack    jack;
+        return jack;
+    }
+    
 protected:
     bool            muted;        
     jack_client_t   *client;
@@ -72,6 +76,10 @@ protected:
     YaIoJackPort    midiInPort;
     YaIoJackPort    audioOutPort1;
     YaIoJackPort    audioOutPort2;
+
+private:
+    YaIoJack();
+    NON_COPYABLE_NOR_MOVABLE(YaIoJack)
 };
 
 } // end namespace yacynth

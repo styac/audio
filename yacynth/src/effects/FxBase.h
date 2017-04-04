@@ -27,6 +27,8 @@
 
 #include    "Ebuffer.h"
 #include    "../control/Controllers.h"
+#include    "Tags.h"
+#include    "protocol.h"
 
 #include    <cstdint>
 #include    <sstream>
@@ -36,19 +38,26 @@
 //#define EFFECT_DEBUG 1
 
 namespace yacynth {
-// --------------------------------------------------------------------
-// effect collector class
-// contains all effects (also statically used) -- seq is create sequence
+using namespace TagEffectTypeLevel_02;
+
 class FxBase;
-template< uint16_t nodeCount > class FxRunner;
+class FxRunner;
+class FxNode;
+class FxCollector;
 
-
+// --------------------------------------------------------------------
+// FxCollector --------------------------------------------------------
+// --------------------------------------------------------------------
+// effect collector class - singleton
+// contains all effects
+// effects inserted by their own ctor !
 // index 0 -- nilFx
-// index 1 -- endMixer
+
 
 class FxCollector {
 public:
-    void initialize(void);
+ //   void initialize(void);
+    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );     
 
     static FxCollector& getInstance(void)
     {
@@ -56,24 +65,27 @@ public:
         return instance;
     }
 
-    void put( FxBase * node )
+    inline void put( FxBase& node )
     {
-        nodes.push_back( node );
+        nodes.push_back( &node );
     }
 
-    std::size_t count(void) const
+    inline std::size_t count(void) const
     {
         return nodes.size();
     }
 
     // count must be called/checked first !!!
-    FxBase * get( const std::size_t id ) const
+    inline FxBase * get( const std::size_t id ) const
     {
         return nodes.at(id); // may throw !!!
     }
 
+    // for testing
     void check(void);
-
+    
+    // setup init configuration
+    void init(void);
 
 private:
     FxCollector()
@@ -83,7 +95,11 @@ private:
     };
     std::vector< FxBase * >  nodes;
 };
+
 // --------------------------------------------------------------------
+// FxBase -------------------------------------------------------------
+// --------------------------------------------------------------------
+
 // base of all effects
 
 class FxBase : public EIObuffer {
@@ -92,7 +108,8 @@ public:
     FxBase(FxBase const &)          = delete;
     void operator=(FxBase const &t) = delete;
     FxBase(FxBase &&)               = delete;
-//    typedef void ( * SpfT )( void * );
+    virtual ~FxBase() {};
+
     using SpfT = void (*)( void * );
     enum class FadePhase : uint8_t {
         FPH_fadeNo, // no fading
@@ -103,7 +120,10 @@ public:
         FPH_fadeInCross,
     };
 
-    FxBase( const char * name, uint16_t maxM = 0, uint16_t iC = 0 )
+    FxBase( const char * name, 
+            uint16_t maxM = 0, 
+            uint16_t iC = 0, 
+            TagEffectType type = TagEffectType::Nop )
     :   EIObuffer()
     ,   sprocessp(sprocessNop)
     ,   sprocesspSave(sprocessNop)
@@ -114,21 +134,26 @@ public:
     ,   inCount(iC)
     ,   maxMode(maxM)
     ,   masterId(0)
+    ,   myType(type)
     {
-        FxCollector::getInstance().put(this);
+        FxCollector::getInstance().put(*this);
     };
 
-    virtual ~FxBase() {};
 
     inline const FxBase& get(void) const { return *this; };
     inline const std::string& name(void) const { return myName; };
     inline uint16_t id(void) const { return myId; };
-    inline uint16_t getMaxId(void) const { return count; };
     inline uint16_t getInputCount(void) const { return inCount; };
     inline uint16_t getMasterId(void) const { return masterId; };
     inline uint16_t getMaxMode(void) const { return maxMode; };
+    inline TagEffectType getType(void) const { return myType; };
     inline bool isSlave(void) const { return masterId != 0; };
+
+    static inline uint16_t getMaxId(void) { return count; };
+    
     virtual bool connect( const FxBase * v, uint16_t ind );
+    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
+    virtual void clearTransient(); 
     virtual bool setProcMode( uint16_t ind ); // might be non virtual
     inline  void exec(void)
     {
@@ -157,35 +182,50 @@ protected:
     const std::string   myName;
     const uint8_t       myId;
     const uint8_t       inCount;
+    const TagEffectType myType;
     const uint8_t       maxMode;
           uint8_t       masterId;   // 0 - master , 0 < slave -- value is the id of master
-    uint8_t             procMode;// might go up the base
-    FadePhase           fadePhase; // might go  up the base
+    uint8_t             procMode;   // might go up the base
+    FadePhase           fadePhase;  // might go  up the base
 
-    static uint16_t     count;
+    static uint16_t     count;      // static counter to make unique id
     static void sprocessNop( void * ) { return; };
 };
+
 // --------------------------------------------------------------------
+// --------------------------------------------------------------------
+// nil instance - for init, do nothing
+// TODO check> singleton solution
+extern FxBase fxNil;
+
+// --------------------------------------------------------------------
+// FxSlave ------------------------------------------------------------
+// --------------------------------------------------------------------
+// FxSlave only provides additional output if needed
+// all functionality is in master
+//
 template< typename Tparam  >
 class FxSlave : public FxBase {
 public:
     FxSlave()
-    :   FxBase(Tparam::slavename)
+    :   FxBase(Tparam::slavename, 0, 0, TagEffectType::FxSlave )
     {}
-    void setMasterId( uint8_t mid )
+
+    inline void setMasterId( uint8_t mid )
     {
         masterId = mid;
     }
+
+    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override; 
+    virtual void clearTransient() override;       
 };
 
 // --------------------------------------------------------------------
-// nil instance - for init, do nothing
-extern FxBase fxNil;
-
+// FxNode -------------------------------------------------------------
 // --------------------------------------------------------------------
 // to store the pointer of an effect and exec the current process
 
-class FxNode{
+class FxNode {
 public:
     FxNode(FxNode const &)          = delete;
     void operator=(FxNode const &t) = delete;
@@ -195,12 +235,16 @@ public:
     inline void exec ( void ) { thp->sprocessp( thp ); };
     inline void set( FxBase& th ) { thp = &th; };
 
-    template< uint16_t nodeCount > friend class FxRunner;
+    friend class FxRunner;
 
 private:
     FxBase * thp;
 };
+
 // --------------------------------------------------------------------
+// FxRunner -----------------------------------------------------------
+// --------------------------------------------------------------------
+
 // effect runner
 //
 // EndMixer         == 0 - called statically at the end
@@ -208,10 +252,11 @@ private:
 // OscillatorMixer  == 1 - called statically at the beginning
 // no input  --> process called directly by osc output
 
-template< uint16_t nodeCount >
+
 class FxRunner {
 public:
-    static constexpr std::size_t runFrom = 1;
+    static constexpr std::size_t runFrom    = 1;
+    static constexpr std::size_t nodeCount  = 64;   // need to query the config > max 64 effects - looks enough
 
     enum class RET {
         OK,
@@ -220,13 +265,29 @@ public:
         ALREADYADDED,
         NOTEXIST,
         SLAVE,
-        
     };
+
+    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
     
+    
+    // parameter format:
+    // Fill:
+    //  uint8_t element count: 0..255 -- 0 means 0
+    //  uint8_t Fx id in FxCollectior
+    //
+    // SetConnections:
+    //  uint8_t element count: 0..255 -- 0 means 0
+    // count times this 3 elements
+    //  uint8_t Fx id in FxCollectior -- output
+    //  uint8_t Fx id in FxRunner -- input
+    //  uint8_t Fx id in  input id
+    //
+
+
     FxRunner( FxBase& endMixer )
     :   usedCount(runFrom)
     {
-        fxNodes[0].set( endMixer );
+        nodes[0].set( endMixer );
     };
 
     void clear(void)
@@ -235,12 +296,13 @@ public:
         usedCount = runFrom;
     }
 
-    FxRunner::RET add( uint16_t ind )
+    FxRunner::RET add( uint8_t ind )
     {
+#ifdef YAC_DEBUG
         std::cout
-            << " *** add ind " << ind
+            << " *** add ind " << uint16_t(ind)
             << std::endl;
-        
+#endif
         if( usedCount >= nodeCount ) {
             return FxRunner::RET::RUNNERFULL;
         }
@@ -249,18 +311,20 @@ public:
         }
         if( isAdded(ind) ) {
             return FxRunner::RET::ALREADYADDED;
-        }        
+        }
         auto& collector = FxCollector::getInstance();
         if( collector.count() <= ind ) {
             return FxRunner::RET::NOTEXIST;
-        }        
+        }
         if( collector.get(ind)->isSlave() ) {
             return FxRunner::RET::SLAVE;
         }
-        fxNodes[usedCount++].set( *collector.get(ind) );
+        nodes[usedCount++].set( *collector.get(ind) );
+#ifdef YAC_DEBUG
         std::cout
             << "add usedCount " << usedCount
             << std::endl;
+#endif
         return FxRunner::RET::OK;
     }
 
@@ -270,18 +334,19 @@ public:
     // change: from -> FxCollector to FxRunner ??? -> SLAVES are not in runners
     FxRunner::RET connect( const uint16_t fromOutFxId, const uint16_t toInRunnerIndex, uint16_t inputIndex = 0 )
     {
+#if 0
         std::cout
             << "FxRunner::connect: toInRunnerIndex " << toInRunnerIndex
             << " fromOutFxId " << fromOutFxId
             << " inputIndex " << inputIndex
             << std::endl;
-
+#endif
 
         if( toInRunnerIndex >= usedCount )
             return FxRunner::RET::NOTEXIST;
-                
+
         if( 2 > fromOutFxId ) { // 0 = nil, 1 = endMixer
-            fxNodes[ toInRunnerIndex ].thp->connect( &fxNil, inputIndex );
+            nodes[ toInRunnerIndex ].thp->connect( &fxNil, inputIndex );
             return FxRunner::RET::OK;
         }
 
@@ -290,28 +355,28 @@ public:
 
         // check validity of fromOutId
         // master - running , slave -> master running
-
+#if 0
         std::cout
-           << "FxRunner::connect: to " << fxNodes[ toInRunnerIndex ].thp->name()
+           << "FxRunner::connect: to " << nodes[ toInRunnerIndex ].thp->name()
             << " from " <<  FxCollector::getInstance().get(fromOutFxId)->name()
             << std::endl;
+#endif
 
-
-        fxNodes[ toInRunnerIndex ].thp->connect( FxCollector::getInstance().get(fromOutFxId), inputIndex );
+        nodes[ toInRunnerIndex ].thp->connect( FxCollector::getInstance().get(fromOutFxId), inputIndex );
         return FxRunner::RET::OK;
     };
 
     inline void run(void)
     {
         for( auto i=runFrom; i < usedCount; ++i ) {
-            fxNodes[i].exec();
+            nodes[i].exec();
         }
     };
-    // need a member
+
     inline void clearConnections(void)
     {
         for( auto i=0u; i < usedCount; ++i ) {
-            fxNodes[i].thp->connect( fxNil,0 );
+            nodes[i].thp->connect( &fxNil,0 );
         }
     };
 
@@ -319,7 +384,7 @@ public:
     inline void list(void)
     {
         for( auto i=0u; i < usedCount; ++i ) {
-            auto& node = fxNodes[i];
+            auto& node = nodes[i];
             std::cout
                 << "FxRunner effect "
                 << "i " << i
@@ -333,19 +398,27 @@ public:
     inline bool isAdded( uint16_t id )
     {
         for( auto i=0u; i < usedCount; ++i ) {
-            auto& node = fxNodes[i];
+            auto& node = nodes[i];
             if( node.thp->id() == id )
                 return true;
         }
         return false;
-    };    
+    };
+
+    inline uint16_t count()
+    {
+        return usedCount;
+    }
     
 private:
-    FxNode      fxNodes[ nodeCount ];
+//    FxNode      nodes[ presetCount ][ nodeCount ]; // TODO more presets for the fast change
+    FxNode      nodes[ nodeCount ];
     uint16_t    usedCount;
 };
 
 
+// --------------------------------------------------------------------
+// Fx -----------------------------------------------------------------
 // --------------------------------------------------------------------
 // template to create an effect class
 // add param block and a set of inputs
@@ -356,7 +429,7 @@ class Fx : public FxBase {
 public:
 
     Fx()
-    :   FxBase( Tparam::name, Tparam::maxMode, Tparam::inputCount )
+    :   FxBase( Tparam::name, Tparam::maxMode, Tparam::inputCount, Tparam::type )
     ,   param()
     {
         for( auto& ip : inpFx )     ip = &fxNil;
@@ -367,7 +440,9 @@ public:
     {
         return param;
     }
-
+    
+//    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override; 
+//    virtual void clearTransient()  override; 
 
 private:
     Fx(Fx const &)              = delete;
@@ -377,12 +452,14 @@ private:
 protected:
     bool doConnect( const FxBase * v, uint16_t ind )
     {
+
+#ifdef YAC_DEBUG
         std::cout
-            << "Fx::connect " << name()
-            << " ind " << ind
+            << "** Fx::connect " << name()
+            << " input " << ind
             << " from " << v->name()
             << std::endl;
-
+#endif
         if( ind >= Tparam::inputCount )
             return false;
         inpFx[ind] = v;
@@ -416,6 +493,7 @@ protected:
     SpfT                sprocessv[Tparam::maxMode+1];
     Tparam              param;
 };
+
 
 // transient:
 //  setProcMode ->

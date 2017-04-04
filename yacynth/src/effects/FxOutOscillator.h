@@ -31,26 +31,32 @@
 using namespace tables;
 
 namespace yacynth {
-
+using namespace TagEffectTypeLevel_02;
 
 class FxOutOscillatorParam {
 public:
     FxOutOscillatorParam();
     // mandatory fields
-    static constexpr char const * const name = "Oscillator";
-    static constexpr std::size_t maxMode     = 5; // 0 is always exist> 0,1,2
-    static constexpr std::size_t inputCount  = 0; //  0-base signal 1-modulation
-    static constexpr std::size_t slaveCount  = 3; //  0-base signal 1-modulation
+    static constexpr char const * const name    = "Oscillator";
+    static constexpr TagEffectType  type        = TagEffectType::FxOutOscillator;
+    static constexpr std::size_t maxMode        = 5; // 0 is always exist> 0,1,2
+    static constexpr std::size_t inputCount     = 0; 
+    static constexpr std::size_t slaveCount     = 3; // 0-base signal 1-modulation
     static constexpr char const * const slavename = " ^OscillatorSlave";
 
-
-    // optional fields
+    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
+    
+// optional fields
 
 //    uint32_t        phaseDelta;
-    ControlledValue phaseDelta0;
-    ControlledValue phaseDelta1;
-    ControlledValue phaseDiff;
-    
+    ControlledValue<1> phaseDelta0;
+    ControlledValue<1> phaseDelta1;
+    ControlledValue<1> phaseDiff;
+
+    // new controller -- master + n slaves -- or slaves have PhaseDelta0 ??/ or only phase diff
+    ControllerIndex indexPhaseDelta0[slaveCount+1]; 
+    ControllerIndex indexPhaseDelta1[slaveCount+1];
+    ControllerIndex indexPhaseDiff[slaveCount+1];
 };
 
 class FxOutOscillator : public Fx<FxOutOscillatorParam>  {
@@ -68,7 +74,9 @@ public:
         fillSprocessv<4>(sprocess_04);
         fillSprocessv<5>(sprocess_05);
     }
-
+    
+    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
+    
 
     // go up to Fx ??
     // might change -> set sprocessTransient
@@ -119,6 +127,7 @@ public:
         }
     }
 #endif
+    // no input !
     virtual bool connect( const FxBase * v, uint16_t ind ) override;
 
     // bool connectSlaves( const FxBase * v, uint16_t ind );
@@ -135,7 +144,7 @@ private:
     static void sprocess_03( void * thp );
     static void sprocess_04( void * thp );
     static void sprocess_05( void * thp );
-    
+
 
     inline void processSine(void)
     {
@@ -143,6 +152,8 @@ private:
             inc();
             out().channel[0][si] = sinTable[(phase[0])>>16];
             out().channel[1][si] = sinTable[(phase[1])>>16];
+//            std::cout << "   out " << out().channel[0][si] << " " << out().channel[1][si] << " phase " << phase[0] << std::endl;
+            
         }
     }
 
@@ -192,34 +203,47 @@ private:
 
     inline void updateParam(void)
     {
-        if( param.phaseDiff.updateDiff() ) {    
-            phase[1] -= phaseDiff;            
+
+
+        if( param.phaseDiff.updateDiff() ) {
+            phase[1] -= phaseDiff;
             phaseDiff = param.phaseDiff.getPhaseValue();
-            phase[1] += phaseDiff;            
+            phase[1] += phaseDiff;
+            std::cout << "updateParam 1" << phase[1] << " "  << phase[0] << std::endl;
         }
-        
-        if( param.phaseDelta0.updateDiff() ) {            
+
+        if( param.phaseDelta0.updateDiff() ) {
             phaseDelta0 = tables::ExpTable::getInstance().ycent2deltafi( param.phaseDelta0.getYcent8Value() );
-        }        
-        if( param.phaseDelta1.updateDiff() ) {            
+            std::cout << "updateParam 2 " << param.phaseDelta0.value << std::endl;
+        }
+        if( param.phaseDelta1.updateDiff() ) {
             phaseDelta1 = tables::ExpTable::getInstance().ycent2deltafi( param.phaseDelta1.getYcent8Value() );
-        }        
+            std::cout << "updateParam 3 " << param.phaseDelta1.value << std::endl;            
+        }
     }
 
     inline void inc(void)
     {
         phase[0] += phaseDelta0;
         phase[1] += phaseDelta1;
+        std::cout << " *** inc  " << std::hex << phase[1] << " "  << phase[0] << std::endl;
     }
 
-    
+    virtual void clearTransient(void) override;    
+
     uint32_t                        phaseDiff;
     uint32_t                        phaseDelta0;
     uint32_t                        phaseDelta1;
-    
+
+    // new controller
+//    ControllerCache phaseDelta0;
+//    ControllerCache phaseDelta1;
+//    ControllerCache phaseDiff;
+
     uint32_t                        phase[ FxOutOscillatorParam::slaveCount*2 + 2 ];
     FxSlave<FxOutOscillatorParam>   slaves[ FxOutOscillatorParam::slaveCount ];
 };
+
 
 } // end namespace yacynth
 

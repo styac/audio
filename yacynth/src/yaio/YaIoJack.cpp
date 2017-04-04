@@ -23,12 +23,14 @@
  */
 
 #include    "YaIoJack.h"
+#include    <thread>
+
 
 namespace yacynth {
 
 // --------------------------------------------------------------------
 YaIoJack::YaIoJack()
-    :   jackOptions(JackNullOption)
+    :   jackOptions(JackNoStartServer)
     ,   midiInPort(     "midi",     JACK_DEFAULT_MIDI_TYPE,     JackPortIsInput|JackPortIsTerminal)
     ,   audioOutPort1(  "audio_1",  JACK_DEFAULT_AUDIO_TYPE,    JackPortIsOutput|JackPortIsTerminal)
     ,   audioOutPort2(  "audio_2",  JACK_DEFAULT_AUDIO_TYPE,    JackPortIsOutput|JackPortIsTerminal)
@@ -44,10 +46,13 @@ YaIoJack::~YaIoJack()
 
 void YaIoJack::shutdown( void )
 {
+    std::chrono::seconds    duration(1);
     audioOutPort1.unreg(    client );
     audioOutPort2.unreg(    client );
     midiInPort.unreg(       client );
+    std::this_thread::sleep_for(duration);
     jack_client_close(      client );
+    std::this_thread::sleep_for(duration);
 }
 
 // --------------------------------------------------------------------

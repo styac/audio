@@ -49,7 +49,8 @@ namespace yacynth {
 
 class IOThread {
 public:
-    static constexpr  uint16_t  mixerChannelCount    = 2;
+    static constexpr  uint16_t  mixerChannelCount   = 2;
+
     IOThread()  = delete;
     IOThread(   YaIoInQueueVector&      in,
                 OscillatorOutVector&    out,
@@ -57,23 +58,24 @@ public:
 
     static void midiInCB(   void *data, uint8_t *eventp, uint32_t eventSize, bool lastEvent );
     static void audioOutCB( void *data, uint32_t nframes, float *outp1, float *outp2, int16_t bufferSizeMult );
-    auto&   getFxRunner(void) { return fxRunner; }
+    inline FxRunner&        getFxRunner(void) { return fxRunner; }
+    inline AbstractRouter&  getRouter(void) { return midiRouter; }
 
 private:
     void    printEvent( uint8_t *eventp, uint32_t eventSize, bool lastEvent);
     YaIoInQueueVector&              queueIn;
-    OscillatorOutVector&            queueOut; 
-    AbstractRouter&                 midiRouter;    
+    OscillatorOutVector&            queueOut;
+    AbstractRouter&                 midiRouter;
     FxMixer                         fxEndMixer;
     FxOscillatorMixer               fxOscillatorMixer;
-    FxRunner<64>                    fxRunner;   // max number of effects !!!
-    
+    FxRunner                        fxRunner;
+
     // profiling
     uint64_t    timer;
-    int64_t     count;    
-    
+    int64_t     count;
+
     // to reset the noise generators
-    uint32_t    cycleNoise;    
+    uint32_t    cycleNoise;
 };
 
 } // end namespace yacynth

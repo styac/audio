@@ -30,6 +30,26 @@
 #include    <iomanip>
 
 namespace yacynth {
+using namespace TagRouterLevel_01;
+
+bool SimpleMidiRouter::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+{
+    const uint8_t tag = message.getTag(tagIndex);
+//    switch(  ( message.getTag(tagIndex) ) ) {
+//    case  :
+//        TAG_DEBUG(TagMidiController::ClearChannelVector, tagIndex, paramIndex, " " );
+//        return true;
+//    }
+    
+    switch( TagRouter( tag ) ) {
+    case TagRouter::Clear:
+        return true;
+    }
+            
+    message.setStatus( Yaxp::MessageT::illegalTag, tag );
+    return false;
+    
+}
 
 // --------------------------------------------------------------------
 uint32_t SimpleMidiRouter::getPitch( int32_t noteNr, uint16_t tableNr )
@@ -71,46 +91,51 @@ Yamsgrt SimpleMidiRouter::translate( const RouteIn& in )
 //        out.setVoice.pitch      = 0;    // OFF
         break;
 
-    case MIDI_CONTR_CHNG:
-        // new
-        InnerController::getInstance().setMidi(
-            midiRangeController.get( in.chn, in.note_cc_val ),
-            in.velocity_val );
-#if 0
-        // obsolate
-        switch(in.note_cc_val) {
-        case 0x29:
-        case 0x1b:
-            ControllerMatrix::getInstance().setMidiH( ControllerMatrix::C_INT_FILTER_FREQUENCY1, in.velocity_val );
-            InnerController::getInstance().setMidi( 5, in.velocity_val );
+    case MIDI_CONTR_CHNG: {
+//        InnerController::getInstance().setMidi( midiController.get( in.chn, in.note_cc_val ), in.velocity_val );
+        
+        MidiController::ControlData cdt =
+            midiController.getControlData( in.chn, in.note_cc_val );
+        
+        switch( cdt.mode ) {
+        case MidiController::CM_DISABLE :
             break;
-        case 0x2A:
-        case 0x1A:
-            ControllerMatrix::getInstance().setMidiH( ControllerMatrix::C_INT_FILTER_Q, in.velocity_val );
-            InnerController::getInstance().setMidi( 6, in.velocity_val );
+            
+        case MidiController::CM_RANGE : // range page 0..255
+            InnerController::getInstance().setMidi( cdt.index, in.velocity_val );
             break;
 
+        case MidiController::CM_INC :   // increment by 1 -- there should be a limiter
+            InnerController::getInstance().incMidiSwitch( cdt.index );
+            break;
+
+        case MidiController::CM_DEC :   // decrement by 1 -- there should be a limiter
+            InnerController::getInstance().decMidiSwitch( cdt.index );
+            break;
+
+        case MidiController::CM_SET : // set value: same as setMidi on the switch page
+            InnerController::getInstance().setMidiSwitch( cdt.index, in.velocity_val );
+            break;
+            
+        default: // set value: should be 0..127 - not checked here -- radio button -- value == cdt.mode
+            InnerController::getInstance().setMidiSwitch( cdt.index, cdt.mode );            
+            break;
+            
         }
-#endif
         break;
+    }
+
     case MIDI_PROG_CHNG:
         break;
 
     case MIDI_CHN_AFTCH:
-        InnerController::getInstance().setMidi(
-            midiRangeController.getAftertouch ( in.chn ),
-            in.velocity_val );
+        InnerController::getInstance().setMidi( midiController.getAftertouch ( in.chn ), in.velocity_val );
         break;
 
     case MIDI_PITCH:
-        // new
-        InnerController::getInstance().setMidi(
-            midiRangeController.getPitchbend( in.chn ),
-            in.velocity_val, in.note_cc_val );
+        InnerController::getInstance().setMidi( midiController.getPitchbend( in.chn ), in.velocity_val, in.note_cc_val );
 
-        // obsolate
-//        ControllerMatrix::getInstance().setMidiHL( ControllerMatrix::C_INT_PITCHBEND, in.velocity_val, in.note_cc_val );
-        InnerController::getInstance().setMidi( 4, in.velocity_val, in.note_cc_val );
+//        InnerController::getInstance().setMidi( 4, in.velocity_val, in.note_cc_val );
         break;
     }
     return out;

@@ -80,6 +80,7 @@ inline float noisefloor( const float val )
 
 // --------------------------------------------------------------------
 
+
 struct EbufferPar {
     static constexpr std::size_t EffectFrameSizeExp          = 6;
     static constexpr std::size_t EffectOversamplingRateExp   = 0;

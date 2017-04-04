@@ -35,7 +35,7 @@
 //  http://xenharmonic.wikispaces.com/Regular+Temperaments
 
 namespace yacynth {
-
+using namespace TagRouterLevel_01;
 // --------------------------------------------------------------------
 
 AbstractRouter::AbstractRouter()
@@ -237,5 +237,16 @@ void AbstractRouter::setCustomTuning( tuned_t custune )
     tuned = custune;
 } // end AbstractRouter::setCustomTune
 
+bool AbstractRouter::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+{
+    const uint8_t tag = message.getTag(tagIndex);
+    switch( TagRouter( tag ) ) {
+    case TagRouter::Clear :
+        return true;
+    }
+            
+    message.setStatus( Yaxp::MessageT::illegalTag, tag );
+    return false;    
+}
 
 } // end namespace yacynth

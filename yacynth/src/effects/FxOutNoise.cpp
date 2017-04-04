@@ -19,8 +19,50 @@
 #include    "FxOutNoise.h"
 
 namespace yacynth {
+using namespace TagEffectFxOutNoiseModeLevel_03;
 
-// FxOutNoise  fxOutNoise;
+bool FxOutNoiseParam::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+{
+    const uint8_t tag = message.getTag(tagIndex);
+//    switch(  ( message.getTag(tagIndex) ) ) {
+//    case  :
+//        TAG_DEBUG(TagMidiController::ClearChannelVector, tagIndex, paramIndex, "FxOutNoiseParam" );
+//        return true;
+//    }
+    
+    switch( TagEffectFxOutNoiseMode( tag ) ) {
+    case TagEffectFxOutNoiseMode::Clear :
+        return true;
+   
+    }
+            
+    message.setStatus( Yaxp::MessageT::illegalTag, tag );
+    return false;
+    
+}
+
+void FxOutNoise::clearTransient()
+{
+    EIObuffer::clear();
+}
+
+bool FxOutNoise::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+{
+    // 1st tag is tag effect type
+    const uint8_t tagType = message.getTag(tagIndex);    
+    if( uint8_t(param.type) != tagType ) {
+        message.setStatus( Yaxp::MessageT::illegalTagEffectType, uint8_t(param.type) );
+        TAG_DEBUG(Yaxp::MessageT::illegalTagEffectType, uint8_t(param.type), tagType, "FxOutNoise" );
+        return false;        
+    }
+    // 2nd tag is tag operation
+    const uint8_t tag = message.getTag(++tagIndex);
+    if( uint8_t(TagEffectFxOutNoiseMode::Clear) == tag ) {
+        clearTransient(); // this must be called to cleanup
+    }
+    // forward to param
+    return param.parameter( message, tagIndex, paramIndex );     
+}
 
 // --------------------------------------------------------------------
 } // end namespace yacynth
