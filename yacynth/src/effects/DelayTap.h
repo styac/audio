@@ -34,6 +34,72 @@
 
 namespace yacynth {
 
+
+// delay with lowpass
+template< std::size_t N >
+struct alignas(16) MonoDelayLowpassTapArray {
+    typedef std::array<uint32_t, N> DelayIndex;
+    static constexpr std::size_t v4size = (N+3)/4;
+
+    // V4array
+    union {
+        float   coeffFB_v[N];
+        v4sf    coeffFB_v4[(N+3)/4];
+    };
+
+    // V4array
+    union {
+        float   coeffLP_v[N];
+        v4sf    coeffLP_v4[(N+3)/4];
+    };
+    DelayIndex    delaySrc;       // delay of the tap
+};
+
+// simple delay
+template< std::size_t N >
+struct alignas(16) MonoDelayTapArray {
+    typedef std::array<uint32_t, N> DelayIndex;
+    static constexpr std::size_t v4size = (N+3)/4;
+    // V4array
+    union {
+        float   coeffFB_v[N];
+        v4sf    coeffFB_v4[(N+3)/4];
+    };
+    DelayIndex    delaySrc;       // delay of the tap
+};
+
+
+// this uses 1 coeff for all taps
+
+template< std::size_t N >
+struct alignas(16) MonoDelayLowpassTap1CoeffArray {
+    typedef std::array<uint32_t, N> DelayIndex;
+
+    float       coeffFB_v;      // feedback
+    float       coeffLP_v;      // low pass
+    DelayIndex  delaySrc;       // delay of the tap
+};
+
+// for simple comb, allpass
+template< std::size_t N >
+struct alignas(16) MonoDelayTap1CoeffArray {
+    typedef std::array<uint32_t, N> DelayIndex;
+
+    float       coeffFB_v;      // feedback
+    DelayIndex  delaySrc;       // delay of the tap
+};
+
+template< std::size_t N >
+struct StereoDelayTapArray {
+    typedef std::array<uint32_t, N> DelayIndex;
+    static constexpr std::size_t N4 = (N+3)/2;
+    union {
+        float   coeffFB_v[2][N];
+        v4sf    coeffFB_v4[2][N4];
+    };
+    
+    DelayIndex  delaySrc[2];       // delay of the tap
+};
 // --------------------------------------------------------------------
 // out      = delay * wet
 // delay    = delay * decay
@@ -43,10 +109,10 @@ struct Gains {
     float   decay;
 };
 
+
 // --------------------------------------------------------------------
 // store/create
 struct StereoDelayTap {
-//    static constexpr Sermagic sermagic = "DTAP:01";
     void clear(void)
     {
         delaySrc = delayDst = 0;
@@ -83,37 +149,7 @@ struct StereoDelayTap {
     };
 };
 // --------------------------------------------------------------------
-#if 0
-inline void serialize( std::stringstream& ser, const StereoDelayTap& val )
-{
-    serialize(ser, val.sermagic);
-    serialize(ser, val.coeff.aa);
-    serialize(ser, val.coeff.ab);
-    serialize(ser, val.coeff.ba);
-    serialize(ser, val.coeff.bb);
-    serialize(ser, val.delaySrcH);
-    serialize(ser, val.delayDstH);
-//    serialize(ser, val.delaySrc);
-//    serialize(ser, val.delayDst);
-    serializeBreak(ser);
-};
-// --------------------------------------------------------------------
-inline bool deserialize( std::stringstream& ser, StereoDelayTap& val )
-{
-    bool ret = true;
-    val.clear();
-    ret = ret && deserialize(ser, val.sermagic);
-    ret = ret && deserialize(ser, val.coeff.aa);
-    ret = ret && deserialize(ser, val.coeff.ab);
-    ret = ret && deserialize(ser, val.coeff.ba);
-    ret = ret && deserialize(ser, val.coeff.bb);
-    ret = ret && deserialize(ser, val.delaySrcH);
-    ret = ret && deserialize(ser, val.delayDstH);
-//    ret = ret && deserialize(ser, val.delaySrc);
-//    ret = ret && deserialize(ser, val.delayDst);
-    return ret;
-};
-#endif
+
 // --------------------------------------------------------------------
 // working
 //
@@ -123,7 +159,6 @@ inline bool deserialize( std::stringstream& ser, StereoDelayTap& val )
 //  v = v0 * gain   : gain = wet/dry/decay
 //
 struct alignas(16) StereoDelayTapVar /* : public StereoDelayTap */ {
-//    static constexpr Sermagic sermagic = "DTAP:01";
     static constexpr uint64_t invalid = -1L;
     void clear(void)
     {
@@ -331,10 +366,10 @@ struct alignas(16) StereoEchoFilter {
     }
     inline void getAB( const EIObuffer& inp, EIObuffer& out )
     {
-        const float *inpA = inp.channelA;
-        float *outA = out.channelA;
-        const float *inpB = inp.channelB;
-        float *outB = out.channelB;
+        const float *inpA = inp.channel[EbufferPar::chA];
+        float *outA = out.channel[EbufferPar::chA];
+        const float *inpB = inp.channel[EbufferPar::chB];
+        float *outB = out.channel[EbufferPar::chB];
         for( auto i = 0u; i < EIObuffer::sectionSize; ++i ) {
             *outA++ = A = *inpA++ * b0 + A * a1;
             *outB++ = B = *inpB++ * b0 + B * a1;
@@ -342,8 +377,8 @@ struct alignas(16) StereoEchoFilter {
     }
     inline void getAB( EIObuffer& out )
     {
-        float *outA = out.channelA;
-        float *outB = out.channelB;
+        float *outA = out.channel[EbufferPar::chA];
+        float *outB = out.channel[EbufferPar::chB];
         for( auto i = 0u; i < EIObuffer::sectionSize; ++i ) {
             A = *outA * b0 + A * a1;
             B = *outB * b0 + B * a1;

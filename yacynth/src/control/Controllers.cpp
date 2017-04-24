@@ -166,7 +166,8 @@ bool MidiController::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_
             }
             MidiSetting *data = static_cast<MidiSetting *>((void *)(message.data));            
             for( uint16_t ind = 0; ind < countParam; ++ind, ++data ) {
-                set( data->channel, data->midiCC, data->innerIndex, CMode(data->midiCC) );
+                set( data->channel, data->midiCC, data->innerIndex, CMode(data->midiMode) );
+                InnerController::getInstance().set( data->innerIndex, data->initValue );
             }
             return true;            
         }

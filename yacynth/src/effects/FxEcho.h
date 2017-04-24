@@ -35,6 +35,7 @@
 
 #include    "yacynth_globals.h"
 #include    "Ebuffer.h"
+#include    "protocol.h"
 
 #include    <array>
 #include    <iostream>
@@ -62,12 +63,8 @@ public:
     static constexpr std::size_t maxMode     = 1; // 0 is always exist> 0,1,2
     static constexpr std::size_t inputCount  = 1; //  0-base signal 1-modulation
 
-    FxEchoParam();
+    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
     
-//    float   gain;
-//    float   modulationIndex;
-    
-    // optional fields
     
 };
 
@@ -94,7 +91,11 @@ public:
     :   Fx<FxEchoParam>()
     ,   delay(lengthExp)   // 8192 * 64 sample
     {
-//        fillSprocessv<0>(sprocess_00);
+        fillSprocessv<0>(sprocess_00);
+        fillSprocessv<1>(sprocess_01);
+//        fillSprocessv<2>(sprocess_02);
+//        fillSprocessv<3>(sprocess_03);
+//        fillSprocessv<4>(sprocess_04);
         
         delay.clear();
         tapOutputVector.setDelayLength( delay.bufferSize );
@@ -102,9 +103,16 @@ public:
         testvect();
     };
 
+    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override; 
 
+    virtual bool connect( const FxBase * v, uint16_t ind ) override;
 
-//    virtual bool fill( std::stringstream& ser )         override;
+    static void sprocess_00( void * thp );  // bypass > inp<0> -> out
+    static void sprocess_01( void * thp );
+//    static void sprocess_02( void * thp );
+//    static void sprocess_03( void * thp );
+//    static void sprocess_04( void * thp );
+
 
     // void clear(void) {  delay.clear(); };
     virtual void clearTransient() override ;
@@ -133,6 +141,7 @@ public:
 protected:
     // ----------------------------------------
     // new version
+    // to param
     TapOutputVector             tapOutputVector;
     TapFeedbackVector           tapFeedbackVector;
     TapFeedbackVector           tapFilteredFeedbackVector;

@@ -181,4 +181,18 @@ protected:
     uint16_t    index;
 };
 
+//
+// must be revised - each channel independent taps
+// for reverb
+//
+template< std::size_t SlenExp >
+class FilterComb8x {
+public:
+    static constexpr std::size_t storeLengthExp     = SlenExp;
+    static constexpr std::size_t storeLength        = 1<<storeLengthExp;
+    static constexpr std::size_t storeLengthMask    = storeLength-1;
+
+protected:
+};
+
 } // end namespace filter

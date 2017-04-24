@@ -35,28 +35,23 @@ using namespace TagEffectTypeLevel_02;
 
 class FxOutOscillatorParam {
 public:
-    FxOutOscillatorParam();
     // mandatory fields
-    static constexpr char const * const name    = "Oscillator";
+    static constexpr char const * const name    = "Oscillator4x"; // 1 main + 3 slave
     static constexpr TagEffectType  type        = TagEffectType::FxOutOscillator;
-    static constexpr std::size_t maxMode        = 5; // 0 is always exist> 0,1,2
-    static constexpr std::size_t inputCount     = 0; 
+    static constexpr std::size_t maxMode        = 7; // 0 is always exist> 0,1,2
+    static constexpr std::size_t inputCount     = 0;
     static constexpr std::size_t slaveCount     = 3; // 0-base signal 1-modulation
     static constexpr char const * const slavename = " ^OscillatorSlave";
 
-    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
-    
-// optional fields
+    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
+    // master
+    ControllerMapLinear<1>  freqMapper;         // controller value to freq (delta phase)
+    ControllerIndex         indexPhaseDelta;    // controller index of freq of channel 0
+    // master + n slaves
+    ControllerIndex         indexPhaseFreqDiff[slaveCount+1]; // controller index of phase or freq diff of channel 1
 
-//    uint32_t        phaseDelta;
-    ControlledValue<1> phaseDelta0;
-    ControlledValue<1> phaseDelta1;
-    ControlledValue<1> phaseDiff;
 
-    // new controller -- master + n slaves -- or slaves have PhaseDelta0 ??/ or only phase diff
-    ControllerIndex indexPhaseDelta0[slaveCount+1]; 
-    ControllerIndex indexPhaseDelta1[slaveCount+1];
-    ControllerIndex indexPhaseDiff[slaveCount+1];
+    // need a direct steady control for multiphase source if there will be
 };
 
 class FxOutOscillator : public Fx<FxOutOscillatorParam>  {
@@ -73,10 +68,12 @@ public:
         fillSprocessv<3>(sprocess_03);
         fillSprocessv<4>(sprocess_04);
         fillSprocessv<5>(sprocess_05);
+        fillSprocessv<6>(sprocess_06);
+        fillSprocessv<7>(sprocess_07);
     }
-    
-    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
-    
+
+    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
+
 
     // go up to Fx ??
     // might change -> set sprocessTransient
@@ -144,25 +141,80 @@ private:
     static void sprocess_03( void * thp );
     static void sprocess_04( void * thp );
     static void sprocess_05( void * thp );
+    static void sprocess_06( void * thp );
+    static void sprocess_07( void * thp );
 
+    // for testing > dirac / 2^18
+#if 0
+    inline void processTestDirac(void)
+    {
+        for( auto si=0u; si < sectionSize; ++si ) {
+            constexpr   uint32_t mask = (1<<17) - 1;
+            const float pulse = (++dirac & mask) == mask;
+            out().channel[0][si] = pulse;
+            out().channel[1][si] = -pulse;
+        }
+    }
+#endif
+    inline void processTestSinImpulse(void)
+    {
+        constexpr   uint32_t mask = (1<<11) - 1;
+        if( (++dirac & mask) == mask ) {
+            uint16_t sphase = 0;
+            const uint16_t dphase = 1<<(16-sectionSizeExp);
+            for( auto si=0u; si < sectionSize; ++si ) {
+                out().channel[0][si] = sinTable[sphase];
+                out().channel[1][si] = sinTable[sphase];
+                sphase += dphase;
+            }
+
+        } else {
+            for( auto si=0u; si < sectionSize; ++si ) {
+                out().channel[0][si] = 0;
+                out().channel[1][si] = 0;
+            }
+        }
+    }
+
+    inline void processTestDirac(void)
+    {
+        constexpr   uint32_t mask = (1<<11) - 1;
+        if( (++dirac & mask) == mask ) {
+            out().channel[0][0] = -1.0f;
+            out().channel[1][0] = -1.0f;
+            out().channel[0][1] = +1.0f;
+            out().channel[1][1] = +1.0f;
+            for( auto si=2u; si < sectionSize; ++si ) {
+                out().channel[0][si] = 0;
+                out().channel[1][si] = 0;
+            }
+
+        } else {
+            for( auto si=0u; si < sectionSize; ++si ) {
+                out().channel[0][si] = 0;
+                out().channel[1][si] = 0;
+            }
+        }
+    }
+
+// TODO : MONO version
+// TODO : slaves
 
     inline void processSine(void)
     {
         for( auto si=0u; si < sectionSize; ++si ) {
-            inc();
-            out().channel[0][si] = sinTable[(phase[0])>>16];
-            out().channel[1][si] = sinTable[(phase[1])>>16];
-//            std::cout << "   out " << out().channel[0][si] << " " << out().channel[1][si] << " phase " << phase[0] << std::endl;
-            
+            inc0();
+            out().channel[0][si] = sinTable[(phase[0][0])>>16];
+            out().channel[1][si] = sinTable[(phase[0][1])>>16];
         }
     }
 
     inline void processSinePd0(void)
     {
         for( auto si=0u; si < sectionSize; ++si ) {
-            inc();
-            const uint16_t phase0 = (phase[0])>>16;
-            const uint16_t phase1 = (phase[1])>>16;
+            inc0();
+            const uint16_t phase0 = (phase[0][0])>>16;
+            const uint16_t phase1 = (phase[0][1])>>16;
             out().channel[0][si] = sinTable[ uint16_t( (waveSinTable[phase0]>>1) + phase0 ) ];
             out().channel[1][si] = sinTable[ uint16_t( (waveSinTable[phase1]>>1) + phase1 ) ];
         }
@@ -171,9 +223,9 @@ private:
     inline void processSinePd1(void)
     {
         for( auto si=0u; si < sectionSize; ++si ) {
-            inc();
-            const uint16_t phase0 = (phase[0])>>16;
-            const uint16_t phase1 = (phase[1])>>16;
+            inc0();
+            const uint16_t phase0 = (phase[0][0])>>16;
+            const uint16_t phase1 = (phase[0][1])>>16;
             out().channel[0][si] = sinTable[ uint16_t( (waveSinTable[phase0]>>2) + phase0 ) ];
             out().channel[1][si] = sinTable[ uint16_t( (waveSinTable[phase1]>>2) + phase1 ) ];
         }
@@ -182,9 +234,9 @@ private:
     inline void processSinePd2(void)
     {
         for( auto si=0u; si < sectionSize; ++si ) {
-            inc();
-            const uint16_t phase0 = (phase[0])>>16;
-            const uint16_t phase1 = (phase[1])>>16;
+            inc0();
+            const uint16_t phase0 = (phase[0][0])>>16;
+            const uint16_t phase1 = (phase[0][1])>>16;
             out().channel[0][si] = sinTable[ uint16_t( (waveSinTable[phase0]>>3) + phase0 ) ];
             out().channel[1][si] = sinTable[ uint16_t( (waveSinTable[phase1]>>3) + phase1 ) ];
         }
@@ -193,55 +245,103 @@ private:
     inline void processSinePd3(void)
     {
         for( auto si=0u; si < sectionSize; ++si ) {
-            inc();
-            const uint16_t phase0 = (phase[0])>>16;
-            const uint16_t phase1 = (phase[1])>>16;
+            inc0();
+            const uint16_t phase0 = (phase[0][0])>>16;
+            const uint16_t phase1 = (phase[0][1])>>16;
             out().channel[0][si] = sinTable[ uint16_t( (waveSinTable[phase0])) ];
             out().channel[1][si] = sinTable[ uint16_t( (waveSinTable[phase1])) ];
         }
     }
 
-    inline void updateParam(void)
+    // index 0 - master 1..n slave
+    // the channel 1 phase differs
+    inline void updateParamPhaseDiff(void)
     {
-
-
-        if( param.phaseDiff.updateDiff() ) {
-            phase[1] -= phaseDiff;
-            phaseDiff = param.phaseDiff.getPhaseValue();
-            phase[1] += phaseDiff;
-            std::cout << "updateParam 1" << phase[1] << " "  << phase[0] << std::endl;
+        if( phasePhaseFreqDiffValue[0].update( param.indexPhaseFreqDiff[0] ) ) {
+            phase[0][1] -= phaseDiff[0];
+            phaseDiff[0] = param.indexPhaseFreqDiff[0].getPhaseValue();
+            phase[0][1] += phaseDiff[0];
         }
 
-        if( param.phaseDelta0.updateDiff() ) {
-            phaseDelta0 = tables::ExpTable::getInstance().ycent2deltafi( param.phaseDelta0.getYcent8Value() );
-            std::cout << "updateParam 2 " << param.phaseDelta0.value << std::endl;
-        }
-        if( param.phaseDelta1.updateDiff() ) {
-            phaseDelta1 = tables::ExpTable::getInstance().ycent2deltafi( param.phaseDelta1.getYcent8Value() );
-            std::cout << "updateParam 3 " << param.phaseDelta1.value << std::endl;            
+        if( phaseDeltaValue[0].update( param.indexPhaseDelta ) ) {
+            // get the ycent value
+            const auto freqYcent = param.freqMapper.getOffseted( param.freqMapper.getScaled( phaseDeltaValue[0].getValue() ) );
+            phaseDelta[0][1] = phaseDelta[0][0] = tables::ExpTable::getInstance().ycent2deltafi( freqYcent );
         }
     }
 
-    inline void inc(void)
+    // the channel 1 freq differs
+    inline void updateParamFreqDiff(void)
     {
-        phase[0] += phaseDelta0;
-        phase[1] += phaseDelta1;
-        std::cout << " *** inc  " << std::hex << phase[1] << " "  << phase[0] << std::endl;
+        if( phasePhaseFreqDiffValue[0].update( param.indexPhaseFreqDiff[0] ) ) {
+            // smooth transition
+            phaseDiff[0] = phasePhaseFreqDiffValue[0].getValue();
+            const auto freqYcent1 = param.freqMapper.getOffseted( param.freqMapper.getScaled( phaseDeltaValue[0].getValue() + phaseDiff[0] ) );
+            phaseDelta[0][1] = tables::ExpTable::getInstance().ycent2deltafi( freqYcent1 );
+            std::cout << "  updateParamPhaseDiff phaseDiff " << phaseDiff[0] << std::endl;
+        }
+
+        if( phaseDeltaValue[0].update( param.indexPhaseDelta ) ) {
+            // get the ycent value
+            const auto freqYcent0 = param.freqMapper.getOffseted( param.freqMapper.getScaled( phaseDeltaValue[0].getValue() ) );
+            const auto freqYcent1 = param.freqMapper.getOffseted( param.freqMapper.getScaled( phaseDeltaValue[0].getValue() + phaseDiff[0] ) );
+            phaseDelta[0][0] = tables::ExpTable::getInstance().ycent2deltafi( freqYcent0 );
+            phaseDelta[0][1] = tables::ExpTable::getInstance().ycent2deltafi( freqYcent1 );
+        }
     }
 
-    virtual void clearTransient(void) override;    
+    // TODO : MONO
 
-    uint32_t                        phaseDiff;
-    uint32_t                        phaseDelta0;
-    uint32_t                        phaseDelta1;
+    inline void inc0(void)
+    {
+        phase[0][0] += phaseDelta[0][0];
+        phase[0][1] += phaseDelta[0][1];
+    }
+
+    // master + 1 slave
+    // TODO v4
+    inline void inc1(void)
+    {
+        phase[0][0] += phaseDelta[0][0];
+        phase[0][1] += phaseDelta[0][1];
+        phase[1][0] += phaseDelta[1][0];
+        phase[1][1] += phaseDelta[1][1];
+    }
+
+    // master + 3 slave
+    // TODO v4
+    inline void inc2(void)
+    {
+        phase[0][0] += phaseDelta[0][0];
+        phase[0][1] += phaseDelta[0][1];
+        phase[1][0] += phaseDelta[1][0];
+        phase[1][1] += phaseDelta[1][1];
+        phase[2][0] += phaseDelta[2][0];
+        phase[2][1] += phaseDelta[2][1];
+        phase[3][0] += phaseDelta[3][0];
+        phase[4][1] += phaseDelta[3][1];
+    }
+
+    virtual void clearTransient(void) override;
+
+    uint32_t                        phaseDiff[  FxOutOscillatorParam::slaveCount + 1 ];     // needed to store the current value
+    union {
+        v4si                        v4PhaseDelta[ (FxOutOscillatorParam::slaveCount + 1)/4 ];
+        uint32_t                    phaseDelta[ FxOutOscillatorParam::slaveCount + 1 ][2];
+    };
+    union {
+        v4si                        v4Phase[ (FxOutOscillatorParam::slaveCount + 1)/4 ];
+        uint32_t                    phase[    FxOutOscillatorParam::slaveCount + 1 ][2]; // current phase of oscillators
+    };
 
     // new controller
-//    ControllerCache phaseDelta0;
-//    ControllerCache phaseDelta1;
-//    ControllerCache phaseDiff;
-
-    uint32_t                        phase[ FxOutOscillatorParam::slaveCount*2 + 2 ];
+    ControllerCache phaseDeltaValue[            FxOutOscillatorParam::slaveCount + 1 ];
+    ControllerCache phasePhaseFreqDiffValue[    FxOutOscillatorParam::slaveCount + 1 ];
+    // slave identity
     FxSlave<FxOutOscillatorParam>   slaves[ FxOutOscillatorParam::slaveCount ];
+
+    uint32_t                        dirac;
+    uint32_t                        diracdt;
 };
 
 

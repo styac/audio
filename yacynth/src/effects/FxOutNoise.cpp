@@ -23,22 +23,22 @@ using namespace TagEffectFxOutNoiseModeLevel_03;
 
 bool FxOutNoiseParam::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
-    const uint8_t tag = message.getTag(tagIndex);
-//    switch(  ( message.getTag(tagIndex) ) ) {
-//    case  :
-//        TAG_DEBUG(TagMidiController::ClearChannelVector, tagIndex, paramIndex, "FxOutNoiseParam" );
-//        return true;
-//    }
-    
+    const uint8_t tag = message.getTag(tagIndex);    
     switch( TagEffectFxOutNoiseMode( tag ) ) {
     case TagEffectFxOutNoiseMode::Clear :
+        TAG_DEBUG(TagEffectFxOutNoiseMode::Clear, tagIndex, paramIndex, "FxOutNoiseParam" );
         return true;
-   
-    }
-            
+        
+    case TagEffectFxOutNoiseMode::SetParameters :
+        TAG_DEBUG(TagEffectFxOutNoiseMode::SetParameters, tagIndex, paramIndex, "FxOutNoiseParam" );
+        if( !message.setTargetData(*this) ) {
+            message.setStatus( Yaxp::MessageT::illegalDataLength, 0);
+            return false;
+        }        
+        return true;
+    }            
     message.setStatus( Yaxp::MessageT::illegalTag, tag );
     return false;
-    
 }
 
 void FxOutNoise::clearTransient()
@@ -63,6 +63,7 @@ bool FxOutNoise::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t pa
     // forward to param
     return param.parameter( message, tagIndex, paramIndex );     
 }
+
 
 // --------------------------------------------------------------------
 } // end namespace yacynth

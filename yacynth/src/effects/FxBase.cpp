@@ -60,45 +60,18 @@ void FxBase::clearTransient()
 bool FxBase::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     TAG_DEBUG( TagEffectCollector::Nop, tagIndex, paramIndex,"FxBase/FxNil" );
-    message.setStatus( Yaxp::MessageT::illegalDestination, message.getTag(tagIndex) ); // nothing to do here
+    message.setStatus( Yaxp::MessageT::noParameter, message.getTag(tagIndex) ); // nothing to do here
     return false;
 }
 
 bool FxBase::setProcMode( uint16_t ind )
-{
+{    
      std::cout
-         << "FxBase::setProcMode"
+         << " *** FxBase::setProcMode"
          << std::endl;
     return false;
 }; // might be non virtual
 
-void FxCollector::init(void) {
-  
-}
-
-void FxCollector::check(void) {
-    for( auto& it : nodes ) {
-        std::cout
-            << "Effects: " << it->id()
-            << "  " << it->name()
-            << " input count:" << it->getInputCount()
-            << " max mode:" << it->getMaxMode()
-            << " master id:" << it->getMasterId()
-//            << " max id:" << it->getMaxId()
-            << std::endl;
-    }
-}
-
-#if 0
-void FxCollector::initialize(void)
-{
-    const std::string nameprefix("slave-");
-    for( auto i=0u; i<8; ++i ) {
-        std::string name = nameprefix + std::to_string(i);
-        auto j = new FxBase( name.data() );
-    }
-}
-#endif
 // chop the 1st parameter as index in FxCollector
 
 bool FxCollector::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
@@ -110,6 +83,7 @@ bool FxCollector::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t p
         return true;
 
     case TagEffectCollector::SetProcessingMode :
+        std::cout << "---- FxCollector setProcMode" << std::endl;
         TAG_DEBUG(TagEffectCollector::SetProcessingMode, tagIndex, paramIndex, "FxCollector" );
         if( message.checkParamIndex(paramIndex) && message.checkParamIndex(paramIndex+1) ) {
             const uint8_t effectInd = message.getParam(paramIndex);
@@ -117,8 +91,15 @@ bool FxCollector::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t p
                 message.setStatus( Yaxp::MessageT::illegalParam );
                 return false;
             }
-            get(effectInd)->setProcMode(message.getParam(paramIndex+1));
-            return true;
+            std::cout 
+                    << "---- FxCollector setProcMode call " << uint16_t(effectInd ) 
+                    << " mode " << message.getParam(paramIndex+1) 
+                    <<  std::endl;
+            if( get(effectInd)->setProcMode(message.getParam(paramIndex+1)) ) {
+                return true;                
+            }
+            message.setStatus( Yaxp::MessageT::illegalProcMode );
+            return false;
         }
         return false;
 
@@ -184,12 +165,12 @@ bool FxRunner::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t para
                 return false;
             }
             clear();
-            std::cout << "---- fill begin message.length " << message.length << std::endl;
+//            std::cout << "---- fill begin message.length " << message.length << std::endl;
             EffectRunnerFill *data = static_cast<EffectRunnerFill *>((void *)(message.data));
             for( uint16_t ind = 0; ind < countParam; ++ind, ++data ) {
                 FxRunner::RET ret = add( data->fxIdOfFxCollector );
                 if( RET::OK != ret ) {
-                    std::cout << "len " << uint16_t(message.data[ind])  << std::endl;
+//                    std::cout << "len " << uint16_t(message.data[ind])  << std::endl;
                     TAG_DEBUG( TagEffectRunner::Fill, tagIndex, paramIndex, "FxRunner -- TagEffectRunner::Fill  param data" );
                     message.setStatus( Yaxp::MessageT::targetRetCode, uint8_t(ret) );
                     return false;
@@ -203,11 +184,6 @@ bool FxRunner::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t para
             if( !message.checkParamIndex(paramIndex) )
                 return false;
             const uint16_t countParam = message.getParam(paramIndex);
-            if( countParam > count() ) {
-                std::cout << "countParam " << countParam << std::endl;
-                message.setStatus( Yaxp::MessageT::illegalTargetIndex ); // TODO more specific
-                return false;
-            }
             if( countParam*sizeof(EffectRunnerSetConnections) != message.length ) {
                 std::cout << "message.length " << message.length << std::endl;
                 message.setStatus( Yaxp::MessageT::illegalDataLength ); // TODO more specific

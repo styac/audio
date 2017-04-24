@@ -58,14 +58,28 @@ struct alignas(16) V4sfMatrix {
     };
 };
 
-struct alignas(16) V4v {
-    void clear(void)
+
+struct alignas(16) V4vf {
+    inline void clear(void)
     {
         v[0] = v[1] = v[2] = v[3] = 0.0f;
     }
+    inline V4vf() = default;
+
+    inline V4vf( const v4sf & val )
+    : v4(val)
+    {}
+
+    inline V4vf( float v0, float v1, float v2, float v3  )
+    {
+        v[0] = v0;
+        v[1] = v1;
+        v[2] = v2;
+        v[3] = v3;
+    }
     union  {
-        v4sf    v4;
         float   v[4];
+        v4sf    v4;
     };
 };
 
@@ -75,11 +89,11 @@ struct alignas(16) V4v {
 template< std::size_t v4Exp>
 struct V4size {
     static constexpr std::size_t varraySizeExp  = v4Exp;
-    static constexpr std::size_t varraySize     = 1<<varraySizeExp;   
+    static constexpr std::size_t varraySize     = 1<<varraySizeExp;
     static constexpr std::size_t varraySizeMask = varraySize-1;
     static constexpr std::size_t arraySizeExp   = varraySizeExp+2;
     static constexpr std::size_t arraySize      = 1<<arraySizeExp;
-    static constexpr std::size_t arraySizeMask  = arraySize-1;    
+    static constexpr std::size_t arraySizeMask  = arraySize-1;
 };
 
 // T : int32_t -- v4si
@@ -91,12 +105,12 @@ template<std::size_t v4Exp>
 struct alignas(16) V4array<float, v4Exp> : public V4size<v4Exp> {
     inline void clear(void)
     {
-        for( auto& vi : v ) vi = 0;  
+        for( auto& vi : v ) vi = 0;
     }
 
     union {
-        v4sf    v4[ V4size<v4Exp>::varraySize   ];
-        float    v[ V4size<v4Exp>::arraySize    ];
+        v4sf    v4[ V4size<v4Exp>::varraySize ];
+        float    v[ V4size<v4Exp>::arraySize  ];
     };
 };
 
@@ -104,7 +118,7 @@ template<std::size_t v4Exp>
 struct alignas(16) V4array<int32_t, v4Exp> : public V4size<v4Exp> {
     inline void clear(void)
     {
-        for( auto& vi : v ) vi = 0;  
+        for( auto& vi : v ) vi = 0;
     }
 
     union {
@@ -117,7 +131,7 @@ template<std::size_t v4Exp>
 struct alignas(16) V4array<uint32_t, v4Exp> : public V4size<v4Exp> {
     inline void clear(void)
     {
-        for( auto& vi : v ) vi = 0;  
+        for( auto& vi : v ) vi = 0;
     }
 
     union {

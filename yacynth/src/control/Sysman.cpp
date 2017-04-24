@@ -45,7 +45,7 @@ using namespace TagEffectFxModulatorModeLevel_03;
 using namespace TagEffectFxOutNoiseModeLevel_03;
 using namespace TagEffectFxOutOscillatorModeLevel_03;
 using namespace TagEffectFxEchoModeLevel_03;
-using namespace TagEffectFxReverbModeLevel_03;
+using namespace TagEffectFxLateReverbModeLevel_03;
 
 // --------------------------------------------------------------------
 
@@ -137,7 +137,7 @@ void Sysman::testParameter()
     
     for( auto i=1; i<11; ++i ) {
         std::cout << " **** " << i << std::endl;
-        msgBuffer.setTags( uint8_t( TagMain::Effect ), 4, i, 1 );
+        msgBuffer.setTags( uint8_t( TagMain::EffectCollector ), 4, i, 1 );
         msgBuffer.setPar(i);
         parameter( msgBuffer, 0, 0 );
     }
@@ -173,7 +173,7 @@ void Sysman::testParameter()
 
     msgBuffer.clear();
     msgBuffer.setLength(50000);    
-    msgBuffer.setTags( uint8_t( TagMain::Effect )
+    msgBuffer.setTags( uint8_t( TagMain::EffectCollector )
             ,uint8_t(TagEffectCollector::GetEffectList )    
             );
 
@@ -201,7 +201,7 @@ void Sysman::testParameter()
     
     msgBuffer.clear();
     msgBuffer.setLength(50000);    
-    msgBuffer.setTags( uint8_t( TagMain::Effect )
+    msgBuffer.setTags( uint8_t( TagMain::EffectCollector )
             ,uint8_t(TagEffectCollector::EffectInstance )    
             ,uint8_t( 1 )       // type
             ,uint8_t( 0 )    
@@ -212,7 +212,7 @@ void Sysman::testParameter()
     parameter( msgBuffer, 0, 0 );
     
     
-    msgBuffer.setTags( uint8_t( TagMain::Effect )
+    msgBuffer.setTags( uint8_t( TagMain::EffectCollector )
             ,uint8_t(TagEffectCollector::EffectInstance )    
             ,uint8_t( 3 )    
             ,uint8_t( 0 )    
@@ -222,7 +222,7 @@ void Sysman::testParameter()
     msgBuffer.setStatus();
     parameter( msgBuffer, 0, 0 );
     
-    msgBuffer.setTags( uint8_t( TagMain::Effect )
+    msgBuffer.setTags( uint8_t( TagMain::EffectCollector )
             ,uint8_t(TagEffectCollector::EffectInstance )    
             ,uint8_t( 4 )    
             ,uint8_t( 0 )    
@@ -232,7 +232,7 @@ void Sysman::testParameter()
     msgBuffer.setStatus();
     parameter( msgBuffer, 0, 0 );
 
-    msgBuffer.setTags( uint8_t( TagMain::Effect )
+    msgBuffer.setTags( uint8_t( TagMain::EffectCollector )
             ,uint8_t(TagEffectCollector::EffectInstance )    
             ,uint8_t( 6 )    
             ,uint8_t( 0 )    
@@ -242,7 +242,7 @@ void Sysman::testParameter()
     msgBuffer.setStatus();
     parameter( msgBuffer, 0, 0 );
 
-    msgBuffer.setTags( uint8_t( TagMain::Effect )
+    msgBuffer.setTags( uint8_t( TagMain::EffectCollector )
             ,uint8_t(TagEffectCollector::EffectInstance )    
             ,uint8_t( 7 )    
             ,uint8_t( 0 )    
@@ -252,7 +252,7 @@ void Sysman::testParameter()
     msgBuffer.setStatus();
     parameter( msgBuffer, 0, 0 );
     
-    msgBuffer.setTags( uint8_t( TagMain::Effect )
+    msgBuffer.setTags( uint8_t( TagMain::EffectCollector )
             ,uint8_t(TagEffectCollector::EffectInstance )    
             ,uint8_t( 2 )    
             ,uint8_t( 0 )    
@@ -262,7 +262,7 @@ void Sysman::testParameter()
     msgBuffer.setStatus();
     parameter( msgBuffer, 0, 0 );
 
-    msgBuffer.setTags( uint8_t( TagMain::Effect )
+    msgBuffer.setTags( uint8_t( TagMain::EffectCollector )
             ,uint8_t(TagEffectCollector::EffectInstance )    
             ,uint8_t( 2 )    
             ,uint8_t( 0 )    
@@ -272,7 +272,7 @@ void Sysman::testParameter()
     msgBuffer.setStatus();
     parameter( msgBuffer, 0, 0 );
     
-    msgBuffer.setTags( uint8_t( TagMain::Effect )
+    msgBuffer.setTags( uint8_t( TagMain::EffectCollector )
             ,uint8_t(TagEffectCollector::EffectInstance )    
             ,uint8_t( 2 )    
             ,uint8_t( 0 )    
@@ -282,7 +282,7 @@ void Sysman::testParameter()
     msgBuffer.setStatus();
     parameter( msgBuffer, 0, 0 );
     
-    msgBuffer.setTags( uint8_t( TagMain::Effect )
+    msgBuffer.setTags( uint8_t( TagMain::EffectCollector )
             ,uint8_t(TagEffectCollector::EffectInstance )    
             ,uint8_t( 5 )    
             ,uint8_t( 0 )    
@@ -292,7 +292,7 @@ void Sysman::testParameter()
     msgBuffer.setStatus();
     parameter( msgBuffer, 0, 0 );
     
-    msgBuffer.setTags( uint8_t( TagMain::Effect )
+    msgBuffer.setTags( uint8_t( TagMain::EffectCollector )
             ,uint8_t(TagEffectCollector::EffectInstance )    
             ,uint8_t( 8 )   // filter
             ,uint8_t( 1 )   // clear filter
@@ -302,7 +302,7 @@ void Sysman::testParameter()
     msgBuffer.setStatus();
     parameter( msgBuffer, 0, 0 );
 
-    msgBuffer.setTags( uint8_t( TagMain::Effect )
+    msgBuffer.setTags( uint8_t( TagMain::EffectCollector )
             ,uint8_t(TagEffectCollector::EffectInstance )    
             ,uint8_t( 8 )   // filter
             ,uint8_t( 2 )   // SetMode_01_ap22x4x filter
@@ -366,8 +366,8 @@ bool Sysman::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramI
         TAG_DEBUG(TagMain::EffectRunner, tagIndex, paramIndex, "Sysman" );
         return iOThread.getFxRunner().parameter( message,++tagIndex, paramIndex );
 
-    case TagMain::Effect:
-        TAG_DEBUG(TagMain::Effect, tagIndex, paramIndex, "Sysman" );
+    case TagMain::EffectCollector:
+        TAG_DEBUG(TagMain::EffectCollector, tagIndex, paramIndex, "Sysman" );
         return FxCollector::getInstance().parameter( message,++tagIndex, paramIndex );
 
     case TagMain::MidiController:

@@ -1,4 +1,4 @@
-/*
+/*      
  * Copyright (C) 2016 Istvan Simon
  *
  * This program is free software; you can redistribute it and/or
@@ -20,5 +20,5 @@
 
 namespace yacynth {
     const EIObuffer nullEBuffer;
-    const EIObuffer fadeEBuffer(new FadeBufferTag());
+    const EIObuffer fadeEBuffer(FadeBufferTag(0));
 }

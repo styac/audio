@@ -117,12 +117,12 @@ void Panmix::summOscillatorOut( OscillatorOut& inp ) {
     timeval tv; // profiling
     
     if( enableEffectFilter ) {
-        outApf  = inFilter.channelA;
-        outBpf  = inFilter.channelB;
+        outApf  = inFilter.channel[EbufferPar::chA];
+        outBpf  = inFilter.channel[EbufferPar::chB];
         inFilter.setGain( gainref );
     } else {
-        outApf  = out.channelA;
-        outBpf  = out.channelB;
+        outApf  = out.channel[EbufferPar::chA];
+        outBpf  = out.channel[EbufferPar::chB];
         out.setGain( gainref );
     }
 
@@ -221,8 +221,8 @@ void Panmix::summOscillatorOut( OscillatorOut& inp ) {
         
 //        *outBpf++ = *outApf++ = static_cast<float>( noiseSample.getPink() );
 //        *outBpf++ = *outApf++ = static_cast<float>( galoisShifterCascade.getWhite24()  );
-//        *outApf++ = fxOutNoise.channelA[si];
-//        *outBpf++ = fxOutNoise.channelB[si];
+//        *outApf++ = fxOutNoise.channel[EbufferPar::chA][si];
+//        *outBpf++ = fxOutNoise.channel[EbufferPar::chB][si];
         
 //        const int64_t x =  addbuff.v[si];
 //        *outApf++ = static_cast<float>(filterComb4.getAllPass( filterComb3.getAllPass( filterComb2.getAllPass( filterComb1.getAllPass( x ) ))));

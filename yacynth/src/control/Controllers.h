@@ -89,7 +89,7 @@ public:
     static constexpr std::size_t norm               = 24;
     static constexpr std::size_t kshift             = 3;
     static constexpr std::size_t kround             = 1<<(kshift-1);
-    static constexpr std::size_t midiStep           = 128;
+    static constexpr std::size_t midiStep           = 128;          // table steps exp-ampl, phase
     static constexpr std::size_t midiStepMask       = midiStep-1;
 
     enum  {
@@ -100,12 +100,16 @@ public:
         CC_MODULATOR_PHASEDIFF0,
         CC_MODULATOR_FREQ0,
         CC_MODULATOR_FREQ1,
+        CC_MODULATOR_INVOL,
+        CC_MODULATOR_MIXVOL,
         CC_FILTER_FREQ0,
         CC_FILTER_Q0,
         // ------------- mirror to filtered range begin
+        // this part 128..+32 are filtered slow change
         CC_BEGIN_FILTER                 = 128,
         CC_END_FILTER                   = CC_BEGIN_FILTER + filteredRange,
         // ------------- mirror to filtered range end
+        // instead of SINK - CM DISABLE
         CC_SINK                         = 255,  // never get -- all unused controllers go here - obsolete
         // ------------- internal range begin
         CC_AMPLITUDE                    = 1<<8,       // internal -- amplitude summ
@@ -121,9 +125,11 @@ public:
         CC_BEGIN_FILTERED               = 516,
         CC_END_FILTERED                 = CC_BEGIN_FILTERED + filteredRange,
         // ------------- filtered range end
+        // switch controllers
         CC_BEGIN_SWITCH                 = 3*(1<<8),
+        // software controllers 
         CC_BEGIN_SW                     = 4*(1<<8),
-        CC_END
+        CC_END                          = 5*(1<<8)
     };
 
     static_assert( CC_END < arraySize, "array is too small" );
@@ -209,10 +215,10 @@ k 9 f 14.9358  -- 20.6
         setLog(CC_AMPLITUDE,v);
     }
 
+    // eliminate shift
     inline void setMidi( uint8_t ind, uint8_t v )
     {
-        value.v[ ind & V4size::arraySizeMask ] = v << shiftleft[ind & V4size::arraySizeMask];
-//        value.v[ ind & V4size::arraySizeMask ] = v<<8; // unify> shift by 8 -- next experiment
+        value.v[ ind & V4size::arraySizeMask ] = v; // << shiftleft[ind & V4size::arraySizeMask];
         std::cout << "InnerController ind "  << uint16_t(ind)
             << " val " << uint16_t(v)
             << " stored " << value.v[ ind & V4size::arraySizeMask ]
@@ -470,6 +476,12 @@ public:
         }
         cdt[ channel & channelCountMask ] [ controller ].index = ind;
         cdt[ channel & channelCountMask ] [ controller ].mode  = mode;
+        std::cout << std::hex
+            << "  +++++++++ channel " << uint16_t(channel) 
+            << " controller " << uint16_t(controller) 
+            << " index " << uint16_t(cdt[ channel & channelCountMask ] [ controller ].index) 
+            << " mode " << uint16_t(cdt[ channel & channelCountMask ] [ controller ].mode)  
+            << std::endl;
     }
 
 private:
@@ -489,6 +501,14 @@ private:
 // define an index 
 struct ControllerIndex {
     uint16_t    index;
+    bool setIndex( uint16_t ind )
+    {
+        if( ind < InnerController::CC_END ) {
+            index = ind;
+            return true;
+        }
+        return false;
+    }
     inline void setInnerValue( int32_t v = 0 )
     {
         InnerController::getInstance().set( index, v );
@@ -537,11 +557,21 @@ struct ControllerCache {
     {
         return InnerController::getInstance().getPhaseValue( value );
     }
+    inline auto getValue(void) const
+    {
+        return value & 0x7FFFF;
+    }
+    inline void trigger(void) 
+    {
+        value &= 0x8000; // trigger a change 
+    }
+    // cache is not used for oscillator -- normally midi is max 14 bit
 //    int32_t     value;
     int16_t     value;
 };
 
 // always adds only a fraction of the change to the value
+// compare this with filtered controller
 template< int32_t lim > 
 struct ControllerCacheDelta : public ControllerCache {
     static_assert( lim > 2 && lim < 30 ,"value out of limits");
@@ -562,26 +592,41 @@ struct ControllerCacheDelta : public ControllerCache {
 template< uint8_t acount >
 struct ControllerMapLinear {
     static constexpr uint8_t offsetCount = acount;
-    inline int32_t scale( int32_t val ) const
+    static constexpr int32_t maxMult  = 1<<24;   // min input 7 bit
+    static constexpr int32_t maxOffs  = 1<<30;   
+    inline int32_t getScaled( int32_t val ) const
     {
         return mult * val;
     }
-    inline int32_t offset( int32_t val ) const
+    inline int32_t getOffseted( int32_t val ) const
     {
         static_assert( offsetCount>0,"not usable" );
         return y0[0] + val;
     }
     // MUST ind < offsetCount
-    inline int32_t offset( int32_t val, uint16_t ind ) const
+    inline int32_t getOffseted( int32_t val, uint16_t ind ) const
     {
         static_assert( offsetCount>0,"not usable" );
         return y0[ind] + val;
     }
-    union {
-        v4si        v4y0[offsetCount/4];
-        int32_t     y0[offsetCount];
-    };
+    bool check() 
+    {
+        const int32_t abm = std::abs(mult);
+        if( abm == 0 || abm > maxMult ) {
+            std::cout << "  ControllerMapLinear err mult " << mult << std::endl;            
+            return false;
+        } 
+        for( auto &y : y0 ) {
+            const int32_t aby = std::abs(y);
+            if( aby > maxOffs ) {
+                std::cout << "  ControllerMapLinear err offs " << aby << std::endl;            
+                return false;                
+            }
+        }
+        return true;
+    }
     int32_t     mult;
+    int32_t     y0[offsetCount];
 };
 
 

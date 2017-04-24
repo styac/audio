@@ -25,32 +25,52 @@
 #include "FxMixer.h"
 
 namespace yacynth {
-using namespace TagEffectFxOscillatorMixerModeLevel_03;
+using namespace TagEffectFxMixerModeLevel_03;
 
-FxMixerParam::FxMixerParam()
-{
-    gainTarget.index = InnerController::CC_MAINVOLUME;
-    gainTarget.setShift(0);
-
-}
 
 bool FxMixerParam::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
-    const uint8_t tag = message.getTag(tagIndex);
-//    switch(  ( message.getTag(tagIndex) ) ) {
-//    case  :
-//        TAG_DEBUG(TagMidiController::ClearChannelVector, tagIndex, paramIndex, " " );
-//        return true;
-//    }
-    switch( TagEffectFxOscillatorMixerMode( tag ) ) {
-    case TagEffectFxOscillatorMixerMode::Clear :
-        return true;
+    uint16_t index = 0;
+    const uint8_t tag       = message.getTag(tagIndex);    
+    if( !message.checkParamIndex(paramIndex) ) {
+        message.setStatus( Yaxp::MessageT::illegalParamIndex, tag );            
+        return false;  
+    }                         
+    const uint16_t channel  = message.params[paramIndex];
+    if(channel >= inputCount) { 
+        message.setStatus( Yaxp::MessageT::illegalTargetIndex, tag );                
+        return false;
     }
-            
+    switch( TagEffectFxMixerMode( tag ) ) {
+    case TagEffectFxMixerMode::Clear :
+        TAG_DEBUG(TagEffectFxMixerMode::Clear, tagIndex, paramIndex, "FxMixerParam" );
+        clear();
+        return true;
+        
+    case TagEffectFxMixerMode::SetVolumeControllerIndex :
+        TAG_DEBUG(TagEffectFxMixerMode::SetVolumeControllerIndex, tagIndex, paramIndex, "FxMixerParam" );        
+        if( message.setTargetData( index ) ) {
+            gainIndex[channel].setIndex(index);
+            return true;            
+        }        
+        message.setStatus( Yaxp::MessageT::illegalDataLength, tag );            
+        return false;
+        
+    case TagEffectFxMixerMode::SetVolumeRange : 
+        TAG_DEBUG(TagEffectFxMixerMode::SetVolumeRange, tagIndex, paramIndex, "FxMixerParam" );
+        if( message.setTargetData( gainRange[channel] ) ) {
+            std::cout <<  "--- channel " << channel <<  " volume " << gainRange[channel] << std::endl;
+            return true;            
+        }        
+        message.setStatus( Yaxp::MessageT::illegalDataLength, tag );            
+        return false;
+     
+    } // end switch
+    TAG_DEBUG(TagEffectFxMixerMode::Nop, tagIndex, paramIndex, "FxMixerParam" );
     message.setStatus( Yaxp::MessageT::illegalTag, tag );    
     return false;
     
-}
+} // end FxMixerParam::parameter
 
 bool FxMixer::connect( const FxBase * v, uint16_t ind )
 {
@@ -61,7 +81,31 @@ void FxMixer::clearTransient()
 {
     EIObuffer::clear();
 }
-#if 1
+
+bool FxMixer::setProcMode( uint16_t ind )
+{
+    std::cout << "---- setProcMode mixer " << ind << std::endl;
+    if( procMode == ind ) {
+        return true; // no change
+    }
+    if( getMaxMode() < procMode ) {
+        return false; // illegal
+    }
+    if( 0 == procMode ) {
+        fadePhase = FadePhase::FPH_fadeInSimple;
+    } else if( 0 == ind ) {
+        fadePhase = FadePhase::FPH_fadeOutSimple;
+    } else {
+        fadePhase = FadePhase::FPH_fadeOutCross;
+    }
+
+    procMode = ind;
+    sprocessp = sprocesspSave = sprocessv[ind];
+    // sprocesspSave =  sprocessv[ th.procMode ];
+    // sprocessp = sprocessTransient;
+    return true;
+}
+
 bool FxMixer::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     // 1st tag is tag effect type
@@ -73,12 +117,37 @@ bool FxMixer::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t param
     }
     // 2nd tag is tag operation
     const uint8_t tag = message.getTag(++tagIndex);
-    if( uint8_t(TagEffectFxOscillatorMixerMode::Clear) == tag ) {
+    if( uint8_t(TagEffectFxMixerMode::Clear) == tag ) {
         clearTransient(); // this must be called to cleanup
     }
     // forward to param
     return param.parameter( message, tagIndex, paramIndex );    
 }
-#endif
+
+    // 00 is always clear for output or bypass for in-out
+    void FxMixer::sprocess_00( void * thp )
+    {
+       // static_cast< FxOutNoise * >(thp)->clear();
+    }
+
+    void FxMixer::sprocess_01( void * thp )
+    {
+        static_cast< MyType * >(thp)->mix_01();
+    }
+
+    void FxMixer::sprocess_02( void * thp )
+    {
+        static_cast< MyType * >(thp)->mix_02();
+    }
+
+    void FxMixer::sprocess_03( void * thp )
+    {
+        static_cast< MyType * >(thp)->mix_03();
+    }
+
+    void FxMixer::sprocess_04( void * thp )
+    {
+        static_cast< MyType * >(thp)->mix_04();
+    }
 
 } // end namespace yacynth

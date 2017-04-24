@@ -47,25 +47,29 @@ enum class MessageT : uint8_t {
     adviceC2E,      // advice controller to engine
     adviceE2C,      // advice engine to controller
 
-    responseSetOK = 0x80,  // data length = 0
-    responseGetOK,  // data length is valid
-    illegalTag,                 // 130
-    illegalTagEffectType,       // 131
-    illegalParamIndex,          // 132
-    illegalParam,               // 133
-    illegalDataLength,          // 134
-    illegalDestination,         // 135
-    illegalData,                // 136
-    illegalTargetIndex,         // 137
-    illegalFxCollectorIndex,    // 138
-    targetRetCode,              // 139
+    responseSetOK = 0x80,           // data length = 0 -- not used yet "nop" is used
+    responseGetOK,                  // data length is valid
+    noParameter,                    // 130
+    targetRetCode,                  // 131
+    illegalTag,                     // 132
+    illegalTagEffectType,           // 133
+    illegalParamIndex,              // 134
+    illegalParam,                   // 135
+    illegalDataLength,              // 136
+    illegalData,                    // 137
+    illegalTargetIndex,             // 138
+    illegalEffectCollectorIndex,    // 139
+    illegalEffectRunnerIndex,       // 140  - too high
+    illegalEffectInputIndex,        // 141  - no such input 
+    illegalProcMode,                // 142
+    dataCheckError,                 // 143 
 };
 
 struct Header
 {
     static constexpr std::uint8_t  version = 1;
-    static constexpr std::uint8_t  maxTagCount = 6;
-    static constexpr std::uint8_t  maxParCount = 6;
+    static constexpr std::uint8_t  maxTagCount = 6; // 4 might be enough
+    static constexpr std::uint8_t  maxParCount = 6; // 2 might be enough
 
     void clear()
     {
@@ -124,7 +128,6 @@ struct Header
         tags[2] = tag2;
         tags[3] = 0;
     }
-
     inline void setTags( uint8_t tag0, uint8_t tag1, uint8_t tag2, uint8_t tag3 )
     {
         tags[0] = tag0;
@@ -133,6 +136,7 @@ struct Header
         tags[3] = tag3;
         tags[4] = 0;
     }
+#if 0
 
     inline void setTags( uint8_t tag0, uint8_t tag1, uint8_t tag2, uint8_t tag3, uint8_t tag4 )
     {
@@ -143,7 +147,7 @@ struct Header
         tags[4] = tag4;
         tags[5] = 0;
     }
-
+#endif
     inline void setPar( uint16_t par0 )
     {
         params[0] = par0;
@@ -154,7 +158,7 @@ struct Header
         params[0] = par0;
         params[1] = par1;
     }
-
+#if 0
     inline void setPar( uint16_t par0, uint16_t par1, uint16_t par2 )
     {
         params[0] = par0;
@@ -188,7 +192,7 @@ struct Header
         params[4] = par4;
         params[5] = par5;
     }
-
+#endif
     // members
     uint8_t     messageType;    // -> enum  - ok
     uint8_t     statusHint;     // eg. tag index

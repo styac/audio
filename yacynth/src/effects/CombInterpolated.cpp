@@ -130,10 +130,10 @@ void CombInterpolated::feedforwardInterpolated(  const EIObuffer& inp, EIObuffer
     const float multOut     = tap.multOut;
     const uint64_t dlind64  = tap.dlind64;
 
-        const float * chnIAp = inp.channelA;
-        float * chnOAp = out.channelA;
-        const float * chnIBp = inp.channelB;
-        float * chnOBp = out.channelB;
+        const float * chnIAp = inp.channel[EbufferPar::chA];
+        float * chnOAp = out.channel[EbufferPar::chA];
+        const float * chnIBp = inp.channel[EbufferPar::chB];
+        float * chnOBp = out.channel[EbufferPar::chB];
         for( uint16_t sami = 0; sami < sectionSize; ++sami, lfo.inc() ) {
             const float csmplA  = *chnIAp++;
             const float csmplB  = *chnIBp++;
@@ -152,10 +152,10 @@ void CombInterpolated::feedbackInterpolated(  const EIObuffer& inp, EIObuffer& o
     const float multOut     = tap.multOut;
     const uint64_t dlind64  = tap.dlind64;
 
-        const float * chnIAp = inp.channelA;
-        float * chnOAp = out.channelA;
-        const float * chnIBp = inp.channelB;
-        float * chnOBp = out.channelB;
+        const float * chnIAp = inp.channel[EbufferPar::chA];
+        float * chnOAp = out.channel[EbufferPar::chA];
+        const float * chnIBp = inp.channel[EbufferPar::chB];
+        float * chnOBp = out.channel[EbufferPar::chB];
         for( uint16_t sami = 0; sami < sectionSize; ++sami, lfo.inc() ) {
             const float csmplA  = *chnIAp++;
             const float csmplB  = *chnIBp++;
@@ -177,10 +177,10 @@ void CombInterpolated::allpassInterpolated(  const EIObuffer& inp, EIObuffer& ou
     const float multOut     = tap.multOut;
     const uint64_t dlind64  = tap.dlind64;
 
-        const float * chnIAp = inp.channelA;
-        float * chnOAp = out.channelA;
-        const float * chnIBp = inp.channelB;
-        float * chnOBp = out.channelB;
+        const float * chnIAp = inp.channel[EbufferPar::chA];
+        float * chnOAp = out.channel[EbufferPar::chA];
+        const float * chnIBp = inp.channel[EbufferPar::chB];
+        float * chnOBp = out.channel[EbufferPar::chB];
         for( uint16_t sami = 0; sami < sectionSize; ++sami, lfo.inc() ) {
             const float dlA     = delay.getInterpolatedA( dlind64 + lfo.get( Lfo::PHASE0 ));
             const float csmplA  = *chnIAp++;
@@ -201,10 +201,10 @@ void CombInterpolated::barberpole(  const EIObuffer& inp, EIObuffer& out )
     const float multOut     = tap.multOut;
     const uint64_t dlind64  = tap.dlind64;
 
-        const float * chnIAp = inp.channelA;
-        float * chnOAp = out.channelA;
-        const float * chnIBp = inp.channelB;
-        float * chnOBp = out.channelB;
+        const float * chnIAp = inp.channel[EbufferPar::chA];
+        float * chnOAp = out.channel[EbufferPar::chA];
+        const float * chnIBp = inp.channel[EbufferPar::chB];
+        float * chnOBp = out.channel[EbufferPar::chB];
         for( uint16_t sami = 0; sami < sectionSize; ++sami, lfo.inc() ) {
             const float dlA1    = delay.getInterpolatedA( dlind64 + ( lfo.get( Lfo::PHASE0, Lfo::SAW )))
                                 * lfo.getFloatOffs( Lfo::PHASE1, Lfo::SIN );

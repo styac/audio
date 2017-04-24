@@ -26,11 +26,41 @@
 #include    "FxEcho.h"
 
 namespace yacynth {
+using namespace TagEffectFxEchoModeLevel_03;
 
 
-FxEchoParam::FxEchoParam()
+bool FxEchoParam::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
+    const uint8_t tag = message.getTag(tagIndex);    
+#if 0    
+    switch( TagEffectFxMixerMode( tag ) ) {
+    case TagEffectFxMixerMode::Clear :
+        TAG_DEBUG(TagEffectFxMixerMode::Clear, tagIndex, paramIndex, "FxMixerParam" );
+        clear();
+        return true;
+        
+    case TagEffectFxMixerMode::SetVolumeControllerIndex :
+        TAG_DEBUG(TagEffectFxMixerMode::SetVolumeControllerIndex, tagIndex, paramIndex, "FxMixerParam" );
+        if( !message.checkParamIndex(paramIndex+1) )                          
+            return false;        
+        const uint16_t channel = message.params[paramIndex];
+        if(channel < inputCount) {            
+            if( gainIndex[channel].setIndex( message.params[paramIndex+1] ) ) {
+                return true;            
+            }
+            message.setStatus( Yaxp::MessageT::illegalTargetIndex, tag );                
+            return false;
+        }
+        message.setStatus( Yaxp::MessageT::illegalTargetIndex, tag );            
+        return false;
+    }            
+    TAG_DEBUG(TagEffectFxMixerMode::Nop, tagIndex, paramIndex, "FxMixerParam" );
+    message.setStatus( Yaxp::MessageT::illegalTag, tag );    
+    return false;
+#endif
 }
+
+
 
 // --------------------------------------------------------------------
 void FxEcho::testvect(void)
@@ -48,33 +78,69 @@ void FxEcho::clearTransient()
     delay.clear();
 }
 
+bool FxEcho::connect( const FxBase * v, uint16_t ind )
+{
+    doConnect(v,ind);
+};
+
+bool FxEcho::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+{
+    // 1st tag is tag effect type
+    const uint8_t tagType = message.getTag(tagIndex);    
+    if( uint8_t(param.type) != tagType ) {
+        message.setStatus( Yaxp::MessageT::illegalTagEffectType, uint8_t(param.type) );
+        TAG_DEBUG(Yaxp::MessageT::illegalTagEffectType, uint8_t(param.type), tagType, "FxEcho" );
+        return false;        
+    }
+    // 2nd tag is tag operation
+    const uint8_t tag = message.getTag(++tagIndex);
+    if( uint8_t(TagEffectFxEchoMode::Clear) == tag ) {
+        clearTransient(); // this must be called to cleanup
+    }
+    // forward to param
+    return param.parameter( message, tagIndex, paramIndex );    
+}
+
+void FxEcho::sprocess_00( void * thp )
+{
+//    static_cast< MyType * >(thp)->processCopy0();
+}
+void FxEcho::sprocess_01( void * thp )
+{
+//    static_cast< MyType * >(thp)->processModulation();
+}
+
 // --------------------------------------------------------------------
 void FxEcho::process(void)
 {
     out().copy( inp<0>() );
+    // do this in preset
     const uint16_t loopCountF = std::min( tapFeedbackVector.usedTapCount, tapFeedbackVector.vectorSize );
     for( auto i = 0u; i < loopCountF; ++i ) {
         auto& tv = tapFeedbackVector.dtvec[i];
+        // normalize in setup
         if( tv.isValid() ) {
             uint32_t ind = tv.delaySrcH + sectionSize;   // index is negated
             for( auto i = 0u; i < sectionSize; ++i ) {
-                delay.multAddMixStereoNoisefloor<-24>( --ind, tv.coeff, out().channelA[i], out().channelB[i] );
+                delay.multAddMixStereoNoisefloor<-24>( --ind, tv.coeff, out().channel[EbufferPar::chA][i], out().channel[EbufferPar::chB][i] );
             }
         }
     }
-    delay.pushSection( out().channelA, out().channelB );
+    delay.pushSection( out().channel[EbufferPar::chA], out().channel[EbufferPar::chB] );
     if( inMix ) {
         out().copy( inp<0>() );
     } else {
         out().clear();
     }
+    // do this in preset
     const uint16_t loopCountO = std::min( tapOutputVector.usedTapCount, tapOutputVector.vectorSize );
     for( auto i = 0u; i < loopCountO; ++i ) {
+        // normalize in setup
         auto& tv = tapOutputVector.dtvec[i];
         if( tv.isValid() ) {
             uint32_t ind = tv.delaySrcH + sectionSize;   // index is negated
             for( auto i = 0u; i < sectionSize; ++i ) {
-                delay.multAddMixStereo( --ind, tv.coeff, out().channelA[i], out().channelB[i] );
+                delay.multAddMixStereo( --ind, tv.coeff, out().channel[EbufferPar::chA][i], out().channel[EbufferPar::chB][i] );
             }
         }
     }

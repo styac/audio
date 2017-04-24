@@ -90,19 +90,19 @@ constexpr   double      ycentNorm               = 65536.0 * 256.0;
 constexpr   double      deltaPhaseScalerBase    =
     double( normFactorPhaseIndexVal * waveTableSize ) / samplingFrequency;
 
-inline uint64_t freq2deltaPhase( double freq )
+constexpr inline uint64_t freq2deltaPhase( double freq )
     { return uint64_t( std::llround(  deltaPhaseScalerBase * freq )); };
 
-inline double freq2deltaPhaseDouble( double freq )
+constexpr inline double freq2deltaPhaseDouble( double freq )
     { return deltaPhaseScalerBase * freq; };
 
-inline uint32_t deltaPhase2ycent( double delta )
+constexpr inline uint32_t deltaPhase2ycent( double delta )
     { return uint32_t( std::lround( std::log2( delta ) * ycentNorm) ); };
 
-inline double deltaPhase2ycentDouble( double delta )
+constexpr inline double deltaPhase2ycentDouble( double delta )
     { return std::log2( delta ) * ycentNorm;  };
 
-inline uint32_t freq2ycent( double freq )
+constexpr inline uint32_t freq2ycent( double freq )
     { return uint32_t( std::lround( std::log2( deltaPhaseScalerBase * freq ) * ycentNorm) ); };
 
 inline double freq2ycentDouble( double freq )

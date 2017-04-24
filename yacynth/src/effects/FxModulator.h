@@ -36,7 +36,7 @@ public:
     // mandatory fields
     static constexpr char const * const name    = "Modulator";
     static constexpr TagEffectType  type        = TagEffectType::FxModulator;
-    static constexpr std::size_t maxMode        = 4; // 0 is always bypass
+    static constexpr std::size_t maxMode        = 6; // 0 is always bypass
     static constexpr std::size_t inputCount     = 2; // 0 : base signal; 1 : modulation
     static constexpr char const * const modeName[maxMode+1] = 
     {   "copy"
@@ -45,28 +45,10 @@ public:
     ,   "processModulationMix"
     ,   "processRingVolColtrol"        
     };
-      
-
-    FxModulatorParam();
     
     bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
-        
-    // optional fields
-    // AM:      inMult = gain   ; mixMult = gain * modIndex
-    // RING:                    ; mixMult = gain 
-
-    struct Mode_01_amplitudeModulation {
-        ControllerIndex inMultIndex;
-        ControllerIndex mixMultIndex;        
-    } mode_01_amplitudeModulation;
-
-    struct Mode_02_ringModulation {        
-        ControllerIndex inMultIndex;           
-    } mode_02_ringModulation;
-            
-    // obsolate
-    float inMult;
-    float mixMult;
+    ControllerIndex inMultIndex;
+    ControllerIndex mixMultIndex;        
 };
 
 class FxModulator : public Fx<FxModulatorParam>  {
@@ -80,10 +62,10 @@ public:
         fillSprocessv<2>(sprocess_02);
         fillSprocessv<3>(sprocess_03);
         fillSprocessv<4>(sprocess_04);
+        fillSprocessv<5>(sprocess_05);
+        fillSprocessv<6>(sprocess_06);
     }
-
     virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override; 
-    
     virtual void clearTransient() override;    
     
 
@@ -142,41 +124,13 @@ private:
     static void sprocess_02( void * thp );
     static void sprocess_03( void * thp );
     static void sprocess_04( void * thp );
-
-    
-    /**
-     *  if( param.gainTarget.updateDiff() ) {
-            out().fade( inp(), gain, ( param.gainTarget.getExpValue() - gain ) * (1.0f/(1<<6)) );
-        } else {
-            out().mult( inp(), gain );
-        }
-     * 
-     */
-#if 0
-    inline void processModulation(void)
-    {
-        inMult = param.mode_01_amplitudeModulation.inMultIndex.getExpValue();
-        mixMult = inMult * param.mode_01_amplitudeModulation.mixMultIndex.getExpValue();
-        for( auto si=0u; si < vsectionSize; ++si ) {
-            out().vchannel[0][si] = inp<0>().vchannel[0][si] * inp<1>().vchannel[0][si] * param.mixMult + inp<0>().vchannel[0][si] * param.inMult;
-            out().vchannel[1][si] = inp<0>().vchannel[1][si] * inp<1>().vchannel[1][si] * param.mixMult + inp<0>().vchannel[1][si] * param.inMult;
-        }
-    }
-    
-    inline void processRing(void)
-    {
-        inMult = param.mode_02_ringModulation.inMultIndex.getExpValue();
-        for( auto si=0u; si < vsectionSize; ++si ) {
-            out().vchannel[0][si] = inp<0>().vchannel[0][si] * inp<1>().vchannel[0][si] * param.mixMult; // inMult
-            out().vchannel[1][si] = inp<0>().vchannel[1][si] * inp<1>().vchannel[1][si] * param.mixMult; // inMult
-        }
-    }
-#endif      
+    static void sprocess_05( void * thp );
+    static void sprocess_06( void * thp );
 
     inline void processModulationMix(void)
     {
-        inMultIn.updateDelta(param.mode_01_amplitudeModulation.inMultIndex);
-        mixMultIn.updateDelta(param.mode_01_amplitudeModulation.mixMultIndex);
+        inMultIn.updateDelta(param.inMultIndex);
+        mixMultIn.updateDelta(param.mixMultIndex);
         const float inMult = inMultIn.getExpValue();
         const float mixMult = mixMultIn.getExpValue();
         for( auto si=0u; si < vsectionSize; ++si ) {
@@ -187,10 +141,9 @@ private:
     
     inline void processModulation(void)
     {
-        mixMultIn.updateDelta( param.mode_01_amplitudeModulation.mixMultIndex );
+        mixMultIn.updateDelta( param.mixMultIndex );
         const float mixMult = mixMultIn.getExpValue();
         for( auto si=0u; si < vsectionSize; ++si ) {
-//            std::cout << "in0 " << inp<0>().channel[0][si] << " in1 " <<  inp<1>().channel[0][si] << std::endl;
             out().vchannel[0][si] = inp<0>().vchannel[0][si] * ( inp<1>().vchannel[0][si] * mixMult + 1.0f );
             out().vchannel[1][si] = inp<0>().vchannel[1][si] * ( inp<1>().vchannel[1][si] * mixMult + 1.0f );
         }
@@ -198,7 +151,7 @@ private:
 
     inline void processRingVolColtrol(void)
     {
-        inMultIn.updateDelta(param.mode_02_ringModulation.inMultIndex);
+        inMultIn.updateDelta(param.inMultIndex);
         const float inMult = inMultIn.getExpValue();
         for( auto si=0u; si < vsectionSize; ++si ) {
             out().vchannel[0][si] = inp<0>().vchannel[0][si] * inp<1>().vchannel[0][si] * inMult; 
@@ -213,7 +166,33 @@ private:
             out().vchannel[1][si] = inp<0>().vchannel[1][si] * inp<1>().vchannel[1][si]; 
         }            
     }
-        
+
+    
+    inline void processModulationMono(void)
+    {
+        mixMultIn.updateDelta( param.mixMultIndex );
+        const float mixMult = mixMultIn.getExpValue();
+        for( auto si=0u; si < vsectionSize; ++si ) {
+            out().vchannel[0][si] = inp<0>().vchannel[0][si] * ( inp<1>().vchannel[0][si] * mixMult + 1.0f );
+        }
+    }
+
+    inline void processRingMono(void)
+    {
+        for( auto si=0u; si < vsectionSize; ++si ) {
+            out().vchannel[0][si] = inp<0>().vchannel[0][si] * inp<1>().vchannel[0][si]; 
+        }            
+    }
+#if 0
+    // 2x oversampling 
+    // https://christianfloisand.wordpress.com/tag/resampling/
+    inline void processRingMono2xOvS(void)
+    {
+        for( auto si=0u; si < vsectionSize; ++si ) {
+            out().vchannel[0][si] = inp<0>().vchannel[0][si] * inp<1>().vchannel[0][si]; 
+        }            
+    }
+#endif
     ControllerCacheDelta<10> inMultIn;      // TODO test by hearing if limit is hearable
     ControllerCacheDelta<10> mixMultIn;     // TODO test by hearing
 };

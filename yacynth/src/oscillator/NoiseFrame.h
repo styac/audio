@@ -82,6 +82,7 @@ public:
     static constexpr std::size_t vsectionSize       = Tstore::vsectionSize;
     static constexpr std::size_t vsectionSizeMask   = vsectionSize-1;
     static constexpr std::size_t channelCount       = Tstore::channelCount;
+    static constexpr std::size_t sSize              = 16;
 
     NoiseFrame() = delete;
     NoiseFrame( GaloisShifter& gs )
@@ -215,42 +216,86 @@ public:
     // poleExp = 0..15
     inline void setPoleExp( const uint8_t poleExp )
     {
-        s[7] = ( poleExp & 0x0F ) + 1; ;
+        s[sSize-1] = ( poleExp & 0x0F ) + 1; ;
     }
 
     // to test
-    // s[7] - pole param -- function param
+    // s[sSize-1] - pole param -- function param
     inline void fillRedVar( void )
     {
         // gain compensation factors
-        const int32_t cf1 = (s[7]>>1) + 1;
-        const int32_t cf2 = cf1 + (s[7]&1);
+        const int32_t cf1 = (s[sSize-1]>>1) + 1;
+        const int32_t cf2 = cf1 + (s[sSize-1]&1);
         for( auto i=0u; i<sectionSize; ++i ) {
             const int32_t x0 = s[0];
             const int32_t x2 = s[2];
             s[0] = galoisShifter.getWhiteRaw() >> 4;
-            s[1] += x0 - s[0] - ( s[1] >> s[7] );
-            s[2] += ( s[1] >> cf1 ) + ( s[1] >> cf2 ) - ( s[2] >> s[7] );
+            s[1] += x0 - s[0] - ( s[1] >> s[sSize-1] );
+            s[2] += ( s[1] >> cf1 ) + ( s[1] >> cf2 ) - ( s[2] >> s[sSize-1] );
             Tstore::channel[0][i] = s[2] + x2;
+            if( 2 == channelCount ) {
+                Tstore::channel[1][i] = Tstore::channel[0][i];
+            }
         }
     };
 
-    // to test
-    // s[7] - pole param
-    inline void fillPurpleVar( void )
+    inline void fillRedVar( uint8_t pole )
     {
-        const int32_t cf1 = (s[7]>>1) + 1;
-        const int32_t cf2 = cf1 + (s[7]&1);
-        const int32_t cf3 = s[7]-2;
+        // gain compensation factors
+        const int32_t cf1 = (pole>>1) + 1;
+        const int32_t cf2 = cf1 + (pole&1);
+        for( auto i=0u; i<sectionSize; ++i ) {
+            const int32_t x0 = s[0];
+            const int32_t x2 = s[2];
+            s[0] = galoisShifter.getWhiteRaw() >> 4;
+            s[1] += x0 - s[0] - ( s[1] >> pole );
+            s[2] += ( s[1] >> cf1 ) + ( s[1] >> cf2 ) - ( s[2] >> pole );
+            Tstore::channel[0][i] = s[2] + x2;
+            if( 2 == channelCount ) {
+                Tstore::channel[1][i] = Tstore::channel[0][i];
+            }
+        }
+    };
+    
+    // to test
+    // s[sSize-1] - pole param
+    inline void fillPurpleVar( uint8_t pole )
+    {
+        const int32_t cf1 = (pole>>1) + 1;
+        const int32_t cf2 = cf1 + (pole&1);
+        const int32_t cf3 = pole-2;
 
         for( auto i=0u; i<sectionSize; ++i ) {
             const int32_t x0 = s[0];
             const int32_t x3 = s[3];
             s[0] = galoisShifter.getWhiteRaw() >> 4;
-            s[1] += x0 - s[0] - ( s[1] >> s[7] );
-            s[2] += ( s[1] >> cf1 ) + ( s[1] >> cf2 ) - ( s[2] >> s[7] );
-            s[3] += ( s[2] >> cf3 ) - ( s[3] >> s[7] );
+            s[1] += x0 - s[0] - ( s[1] >> pole );
+            s[2] += ( s[1] >> cf1 ) + ( s[1] >> cf2 ) - ( s[2] >> pole );
+            s[3] += ( s[2] >> cf3 ) - ( s[3] >> pole );
             Tstore::channel[0][i] = s[3] + x3;
+            if( 2 == channelCount ) {
+                Tstore::channel[1][i] = Tstore::channel[0][i];
+            }
+        }
+    };
+
+    inline void fillPurpleVar( void )
+    {
+        const int32_t cf1 = (s[sSize-1]>>1) + 1;
+        const int32_t cf2 = cf1 + (s[sSize-1]&1);
+        const int32_t cf3 = s[sSize-1]-2;
+
+        for( auto i=0u; i<sectionSize; ++i ) {
+            const int32_t x0 = s[0];
+            const int32_t x3 = s[3];
+            s[0] = galoisShifter.getWhiteRaw() >> 4;
+            s[1] += x0 - s[0] - ( s[1] >> s[sSize-1] );
+            s[2] += ( s[1] >> cf1 ) + ( s[1] >> cf2 ) - ( s[2] >> s[sSize-1] );
+            s[3] += ( s[2] >> cf3 ) - ( s[3] >> s[sSize-1] );
+            Tstore::channel[0][i] = s[3] + x3;
+            if( 2 == channelCount ) {
+                Tstore::channel[1][i] = Tstore::channel[0][i];
+            }
         }
     };
 
@@ -284,6 +329,9 @@ public:
             // zero gain at fs/2
             Tstore::channel[0][i] = s[5] + x2;
             x0 = x1;
+            if( 2 == channelCount ) {
+                Tstore::channel[1][i] = Tstore::channel[0][i];
+            }
         }
     };
 
@@ -306,6 +354,9 @@ public:
             // zero gain at fs/2
             Tstore::channel[0][i] = s[5] + x2;
             x0 = x1;
+            if( 2 == channelCount ) {
+                Tstore::channel[1][i] = Tstore::channel[0][i];
+            }
         }
     };
 
@@ -319,7 +370,7 @@ public:
     }
 
 private:
-    int32_t s[8];
+    int32_t s[sSize];
     GaloisShifter&  galoisShifter;
 };
 

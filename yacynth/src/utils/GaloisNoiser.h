@@ -412,9 +412,9 @@ public:
  s[1] - high
  s[2] - band
 
-        channelA.low1   = channelA.low2         + channelA.band2 * param1.fEff;
-        channelA.high1  = in - channelA.low1    - channelA.band2 * param1.qEff;
-        channelA.band1  = channelA.band2        + channelA.high1 * param1.fEff;
+        channel[EbufferPar::chA].low1   = channel[EbufferPar::chA].low2         + channel[EbufferPar::chA].band2 * param1.fEff;
+        channel[EbufferPar::chA].high1  = in - channel[EbufferPar::chA].low1    - channel[EbufferPar::chA].band2 * param1.qEff;
+        channel[EbufferPar::chA].band1  = channel[EbufferPar::chA].band2        + channel[EbufferPar::chA].high1 * param1.fEff;
 
  */
     template< std::size_t count >

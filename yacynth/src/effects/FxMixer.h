@@ -40,21 +40,23 @@ using namespace TagEffectTypeLevel_02;
 
 class FxMixerParam {
 public:
-    FxMixerParam();
-    // mandatory fields
     static constexpr char const * const name    = "Mixer4";
     static constexpr TagEffectType  type        = TagEffectType::FxMixer;
-    static constexpr std::size_t maxMode        = 1;
+    static constexpr std::size_t maxMode        = 4;
     static constexpr std::size_t inputCount     = 4;
 
     inline void clear()
     {
-
+        for( auto &p : gainIndex ) {
+            p.setIndex( InnerController::CC_NULL );
+        }
     }
     
     bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
-    
-    ControlledValue<1> gainTarget;
+        
+    ControllerIndex     gainIndex[inputCount];
+     // range : n * -6 dB step
+    float   gainRange[ inputCount ] = {0.5f, 0.5f, 0.5f, 0.5f };
 };
 
 class FxMixer : public Fx<FxMixerParam>  {
@@ -62,43 +64,19 @@ public:
     using MyType = FxMixer;
     FxMixer()
     :   Fx<FxMixerParam>()
-
     {
-        gain[0] = 1.0f;
         fillSprocessv<0>(sprocess_00);
         fillSprocessv<1>(sprocess_01);
-//        fillSprocessv<2>(sprocess_02);
-//        fillSprocessv<3>(sprocess_03);
-//        fillSprocessv<4>(sprocess_04);
-//        fillSprocessv<5>(sprocess_05);
+        fillSprocessv<2>(sprocess_02);
+        fillSprocessv<3>(sprocess_03);
+        fillSprocessv<4>(sprocess_04);
     }
     // go up to Fx ??
     // might change -> set sprocessTransient
     // FIRST TEST WITHOUT TRANSIENT
     // THEN  WITH TRANSIENT -> all types > out,
     // 00 is always clear for output or bypass for in-out == effect OFF
-    bool setProcMode( uint16_t ind )  override
-    {
-        if( procMode == ind ) {
-            return true; // no change
-        }
-        if( getMaxMode() < procMode ) {
-            return false; // illegal
-        }
-        if( 0 == procMode ) {
-            fadePhase = FadePhase::FPH_fadeInSimple;
-        } else if( 0 == ind ) {
-            fadePhase = FadePhase::FPH_fadeOutSimple;
-        } else {
-            fadePhase = FadePhase::FPH_fadeOutCross;
-        }
-
-        procMode = ind;
-        sprocessp = sprocesspSave = sprocessv[ind];
-        // sprocesspSave =  sprocessv[ th.procMode ];
-        // sprocessp = sprocessTransient;
-        return true;
-    }
+    virtual bool setProcMode( uint16_t ind )  override;
 
     // go up to Fx ?? virtual ?
 #if 0
@@ -116,9 +94,9 @@ public:
         }
     }
 #endif
-    inline void dump( float * channelA,  float * channelB )
+    inline void dump( float * channel0,  float * channel1 )
     {
-        out().dump( channelA, channelB );
+        out().dump( channel0, channel1 );
     }
 
     virtual bool connect( const FxBase * v, uint16_t ind ) override;
@@ -178,35 +156,74 @@ private:
 
     }
 
-    // 00 is always clear for output or bypass for in-out
-    static void sprocess_00( void * thp )
-    {
-       // static_cast< FxOutNoise * >(thp)->clear();
-    }
+    static void sprocess_00( void * thp );
+    static void sprocess_01( void * thp );
+    static void sprocess_02( void * thp );
+    static void sprocess_03( void * thp );
+    static void sprocess_04( void * thp );
 
-    static void sprocess_01( void * thp )
-    {
-        static_cast< MyType * >(thp)->mix_01();
-    }
-
-    static void sprocess_02( void * thp )
-    {
-        // static_cast< FxOutNoise * >(thp)->fillWhiteStereo();
-    }
-
-
-    // TODO check ControllerCacheDelta usage 
+    // TODO check ControllerCacheDelta usage vs fadeV4
     inline void mix_01(void)
     {
-        constexpr float fadeGain =  (1.0f/(1<<6));
-        if( param.gainTarget.updateDiff() ) {
-            out().fade( inp(), gain[0], ( param.gainTarget.getExpValue() - gain[0] ) * fadeGain );
+        if( gainCache[0].update( param.gainIndex[0] )) {            
+            out().fadeV4( inp<0>(), gain[0], ( gainCache[ 0 ].getExpValue() * param.gainRange[ 0 ] - gain[ 0 ] ) );
         } else {
-            out().mult( inp(), gain[0] );
+            out().mult( inp<0>(), gain[0] );
+        }
+    }
+    
+    // use master controller only = 0
+    inline void mix_02(void)
+    {
+        if( gainCache[0].update( param.gainIndex[0] )) {  
+            float cval0 = gainCache[ 0 ].getExpValue();
+            out().fadeV4( inp<0>(), inp<1>(), 
+                    gain[0], gain[1], 
+                    ( cval0 * param.gainRange[ 0 ] - gain[ 0 ] ), 
+                    ( cval0 * param.gainRange[ 1 ] - gain[ 1 ] ) ); // controller 0 !!
+                    
+        } else {
+            out().mult( inp<0>(), inp<1>(), gain[0], gain[1] );
         }
     }
 
+    // use master controller only = 0
+    inline void mix_03(void)
+    {
+        if( gainCache[0].update( param.gainIndex[0] )) {            
+            float cval0 = gainCache[ 0 ].getExpValue();
+            out().fadeV4( inp<0>(), inp<1>(), inp<2>(), 
+                    gain[0], gain[1], gain[2], 
+                    ( cval0 * param.gainRange[ 0 ] - gain[ 0 ] ), 
+                    ( cval0 * param.gainRange[ 1 ] - gain[ 1 ] ), // controller 0 !!
+                    ( cval0 * param.gainRange[ 2 ] - gain[ 2 ] ) ); // controller 0 !!
+        } else {
+            out().mult( inp<0>(), inp<1>(), inp<2>(), gain[0], gain[1], gain[2] );
+        }
+    }
+
+    // use master controller only = 0
+    inline void mix_04(void)
+    {
+        if( gainCache[0].update( param.gainIndex[0] )) {
+            float cval0 = gainCache[ 0 ].getExpValue();            
+            out().fadeV4( inp<0>(), inp<1>(), inp<2>(), inp<3>(), 
+                    gain[0], gain[1], gain[2], gain[3], 
+                    ( cval0 * param.gainRange[ 0 ] - gain[ 0 ] ), 
+                    ( cval0 * param.gainRange[ 1 ] - gain[ 1 ] ), // controller 0 !!
+                    ( cval0 * param.gainRange[ 2 ] - gain[ 2 ] ), // controller 0 !!
+                    ( cval0 * param.gainRange[ 3 ] - gain[ 3 ] ) ); // controller 0 !!
+        } else {
+            out().mult( inp<0>(), inp<1>(), inp<2>(), inp<3>(), gain[0], gain[1], gain[2], gain[3] );
+        }
+    }
+
+    // TODO - set by output and use this to output
+    // float * outchannel[2];
+    
     float   gain[ FxMixerParam::inputCount ];
+    
+    ControllerCache gainCache[FxMixerParam::inputCount];
 };
 
 // --------------------------------------------------------------------

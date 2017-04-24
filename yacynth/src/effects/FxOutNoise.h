@@ -41,7 +41,7 @@ public:
     // mandatory fields
     static constexpr char const * const name    = "NoiseSource";
     static constexpr TagEffectType  type        = TagEffectType::FxOutNoise;
-    static constexpr std::size_t maxMode        = 2; // 0 is always exist> 0,1,2
+    static constexpr std::size_t maxMode        = 10; // 0 is always exist> 0,1,2
     static constexpr std::size_t inputCount     = 0;
     
     bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
@@ -61,10 +61,14 @@ public:
         fillSprocessv<0>(sprocess_00);
         fillSprocessv<1>(sprocess_01);
         fillSprocessv<2>(sprocess_02);
-//        fillSprocessv<3>(sprocess_03);
-//        fillSprocessv<4>(sprocess_04);
-//        fillSprocessv<5>(sprocess_05);
-
+        fillSprocessv<3>(sprocess_03);
+        fillSprocessv<4>(sprocess_04);
+        fillSprocessv<5>(sprocess_05);
+        fillSprocessv<6>(sprocess_06);
+        fillSprocessv<7>(sprocess_07);
+        fillSprocessv<8>(sprocess_08);
+        fillSprocessv<9>(sprocess_09);
+        fillSprocessv<10>(sprocess_10);
     }
     
     virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override; 
@@ -187,6 +191,62 @@ private:
         static_cast< MyType * >(thp)->fillWhiteStereo();
         static_cast< MyType * >(thp)->mult(gain);
     }
+
+    static void sprocess_03( void * thp )
+    {
+        constexpr float gain = 1.0f/(1<<26);
+        static_cast< MyType * >(thp)->fillWhiteBlue();
+        static_cast< MyType * >(thp)->mult(gain);
+    }
+    static void sprocess_04( void * thp )
+    {
+        constexpr float gain = 1.0f/(1<<26);
+        static_cast< MyType * >(thp)->fillBlue();
+        static_cast< MyType * >(thp)->mult(gain);
+    }
+    static void sprocess_05( void * thp )
+    {
+        constexpr float gain = 1.0f/(1<<24);
+        static_cast< MyType * >(thp)->fillRed();
+        static_cast< MyType * >(thp)->mult(gain);
+    }
+    static void sprocess_06( void * thp )
+    {
+        constexpr float gain = 1.0f/(1<<21);
+        static_cast< MyType * >(thp)->fillPurple();
+        static_cast< MyType * >(thp)->mult(gain);
+    }
+    static void sprocess_07( void * thp )
+    {
+        constexpr float gain = 1.0f/(1<<27);
+        static_cast< MyType * >(thp)->fillPink();
+        static_cast< MyType * >(thp)->mult(gain);
+    }
+    static void sprocess_08( void * thp )
+    {
+        constexpr float gain = 1.0f/(1<<26);
+        static_cast< MyType * >(thp)->fillPinkLow();
+        static_cast< MyType * >(thp)->mult(gain);
+    }
+    static void sprocess_09( void * thp )
+    {
+        constexpr float gain = 1.0f/(1<<21);
+        static_cast< MyType * >(thp)->fillPurpleVar( static_cast< MyType * >(thp)->param.purplePole );
+        static_cast< MyType * >(thp)->mult(gain);
+    }
+    static void sprocess_10( void * thp )
+    {
+        constexpr float gain = 1.0f/(1<<24);
+        static_cast< MyType * >(thp)->fillRedVar( static_cast< MyType * >(thp)->param.redPole );
+        static_cast< MyType * >(thp)->mult(gain);
+    }
+
+    /*
+
+ fillRedVar
+ * fillPurpleVar
+ */
+
 };
 
 

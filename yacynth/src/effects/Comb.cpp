@@ -33,22 +33,22 @@ void Comb::feedforward( const EIObuffer& inp, EIObuffer& out )
     const float multOut     = tap.multOut;   
     const uint32_t dlind32  = tap.dlind32; 
 
-        const float * chnIAp = inp.channelA;
-        float * chnOAp = out.channelA;
-        const float * chnIBp = inp.channelB;
-        float * chnOBp = out.channelB;
+        const float * chnIAp = inp.channel[EbufferPar::chA];
+        float * chnOAp = out.channel[EbufferPar::chA];
+        const float * chnIBp = inp.channel[EbufferPar::chB];
+        float * chnOBp = out.channel[EbufferPar::chB];
         for( uint16_t sami = 0; sami < sectionSize; ++sami ) {
             const uint32_t dind = delay.getIndex( dlind32 );
             const float csmplA  = *chnIAp++;
             const float csmplB  = *chnIBp++;
             //
             //      vectoring
-            // delay.channelA[ dind ], delay.channelB[ dind ], csmplA, csmplB
+            // delay.channel[EbufferPar::chA][ dind ], delay.channel[EbufferPar::chB][ dind ], csmplA, csmplB
             //      mult
             // multDelay, multDelay, multOut, multOut
             //            
-            *chnOAp++ = delay.channelA[ dind ] * multDelay + csmplA * multOut;
-            *chnOBp++ = delay.channelB[ dind ] * multDelay + csmplB * multOut;
+            *chnOAp++ = delay.channel[EbufferPar::chA][ dind ] * multDelay + csmplA * multOut;
+            *chnOBp++ = delay.channel[EbufferPar::chB][ dind ] * multDelay + csmplB * multOut;
             delay.push( csmplA, csmplB );
         }
 
@@ -61,16 +61,16 @@ void Comb::feedback( const EIObuffer& inp, EIObuffer& out )
     const uint32_t dlind32  = tap.dlind32; 
     
 
-        const float * chnIAp  = inp.channelA;
-        float * chnOAp  = out.channelA;
-        const float * chnIBp  = inp.channelB;
-        float * chnOBp  = out.channelB;
+        const float * chnIAp  = inp.channel[EbufferPar::chA];
+        float * chnOAp  = out.channel[EbufferPar::chA];
+        const float * chnIBp  = inp.channel[EbufferPar::chB];
+        float * chnOBp  = out.channel[EbufferPar::chB];
         for( uint16_t sami = 0; sami < sectionSize; ++sami ) {
             const uint32_t dind = delay.getIndex( dlind32 );
             const float csmplA  = *chnIAp++;
             const float csmplB  = *chnIBp++;
-            const float tmpA    = delay.channelA[ dind ] * multDelay + csmplA;
-            const float tmpB    = delay.channelB[ dind ] * multDelay + csmplB;
+            const float tmpA    = delay.channel[EbufferPar::chA][ dind ] * multDelay + csmplA;
+            const float tmpB    = delay.channel[EbufferPar::chB][ dind ] * multDelay + csmplB;
             *chnOAp++ = tmpA * multOut;
             *chnOBp++ = tmpB * multOut;
             delay.push( tmpA, tmpB );
@@ -84,16 +84,16 @@ void Comb::allpass( const EIObuffer& inp, EIObuffer& out )
     const float multOut     = tap.multOut;
     const uint32_t dlind32  = tap.dlind32; 
 
-        const float * chnIAp  = inp.channelA;
-        float * chnOAp  = out.channelA;
-        const float * chnIBp  = inp.channelB;
-        float * chnOBp  = out.channelB;
+        const float * chnIAp  = inp.channel[EbufferPar::chA];
+        float * chnOAp  = out.channel[EbufferPar::chA];
+        const float * chnIBp  = inp.channel[EbufferPar::chB];
+        float * chnOBp  = out.channel[EbufferPar::chB];
         for( uint16_t sami = 0; sami < sectionSize; ++sami ) {
             const uint32_t dind = delay.getIndex( dlind32 );
             const float csmplA  = *chnIAp++;
             const float csmplB  = *chnIBp++;
-            const float dlA     = delay.channelA[ dind ];
-            const float dlB     = delay.channelB[ dind ];
+            const float dlA     = delay.channel[EbufferPar::chA][ dind ];
+            const float dlB     = delay.channel[EbufferPar::chB][ dind ];
             const float tmpA    = dlA * multDelay + csmplA;
             const float tmpB    = dlB * multDelay + csmplB;
             *chnOAp++ = csmplA * multOut + dlA;            
@@ -106,10 +106,10 @@ void Comb::allpass( const EIObuffer& inp, EIObuffer& out )
 void Comb::noop( const EIObuffer& inp, EIObuffer& out )
 {
 
-        const float * chnIAp = inp.channelA;
-        float * chnOAp = out.channelA;
-        const float * chnIBp = inp.channelB;
-        float * chnOBp = out.channelB;
+        const float * chnIAp = inp.channel[EbufferPar::chA];
+        float * chnOAp = out.channel[EbufferPar::chA];
+        const float * chnIBp = inp.channel[EbufferPar::chB];
+        float * chnOBp = out.channel[EbufferPar::chB];
         for( uint16_t sami = 0; sami < sectionSize; ++sami ) {
             *chnOAp++ = *chnIAp++;
             *chnOBp++ = *chnIBp++;

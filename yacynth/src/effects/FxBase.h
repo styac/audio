@@ -35,7 +35,9 @@
 #include    <ostream>
 #include    <vector>
 
-//#define EFFECT_DEBUG 1
+// #define EFFECT_DEBUG 1
+
+// #define DO_FX_STATISTICS 1
 
 namespace yacynth {
 using namespace TagEffectTypeLevel_02;
@@ -56,8 +58,8 @@ class FxCollector;
 
 class FxCollector {
 public:
- //   void initialize(void);
-    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );     
+ 
+    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
     static FxCollector& getInstance(void)
     {
@@ -81,11 +83,6 @@ public:
         return nodes.at(id); // may throw !!!
     }
 
-    // for testing
-    void check(void);
-    
-    // setup init configuration
-    void init(void);
 
 private:
     FxCollector()
@@ -120,9 +117,9 @@ public:
         FPH_fadeInCross,
     };
 
-    FxBase( const char * name, 
-            uint16_t maxM = 0, 
-            uint16_t iC = 0, 
+    FxBase( const char * name,
+            uint16_t maxM = 0,
+            uint16_t iC = 0,
             TagEffectType type = TagEffectType::Nop )
     :   EIObuffer()
     ,   sprocessp(sprocessNop)
@@ -150,11 +147,12 @@ public:
     inline bool isSlave(void) const { return masterId != 0; };
 
     static inline uint16_t getMaxId(void) { return count; };
-    
+
     virtual bool connect( const FxBase * v, uint16_t ind );
-    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
-    virtual void clearTransient(); 
+    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
+    virtual void clearTransient();
     virtual bool setProcMode( uint16_t ind ); // might be non virtual
+    
     inline  void exec(void)
     {
         sprocessp(this);
@@ -188,6 +186,16 @@ protected:
     uint8_t             procMode;   // might go up the base
     FadePhase           fadePhase;  // might go  up the base
 
+
+    // add some statistics counters here (conditional)
+#if DO_FX_STATISTICS==1
+    uint64_t            cycleCount; // number of cycles from start
+    uint64_t            spentTime;  // nanosec of spent time
+    uint64_t            maxTime;    // max cycle time
+    uint64_t            minTime;    // min cycle time
+    uint64_t            entryTime;  // tmp to store current entry time  
+#endif    
+
     static uint16_t     count;      // static counter to make unique id
     static void sprocessNop( void * ) { return; };
 };
@@ -216,8 +224,8 @@ public:
         masterId = mid;
     }
 
-    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override; 
-    virtual void clearTransient() override;       
+    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override;
+    virtual void clearTransient() override;
 };
 
 // --------------------------------------------------------------------
@@ -267,9 +275,9 @@ public:
         SLAVE,
     };
 
-    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
-    
-    
+    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
+
+
     // parameter format:
     // Fill:
     //  uint8_t element count: 0..255 -- 0 means 0
@@ -409,7 +417,7 @@ public:
     {
         return usedCount;
     }
-    
+
 private:
 //    FxNode      nodes[ presetCount ][ nodeCount ]; // TODO more presets for the fast change
     FxNode      nodes[ nodeCount ];
@@ -425,7 +433,6 @@ private:
 
 template< typename Tparam  >
 class Fx : public FxBase {
-// class Fx : public FxBase, public Tparam { // ????
 public:
 
     Fx()
@@ -436,13 +443,14 @@ public:
         for( auto& ip : sprocessv ) ip = sprocessNop;
     }
 
+    // obsolate
     inline Tparam& getParam(void) // ????? -- serialize
     {
         return param;
     }
-    
-//    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override; 
-//    virtual void clearTransient()  override; 
+
+//    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override;
+//    virtual void clearTransient()  override;
 
 private:
     Fx(Fx const &)              = delete;
@@ -454,11 +462,14 @@ protected:
     {
 
 #ifdef YAC_DEBUG
-        std::cout
-            << "** Fx::connect " << name()
-            << " input " << ind
-            << " from " << v->name()
-            << std::endl;
+        if( v != &fxNil ) {
+            std::cout
+                << "** Fx::connect " << name()
+                << " input " << ind
+                << " from " << v->name()
+                << std::endl;
+            
+        }
 #endif
         if( ind >= Tparam::inputCount )
             return false;

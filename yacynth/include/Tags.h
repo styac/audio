@@ -28,16 +28,6 @@
 
 #ifdef TAG_DEBUG_ON
 
-#define TAG_PRINT( tagname, tag, tagc, argl, comment )\
-std::cout \
-    << "tag: " << #tagname \
-    << " " << int16_t(tagname) \
-    << " val: " << int16_t(*tag)\
-    << " tagc: " << int16_t(tagc) \
-    << " argl: " << int16_t(argl) \
-    << "  " << comment \
-    << std::endl;
-
 #define TAG_DEBUG( tagname, tagi, pari, comment )\
 std::cout \
     << "tag: " << #tagname \
@@ -46,12 +36,8 @@ std::cout \
     << " p-ind: " << int16_t(pari) \
     << "  " << comment \
     << std::endl;
-
 #else
-
-#define TAG_PRINT( tagname, tag, tagc, argl, comment )
 #define TAG_DEBUG( tagname, tag, tagc, comment )
-
 #endif
 
 
@@ -83,7 +69,7 @@ namespace TagMainLevel_00 {
         InnerController,
         MidiController,
         EffectRunner,
-        Effect,
+        EffectCollector,
         Router,
         Tuner,
         MidiMessage,    // direct MIDI
@@ -126,7 +112,7 @@ namespace TagEffectRunnerLevel_01 {
         Clear,
         Fill,
         SetConnections,
-        GetEffectList,        
+        GetEffectList,
     };
 
     // parameter structures
@@ -153,13 +139,14 @@ namespace TagMidiControllerLevel_01 {
         SetChannelVector,           // parameter: channel + all controller of channel
         SetController,              // parameter: count of MidiSetting
     };
-    
+
     struct  __attribute__ ((packed)) MidiSetting
     {
         uint8_t channel;
         uint8_t midiCC;
         uint8_t midiMode;
         uint8_t innerIndex;
+        int32_t initValue;
     };
 } // end namespace
 
@@ -201,7 +188,6 @@ namespace TagEffectCollectorLevel_01 {
         SetProcessingMode,          // parameter: index, mode
         GetEffectList,              // parameter: -
     };
-
 } // end namespace
 
 namespace TagEffectTypeLevel_02 {
@@ -216,7 +202,8 @@ namespace TagEffectTypeLevel_02 {
         FxOutOscillator,
         FxFilter,
         FxEcho,
-        FxReverb,
+        FxLateReverb,
+        FxEarlyReflection,
     };
 } // end namespace
 // /Effect/TagFxFilter/TagMode_01_ap22x4x  FxCollectorid, struct Mode_01_ap22x4x
@@ -242,8 +229,8 @@ namespace TagEffectFxMixerModeLevel_03 {
     enum class TagEffectFxMixerMode : uint8_t {
         Nop,
         Clear,                      // clear all
-        SetMode_01___,
-        GetMode_01___,
+        SetVolumeControllerIndex,    
+        SetVolumeRange,
     };
 } // end namespace
 
@@ -259,11 +246,10 @@ namespace TagEffectFxOscillatorMixerModeLevel_03 {
 namespace TagEffectFxModulatorModeLevel_03 {
     enum class TagEffectFxModulatorMode : uint8_t {
         Nop,
-        Clear,                      // clear all
-        SetMode_01_amplitudeModulation,
-        GetMode_01_amplitudeModulation,
-        SetMode_02_ringModulation, 
-        GetMode_02_ringModulation, 
+        Clear,
+        SetParameters,
+//        SetMode_01_amplitudeModulation,
+//        GetMode_01_amplitudeModulation,
     };
 } // end namespace
 
@@ -271,8 +257,7 @@ namespace TagEffectFxOutNoiseModeLevel_03 {
     enum class TagEffectFxOutNoiseMode : uint8_t {
         Nop,
         Clear,                      // clear all
-        SetMode_01___,
-        GetMode_01___,
+        SetParameters,
     };
 } // end namespace
 
@@ -280,8 +265,7 @@ namespace TagEffectFxOutOscillatorModeLevel_03 {
     enum class TagEffectFxOutOscillatorMode : uint8_t {
         Nop,
         Clear,                      // clear all
-        SetMode_01___,
-        GetMode_01___,
+        SetParameters,
     };
 } // end namespace
 
@@ -289,17 +273,25 @@ namespace TagEffectFxEchoModeLevel_03 {
     enum class TagEffectFxEchoMode : uint8_t {
         Nop,
         Clear,                      // clear all
+        SetParameters,
         SetMode_01___,
         GetMode_01___,
     };
 } // end namespace
 
-namespace TagEffectFxReverbModeLevel_03 {
-    enum class TagEffectFxReverbMode : uint8_t {
+namespace TagEffectFxLateReverbModeLevel_03 {
+    enum class TagEffectFxLateReverbMode : uint8_t {
         Nop,
         Clear,                      // clear all
-        SetMode_01___,
-        GetMode_01___,
+        SetParametersMode01,
+    };
+} // end namespace
+
+namespace TagEffectFxEarlyReflectionModeLevel_03 {
+    enum class TagEffectFxEarlyReflectionMode : uint8_t {
+        Nop,
+        Clear,                      // clear all
+        SetParametersMode01,
     };
 } // end namespace
 
@@ -307,6 +299,7 @@ namespace TagEffect__ModeLevel_03 {
     enum class TagEffect__Mode : uint8_t {
         Nop,
         Clear,                      // clear all
+        SetParameters,
         SetMode_01___,
         GetMode_01___,
     };

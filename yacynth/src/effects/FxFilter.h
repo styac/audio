@@ -260,11 +260,11 @@ private:
 //        ControllerValue    cval_masterLfo;
         cval_masterLfo.updateLfoSin( param.mode_01_ap4x.cindex_masterLfo );
 
-        const auto mult = param.mode_01_ap4x.cmaplin_masterLfo.scale( cval_masterLfo.value );
-        const auto k1f0 = param.mode_01_ap4x.cmaplin_masterLfo.offset( mult, 0 );
-        const auto k1f1 = param.mode_01_ap4x.cmaplin_masterLfo.offset( mult, 1 );
-        const auto k1f2 = param.mode_01_ap4x.cmaplin_masterLfo.offset( mult, 2 );
-        const auto k1f3 = param.mode_01_ap4x.cmaplin_masterLfo.offset( mult, 3 );
+        const auto mult = param.mode_01_ap4x.cmaplin_masterLfo.getScaled( cval_masterLfo.value );
+        const auto k1f0 = param.mode_01_ap4x.cmaplin_masterLfo.getOffseted( mult, 0 );
+        const auto k1f1 = param.mode_01_ap4x.cmaplin_masterLfo.getOffseted( mult, 1 );
+        const auto k1f2 = param.mode_01_ap4x.cmaplin_masterLfo.getOffseted( mult, 2 );
+        const auto k1f3 = param.mode_01_ap4x.cmaplin_masterLfo.getOffseted( mult, 3 );
 
 //        param.testMasterLfo1.updateLfoTriangle();
 //        param.testSlaveLfo1.updateLfoTriangle();

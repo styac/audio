@@ -17,69 +17,71 @@
  */
 
 /*
- * File:   FxModulator.cpp
+ * File:   FxLateReverb.cpp
  * Author: Istvan Simon -- stevens37 at gmail dot com
  *
- * Created on June 23, 2016, 6:14 PM
+ * Created on June 23, 2016, 7:46 PM
  */
 
-#include "FxModulator.h"
+#include    "FxLateReverb.h"
+#include    "yacynth_globals.h"
 
 namespace yacynth {
-using namespace TagEffectFxModulatorModeLevel_03;
 
-bool FxModulatorParam::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool FxLateReverbParam::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     const uint8_t tag = message.getTag(tagIndex);
-    switch( TagEffectFxModulatorMode( tag ) ) {
-    case TagEffectFxModulatorMode::Clear :
-        TAG_DEBUG(TagEffectFxModulatorMode::Clear, tagIndex, paramIndex, "FxModulatorParam" );
+    switch( TagEffectFxLateReverbMode( tag ) ) {
+    case TagEffectFxLateReverbMode::Clear :
+        TAG_DEBUG(TagEffectFxLateReverbMode::Clear, tagIndex, paramIndex, "TagEffectFxLateReverbMode" );
         return true;
-        
-    case TagEffectFxModulatorMode::SetParameters :
-        TAG_DEBUG(TagEffectFxModulatorMode::SetParameters, tagIndex, paramIndex, "FxModulatorParam" );
-        if( message.setTargetData(*this) ) {
+
+    case TagEffectFxLateReverbMode::SetParametersMode01 :
+        TAG_DEBUG(TagEffectFxLateReverbMode::SetParametersMode01, tagIndex, paramIndex, "TagEffectFxLateReverbMode" );
+        if( !message.setTargetData(mode01_Householder) ) {
+            message.setStatus( Yaxp::MessageT::illegalDataLength,uint8_t(TagEffectFxLateReverbMode::SetParametersMode01));
+            return false;
+        }
+        if( mode01_Householder.check() ) {
             return true;
-        }        
-        message.setStatus( Yaxp::MessageT::illegalDataLength );
+        }
+        message.setStatus( Yaxp::MessageT::illegalData, tag );
         return false;
-    }            
+    }
     message.setStatus( Yaxp::MessageT::illegalTag, tag );
     return false;
-    
 }
 
-void FxModulator::clearTransient()
+void FxLateReverb::clearTransient()
 {
-    EIObuffer::clear();    
+    EIObuffer::clear();
 }
 
-bool FxModulator::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool FxLateReverb::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     // 1st tag is tag effect type
-    const uint8_t tagType = message.getTag(tagIndex);    
+    const uint8_t tagType = message.getTag(tagIndex);
     if( uint8_t(param.type) != tagType ) {
         message.setStatus( Yaxp::MessageT::illegalTagEffectType, uint8_t(param.type) );
-        TAG_DEBUG(Yaxp::MessageT::illegalTagEffectType, uint8_t(param.type), tagType, "FxModulator" );
-        return false;        
+        TAG_DEBUG(Yaxp::MessageT::illegalTagEffectType, uint8_t(param.type), tagType, "FxLateReverb" );
+        return false;
     }
     // 2nd tag is tag operation
     const uint8_t tag = message.getTag(++tagIndex);
-    if( uint8_t(TagEffectFxModulatorMode::Clear) == tag ) {
+    if( uint8_t(TagEffectFxLateReverbMode::Clear) == tag ) {
         clearTransient(); // this must be called to cleanup
     }
     // forward to param
-    return param.parameter( message, tagIndex, paramIndex );    
-}
+    return param.parameter( message, tagIndex, paramIndex );
+ }
 
-
-
-bool FxModulator::connect( const FxBase * v, uint16_t ind )
+bool FxLateReverb::connect( const FxBase * v, uint16_t ind )
 {
     doConnect(v,ind);
 };
 
-void FxModulator::sprocessTransient( void * thp )
+
+void FxLateReverb::sprocessTransient( void * thp )
 {
     auto& th = *static_cast< MyType * >(thp);
     switch( th.fadePhase ) {
@@ -127,36 +129,25 @@ void FxModulator::sprocessTransient( void * thp )
 
 }
 
-// 00 is bypass
-void FxModulator::sprocess_00( void * thp )
+// 00 is always clear for output or bypass for in-out
+void FxLateReverb::sprocess_00( void * thp )
 {
-    static_cast< MyType * >(thp)->processCopy0();
+    static_cast< MyType * >(thp)->clear();
 }
-void FxModulator::sprocess_01( void * thp )
+void FxLateReverb::sprocess_01( void * thp )
 {
-    static_cast< MyType * >(thp)->processModulation();
-}
-void FxModulator::sprocess_02( void * thp )
-{
-    static_cast< MyType * >(thp)->processRing();
-}
-void FxModulator::sprocess_03( void * thp )
-{
-    static_cast< MyType * >(thp)->processModulationMix(); 
-}
-void FxModulator::sprocess_04( void * thp )
-{
-    static_cast< MyType * >(thp)->processRingVolColtrol();
-}
-void FxModulator::sprocess_05( void * thp )
-{
-    static_cast< MyType * >(thp)->processModulationMono(); 
-}
-void FxModulator::sprocess_06( void * thp )
-{
-    static_cast< MyType * >(thp)->processRingMono();
+    static_cast< MyType * >(thp)->process_01();
 }
 
+void FxLateReverb::sprocess_02( void * thp )
+{
+//    static_cast< MyType * >(thp)->process();
+}
+
+void FxLateReverb::sprocess_03( void * thp )
+{
+//    static_cast< MyType * >(thp)->process();
+}
 
 } // end namespace yacynth
 

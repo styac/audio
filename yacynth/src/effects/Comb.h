@@ -97,7 +97,7 @@ public:
 
 protected:
     Tap             tap;
-    EDelayLine    delay;
+    EDelayLine      delay;
     const uint32_t  bufferSizeMask;
     bool            toStereo;
 };

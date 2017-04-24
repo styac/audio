@@ -42,7 +42,9 @@
 #include    "../effects/FxOutNoise.h"
 #include    "../effects/FxModulator.h"
 #include    "../effects/FxOutOscillator.h"
-
+#include    "../effects/FxEcho.h"
+#include    "../effects/FxLateReverb.h"
+#include    "../effects/FxEarlyReflection.h"
 #include    "../control/Controllers.h"
 #include    "../control/Sysman.h"
 #include    "../control/SynthFrontend.h"
@@ -89,7 +91,8 @@ using namespace TagEffectFxModulatorModeLevel_03;
 using namespace TagEffectFxOutNoiseModeLevel_03;
 using namespace TagEffectFxOutOscillatorModeLevel_03;
 using namespace TagEffectFxEchoModeLevel_03;
-using namespace TagEffectFxReverbModeLevel_03;
+using namespace TagEffectFxLateReverbModeLevel_03;
+using namespace TagEffectFxEarlyReflectionModeLevel_03;
 
 // put to main()
 YaIoJack&    jack = YaIoJack::getInstance();
@@ -112,133 +115,928 @@ void signal_handler(int sig)
 }
 
 void setupEffects(Sysman  * sysman)
-{    
+{
     Yaxp::Message msgBuffer;
-    
-/* the first 3 element must be in this sequence : 1 instance
+
+
+/*
+
 ---- ind  0 id 0 type 1 maxMode 0 inputCount 0 masterId 0  Nil
----- ind  1 id 1 type 3 maxMode 1 inputCount 4 masterId 0  Mixer4
+---- ind  1 id 1 type 3 maxMode 3 inputCount 4 masterId 0  Mixer4
 ---- ind  2 id 2 type 4 maxMode 1 inputCount 0 masterId 0  OscillatorMixer
- * optional but first the output: noise, low freq osc : maybe more instance
----- ind  3 id 3 type 6 maxMode 2 inputCount 0 masterId 0  NoiseSource
----- ind  4 id 4 type 7 maxMode 5 inputCount 0 masterId 0  Oscillator
+---- ind  3 id 3 type 6 maxMode a inputCount 0 masterId 0  NoiseSource
+---- ind  4 id 4 type 7 maxMode 5 inputCount 0 masterId 0  Oscillator4x
 ---- ind  5 id 5 type 2 maxMode 0 inputCount 0 masterId 4   ^OscillatorSlave
 ---- ind  6 id 6 type 2 maxMode 0 inputCount 0 masterId 4   ^OscillatorSlave
 ---- ind  7 id 7 type 2 maxMode 0 inputCount 0 masterId 4   ^OscillatorSlave
- * some always used : maybe more instance
----- ind  8 id 8 type 5 maxMode 4 inputCount 2 masterId 0  Modulator
+---- ind  8 id 8 type 5 maxMode 6 inputCount 2 masterId 0  Modulator
 ---- ind  9 id 9 type 8 maxMode 9 inputCount 1 masterId 0  Filter
+---- ind  a id a type 9 maxMode 1 inputCount 1 masterId 0  Echo
+---- ind  b id b type a maxMode 3 inputCount 1 masterId 0  FxReverb
+
  */
-    
+
     // put the standard components into here
     // sequence important !!
+    constexpr int   EffectInstance_Nil              = 0;
+    constexpr int   EffectInstance_Mixer4           = EffectInstance_Nil + 1;
+    constexpr int   EffectInstance_OscillatorMixer  = EffectInstance_Nil + 2;
     FxOutNoise      * fxnoise = new FxOutNoise();
+    constexpr int   EffectInstance_FxOutNoise       = EffectInstance_Nil + 3;
     FxOutOscillator * fxosc   = new FxOutOscillator();
+    constexpr int   EffectInstance_FxOutOscillator  = EffectInstance_Nil + 4;
+    constexpr int   EffectInstance_FxOutO_Slave1    = EffectInstance_Nil + 5;
+    constexpr int   EffectInstance_FxOutO_Slave2    = EffectInstance_Nil + 6;
+    constexpr int   EffectInstance_FxOutO_Slave3    = EffectInstance_Nil + 7;
     FxModulator     * fxmod   = new FxModulator();
+    constexpr int   EffectInstance_FxModulator      = EffectInstance_Nil + 8;
     FxFilter        * fxfilt  = new FxFilter();
+    constexpr int   EffectInstance_FxFilter         = EffectInstance_Nil + 9;
+    FxEcho          * fxecho  = new FxEcho(100);
+    constexpr int   EffectInstance_FxEcho           = EffectInstance_Nil + 10;
+    FxLateReverb        * fxrevb  = new FxLateReverb();
+    constexpr int   EffectInstance_FxLateReverb      = EffectInstance_Nil + 11;
+    FxEarlyReflection  * fxearlyref  = new FxEarlyReflection();
+    constexpr int   EffectInstance_FxEarlyReflection = EffectInstance_Nil + 12;
+    constexpr int   EffectInstance_FxEarlyReflection_Slave1 = EffectInstance_Nil + 13;
 
+    
     // temp
-    fxmod->setProcMode(1);
-    fxosc->setProcMode(1);
+    fxmod->setProcMode(3);
+    fxosc->setProcMode(7);
     fxfilt->setProcMode(2);
-    fxnoise->setProcMode(1);    
+    fxnoise->setProcMode(2);
+    fxrevb->setProcMode(1);
+    fxearlyref->setProcMode(2);
+// ------------------------------------------------------------
 
     std::cout << "\n---- Collector get list\n" << std::endl;
 
     msgBuffer.clear();
-    msgBuffer.setLength(50000);    
-    msgBuffer.setTags( uint8_t( TagMain::Effect )
-            ,uint8_t(TagEffectCollector::GetEffectList )    
+    msgBuffer.setLength(50000);
+    msgBuffer.setTags( uint8_t( TagMain::EffectCollector )
+            ,uint8_t(TagEffectCollector::GetEffectList )
             );
 
     sysman->evalParameterMessage(msgBuffer);
-    
+
     if( msgBuffer.messageType == 0 ) {
-        
+
         EffectListEntry *data = static_cast<EffectListEntry *>((void *)(msgBuffer.data));
         for( uint16_t ind = 0; ind < msgBuffer.length / sizeof(EffectListEntry); ++ind, ++data ) {
-            std::cout 
-                << "---- ind  "     << uint16_t(data->fxIndex)  
-                << " id "           << uint16_t(data->id)                     
-                << " type "         << uint16_t(data->fxType) 
-                << " maxMode "      << uint16_t(data->fxMaxMode) 
-                << " inputCount "   << uint16_t(data->inputCount ) 
-                << " masterId "     << uint16_t(data->masterId)                     
+            std::cout
+                << "---- ind  "     << uint16_t(data->fxIndex)
+                << " id "           << uint16_t(data->id)
+                << " type "         << uint16_t(data->fxType)
+                << " maxMode "      << uint16_t(data->fxMaxMode)
+                << " inputCount "   << uint16_t(data->inputCount )
+                << " masterId "     << uint16_t(data->masterId)
                 << "  "             << data->name
-                << std::endl;            
+                << std::endl;
         }
     } else {
         std::cout << "---- error " <<uint16_t(msgBuffer.messageType) << std::endl;
+        exit(-1);
     }
+
+    std::cout << "\n---- set mode : mixer" << std::endl;
+    msgBuffer.clear();
+    msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
+                    ,   uint8_t( TagEffectCollector::SetProcessingMode )
+                    );
+    msgBuffer.setPar( 1,3 ); // endmixer - mode 3 - 3 channel with 1 contreoller
+    sysman->evalParameterMessage(msgBuffer);
+
+    if( msgBuffer.messageType == 0 ) {
+        std::cout << "---- set mode : mixer ok" << std::endl;
+    } else {
+        std::cout << "---- set mode : mixer error " <<uint16_t(msgBuffer.messageType) << std::endl;
+        exit(-1);
+    }
+
+// ------------------------------------------------------------
     
     std::cout << "\n---- Fill runner\n" << std::endl;
+
+#if 0
+    // latereverb osc test
+    EffectRunnerFill effectFill[] = {
+        EffectInstance_FxOutOscillator,
+        EffectInstance_FxReverb
+    };    // osc + reverb
+#endif
+
+    EffectRunnerFill effectFill[] = {
+        EffectInstance_FxEarlyReflection,
+        EffectInstance_FxLateReverb,
+    };    // osc + reverb
     
-    EffectRunnerFill effectFill[] = {4,8};    
+    //EffectRunnerFill effectFill[] = {4,8};    // osc + mod
+    //EffectRunnerFill effectFill[] = {3};    // noise
+
     msgBuffer.clear();
     msgBuffer.setTags(  uint8_t( TagMain::EffectRunner )
-                    ,   uint8_t( TagEffectRunner::Fill )    
-                    );    
-    msgBuffer.setPar(cArrayElementCount(effectFill));   
+                    ,   uint8_t( TagEffectRunner::Fill )
+                    );
+    msgBuffer.setPar(cArrayElementCount(effectFill));
     msgBuffer.getTargetData(effectFill);
-    sysman->evalParameterMessage(msgBuffer);    
-    if( msgBuffer.messageType == 0 ) {        
-        std::cout << "---- fill ok" << std::endl;                        
+    sysman->evalParameterMessage(msgBuffer);
+    if( msgBuffer.messageType == 0 ) {
+        std::cout << "---- fill ok" << std::endl;
     } else {
         std::cout << "---- error " <<uint16_t(msgBuffer.messageType) << std::endl;
-    }       
-    
-// connect   
+        exit(-1);
+    }
+// ------------------------------------------------------------
+
+    msgBuffer.clear();
+    msgBuffer.setLength(50000);
+    msgBuffer.setTags(  uint8_t( TagMain::EffectRunner )
+                    ,   uint8_t( TagEffectRunner::GetEffectList )
+                    );
+    sysman->evalParameterMessage(msgBuffer);
+    if( msgBuffer.messageType == 0 ) {
+        EffectListEntry *data = static_cast<EffectListEntry *>((void *)(msgBuffer.data));
+        for( uint16_t ind = 0; ind < msgBuffer.length / sizeof(EffectListEntry); ++ind, ++data ) {
+            std::cout
+                << "---- ind  "     << uint16_t(data->fxIndex)
+                << " id "           << uint16_t(data->id)
+                << " type "         << uint16_t(data->fxType)
+                << " maxMode "      << uint16_t(data->fxMaxMode)
+                << " inputCount "   << uint16_t(data->inputCount )
+                << " masterId "     << uint16_t(data->masterId)
+                << "  "             << data->name
+                << std::endl;
+        }
+    } else {
+        std::cout << "---- TagEffectRunner::GetEffectList error " <<uint16_t(msgBuffer.messageType) << std::endl;
+        exit(-1);
+    }
+
+
+// ------------------------------------------------------------
+
+// connect
     std::cout << "\n---- Connect effects\n" << std::endl;
-    
+#if 0
     EffectRunnerSetConnections  effectRunnerSetConnections[] = {
         { 2, 2, 0 },    // audio osc out to modulator 0
         { 4, 2, 1 },    // low freq osc to  modulator 1
         { 8, 0, 0 }     // modulator to output 0
     };
-                                                                           
+#endif
+
+#if 0
+    // reverb test
+    EffectRunnerSetConnections  effectRunnerSetConnections[] = {
+        { 4, 2, 0 },    // audio osc out to reverb 0
+        { 11, 0, 0 }     // reverb to output 0
+    };
+#endif
+
+    
+#if 1
+    // reverb test
+    EffectRunnerSetConnections  effectRunnerSetConnections[] = {
+        { EffectInstance_OscillatorMixer,           1, 0 },     // audio osc out to reverb 0
+        { EffectInstance_FxEarlyReflection,         0, 1 },     // reverb to output mixer 1
+        { EffectInstance_FxLateReverb,              0, 2 },     // reverb to output mixer 2
+        { EffectInstance_FxEarlyReflection_Slave1,  2, 0 },     // early slave to late reverb
+        { EffectInstance_OscillatorMixer,           0, 0 },     // audio osc to output mixer 0
+//        { EffectInstance_FxReverb, 0, 0 },     // reverb to output 0
+    };
+#endif
+#if 0
+// noise test
+    EffectRunnerSetConnections  effectRunnerSetConnections[] = {
+        { 3, 0, 0 }     // modulator to output 0
+    };
+#endif
+
     msgBuffer.clear();
     msgBuffer.setTags(  uint8_t( TagMain::EffectRunner )
-                    ,   uint8_t( TagEffectRunner::SetConnections )    
+                    ,   uint8_t( TagEffectRunner::SetConnections )
                     );
-    msgBuffer.setPar(cArrayElementCount(effectRunnerSetConnections));   
+    msgBuffer.setPar(cArrayElementCount(effectRunnerSetConnections));
     msgBuffer.getTargetData(effectRunnerSetConnections);
     sysman->evalParameterMessage(msgBuffer);
-    
-    if( msgBuffer.messageType == 0 ) {        
-        std::cout << "---- Connect ok" << std::endl;                        
+
+    if( msgBuffer.messageType == 0 ) {
+        std::cout << "---- Connect ok" << std::endl;
     } else {
         std::cout << "---- Connect error " <<uint16_t(msgBuffer.messageType) << std::endl;
-    }       
+        exit(-1);
+    }
 
+// ------------------------------------------------------------
 
     std::cout << "\n---- Runner get list\n" << std::endl;
-    
+
     msgBuffer.clear();
-    msgBuffer.setLength(50000);    
+    msgBuffer.setLength(50000);
     msgBuffer.setTags( uint8_t( TagMain::EffectRunner )
-            ,uint8_t(TagEffectRunner::GetEffectList )    
+            ,uint8_t(TagEffectRunner::GetEffectList )
             );
     sysman->evalParameterMessage(msgBuffer);
-    
+
     if( msgBuffer.messageType == 0 ) {
-        
+
         EffectListEntry *data = static_cast<EffectListEntry *>((void *)(msgBuffer.data));
         for( uint16_t ind = 0; ind < msgBuffer.length / sizeof(EffectListEntry); ++ind, ++data ) {
-            std::cout 
-                << "---- ind  "     << uint16_t(data->fxIndex)  
-                << " id "           << uint16_t(data->id)                     
-                << " type "         << uint16_t(data->fxType) 
-                << " maxMode "      << uint16_t(data->fxMaxMode) 
-                << " inputCount "   << uint16_t(data->inputCount ) 
-                << " masterId "     << uint16_t(data->masterId)                     
+            std::cout
+                << "---- ind  "     << uint16_t(data->fxIndex)
+                << " id "           << uint16_t(data->id)
+                << " type "         << uint16_t(data->fxType)
+                << " maxMode "      << uint16_t(data->fxMaxMode)
+                << " inputCount "   << uint16_t(data->inputCount )
+                << " masterId "     << uint16_t(data->masterId)
                 << "  "             << data->name
-                << std::endl;            
-        }                        
+                << std::endl;
+        }
     } else {
         std::cout << "---- error " <<uint16_t(msgBuffer.messageType) << std::endl;
-    }    
- //   std::cout << "\n---- End setup\n" << std::endl;
+        exit(-1);
+    }
+// ------------------------------------------------------------
+
+    std::cout << "\n---- MIDI controllers\n" << std::endl;
+
+    // Impulse48 - channel 0
+    MidiSetting  midiSetting[] = {
+        { 0, 0x2E,  MidiController::CM_RANGE,   InnerController::CC_MODULATOR_FREQ1,        0   },// modulator
+        { 0, 0x2F,  MidiController::CM_RANGE,   InnerController::CC_MODULATOR_FREQ0,        0   },// modulator
+        { 0, 0x30,  MidiController::CM_RANGE,   InnerController::CC_MODULATOR_PHASEDIFF0,   0   },// modulator
+        { 0, 0x31,  MidiController::CM_RANGE,   InnerController::CC_MAINVOLUME,             110  },// volume - start with low
+        { 0, 0x2D,  MidiController::CM_RANGE,   InnerController::CC_MODULATOR_INVOL,        99  },// modulator IN volume
+        { 0, 0x2C,  MidiController::CM_RANGE,   InnerController::CC_MODULATOR_MIXVOL,       99  },// modulator MIX volume
+        { 0, 0,     MidiController::CM_DISABLE, InnerController::CC_SINK,  0 }    //
+    };
+
+    msgBuffer.clear();
+    msgBuffer.setTags(  uint8_t( TagMain::MidiController )
+                    ,   uint8_t( TagMidiController::SetController )
+                    );
+    msgBuffer.setPar(cArrayElementCount(midiSetting));
+    msgBuffer.getTargetData(midiSetting);
+    sysman->evalParameterMessage(msgBuffer);
+
+    if( msgBuffer.messageType == 0 ) {
+        std::cout << "---- MidiSetting ok" << std::endl;
+    } else {
+        std::cout << "---- MidiSetting error " <<uint16_t(msgBuffer.messageType) << std::endl;
+        exit(-1);
+    }
+
+// ------------------------------------------------------------
+
+
+    std::cout << "\n---- Inner controllers\n" << std::endl;
+
+    InnerControllerSetting  innerControllerSetting[] = {
+        { 0, 0 },    //
+        { 0, 0 },    //
+        { 0, 0 },    //
+        { 0, 0 },    //
+        { 0, 0 },    //
+        { 0, 0 },    //
+        { 0, 0 }     //
+    };
+
+    msgBuffer.clear();
+    msgBuffer.setTags(  uint8_t( TagMain::InnerController )
+                    ,   uint8_t( TagInnerController::SetController )
+                    );
+    msgBuffer.setPar(cArrayElementCount(innerControllerSetting));
+    msgBuffer.getTargetData(innerControllerSetting);
+    sysman->evalParameterMessage(msgBuffer);
+
+    if( msgBuffer.messageType == 0 ) {
+        std::cout << "---- InnerControllerSetting ok" << std::endl;
+    } else {
+        std::cout << "---- InnerControllerSetting error " <<uint16_t(msgBuffer.messageType) << std::endl;
+        exit(-1);
+    }
+// ------------------------------------------------------------
+
+    std::cout << "\n---- Volume control\n" << std::endl;
+    msgBuffer.clear();
+    msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
+                    ,   uint8_t( TagEffectCollector::EffectInstance )
+                    ,   uint8_t( TagEffectType::FxMixer )
+                    ,   uint8_t( TagEffectFxMixerMode::SetVolumeControllerIndex )
+                    );
+
+    msgBuffer.setPar(   EffectInstance_Mixer4 // effect instance
+                    ,   0  );// channel
+    uint16_t cindex0 = InnerController::CC_MAINVOLUME;
+    msgBuffer.getTargetData( cindex0 );
+    sysman->evalParameterMessage(msgBuffer);
+    if( msgBuffer.messageType == 0 ) {
+        std::cout << "---- Volume control index0 ok" << std::endl;
+    } else {
+        std::cout << "---- Volume control index0 error " <<uint16_t(msgBuffer.messageType) << std::endl;
+    }
+
+    float range0 = 1.0f;
+    float range1 = 0.3f;
+    float range2 = 0.3f;
+
+    msgBuffer.clear();
+    msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
+                    ,   uint8_t( TagEffectCollector::EffectInstance )
+                    ,   uint8_t( TagEffectType::FxMixer )
+                    ,   uint8_t( TagEffectFxMixerMode::SetVolumeRange )
+                    );
+    msgBuffer.setPar(   EffectInstance_Mixer4 // effect instance
+                    ,   0 ); // channel
+
+    msgBuffer.getTargetData( range0 );
+    sysman->evalParameterMessage(msgBuffer);
+    if( msgBuffer.messageType == 0 ) {
+        std::cout << "---- Volume control range0 ok" << std::endl;
+    } else {
+        std::cout << "---- Volume control range0 error " <<uint16_t(msgBuffer.messageType) << std::endl;
+    }
+// ------------------------------------------------------------
+    
+    msgBuffer.clear();
+    msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
+                    ,   uint8_t( TagEffectCollector::EffectInstance )
+                    ,   uint8_t( TagEffectType::FxMixer )
+                    ,   uint8_t( TagEffectFxMixerMode::SetVolumeRange )
+                    );
+    msgBuffer.setPar(   EffectInstance_Mixer4 // effect instance
+                    ,   1 ); // channel
+
+    msgBuffer.getTargetData( range1 );
+    sysman->evalParameterMessage(msgBuffer);
+    if( msgBuffer.messageType == 0 ) {
+        std::cout << "---- Volume control range1 ok" << std::endl;
+    } else {
+        std::cout << "---- Volume control range1 error " <<uint16_t(msgBuffer.messageType) << std::endl;
+    }
+
+// ------------------------------------------------------------
+    
+    msgBuffer.clear();
+    msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
+                    ,   uint8_t( TagEffectCollector::EffectInstance )
+                    ,   uint8_t( TagEffectType::FxMixer )
+                    ,   uint8_t( TagEffectFxMixerMode::SetVolumeRange )
+                    );
+    msgBuffer.setPar(   EffectInstance_Mixer4 // effect instance
+                    ,   2 ); // channel
+
+    msgBuffer.getTargetData( range2 );
+    sysman->evalParameterMessage(msgBuffer);
+    if( msgBuffer.messageType == 0 ) {
+        std::cout << "---- Volume control range2 ok" << std::endl;
+    } else {
+        std::cout << "---- Volume control range2 error " <<uint16_t(msgBuffer.messageType) << std::endl;
+    }
+    
+// ------------------------------------------------------------
+    
+    std::cout << "\n---- Outoscillator control\n" << std::endl;
+    FxOutOscillatorParam fxOutOscillatorParam = {
+        // 1x offset + 1xslope
+        1<<(27-7), int32_t(freq2ycent(0.1)),
+        InnerController::CC_MODULATOR_FREQ0,
+        // 4 index
+        { InnerController::CC_MODULATOR_PHASEDIFF0,
+        0,
+        0,
+        0 }
+    };
+
+    msgBuffer.clear();
+    msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
+                    ,   uint8_t( TagEffectCollector::EffectInstance )
+                    ,   uint8_t( TagEffectType::FxOutOscillator )
+                    ,   uint8_t( TagEffectFxOutOscillatorMode::SetParameters )
+                    );
+
+    msgBuffer.setPar(   4 // effect instance
+                     );
+
+    msgBuffer.getTargetData(fxOutOscillatorParam);
+    sysman->evalParameterMessage(msgBuffer);
+
+    if( msgBuffer.messageType == 0 ) {
+        std::cout << "---- Outoscillator control ok" << std::endl;
+    } else {
+        std::cout << "---- Outoscillator control error " <<uint16_t(msgBuffer.messageType) << std::endl;
+        exit(-1);
+    }
+
+    std::cout << "\n---- Modulator control\n" << std::endl;
+
+    FxModulatorParam fxModulatorParam = {
+        InnerController::CC_MODULATOR_INVOL,
+        InnerController::CC_MODULATOR_MIXVOL,
+    };
+
+// ------------------------------------------------------------
+    msgBuffer.clear();
+    msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
+                    ,   uint8_t( TagEffectCollector::EffectInstance )
+                    ,   uint8_t( TagEffectType::FxModulator )
+                    ,   uint8_t( TagEffectFxModulatorMode::SetParameters )
+                    );
+
+    msgBuffer.setPar(   8 // effect instance
+                     );
+
+    msgBuffer.getTargetData(fxModulatorParam);
+    sysman->evalParameterMessage(msgBuffer);
+
+    if( msgBuffer.messageType == 0 ) {
+        std::cout << "---- Modulator control ok" << std::endl;
+    } else {
+        std::cout << "---- Modulator control error " <<uint16_t(msgBuffer.messageType) << std::endl;
+        exit(-1);
+    }
+
+// ------------------------------------------------------------
+
+    std::cout << "\n---- Noise generator \n" << std::endl;
+
+    FxOutNoiseParam fxOutNoiseParam = {
+        1,
+        1,
+        1,
+    };
+
+
+    msgBuffer.clear();
+    msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
+                    ,   uint8_t( TagEffectCollector::EffectInstance )
+                    ,   uint8_t( TagEffectType::FxOutNoise )
+                    ,   uint8_t( TagEffectFxOutNoiseMode::SetParameters )
+                    );
+
+    msgBuffer.setPar(   3 // effect instance
+                     );
+
+    msgBuffer.getTargetData(fxOutNoiseParam);
+    sysman->evalParameterMessage(msgBuffer);
+
+    if( msgBuffer.messageType == 0 ) {
+        std::cout << "---- Noise generator ok" << std::endl;
+    } else {
+        std::cout << "---- Noise generator error " <<uint16_t(msgBuffer.messageType) << std::endl;
+        exit(-1);
+    }
+
+    std::cout << "\n---- Reverb \n" << std::endl;
+
+
+    /*
+   , 23       , 29       , 31       , 37       , 41       , 43       , 47       , 53
+       , 59       , 61       , 67       , 71       , 73       , 79       , 83       , 89
+       , 97      , 101      , 103      , 107      , 109      , 113      , 127      , 131
+      , 137      , 139      , 149      , 151      , 157      , 163      , 167      , 173
+      , 179      , 181      , 191      , 193      , 197      , 199      , 211      , 223
+      , 227      , 229      , 233      , 239      , 241      , 251      , 257      , 263
+      , 269      , 271      , 277      , 281      , 283      , 293      , 307      , 311
+      , 313      , 317      , 331      , 337      , 347      , 349      , 353      , 359
+      , 367      , 373      , 379      , 383      , 389      , 397      , 401      , 409
+      , 419      , 421      , 431      , 433      , 439      , 443      , 449      , 457
+      , 461      , 463      , 467      , 479      , 487      , 491      , 499      , 503
+      , 509      , 521      , 523      , 541      , 547      , 557      , 563      , 569
+      , 571      , 577      , 587      , 593      , 599      , 601      , 607      , 613
+      , 617      , 619      , 631      , 641      , 643      , 647      , 653      , 659
+
+
+     , 1009     , 1013     , 1019     , 1021     , 1031     , 1033     , 1039     , 1049
+     , 1051     , 1061     , 1063     , 1069     , 1087     , 1091     , 1093     , 1097
+     , 1103     , 1109     , 1117     , 1123     , 1129     , 1151     , 1153     , 1163
+     , 1171     , 1181     , 1187     , 1193     , 1201     , 1213     , 1217     , 1223
+     , 1229     , 1231     , 1237     , 1249     , 1259     , 1277     , 1279     , 1283
+     , 1289     , 1291     , 1297     , 1301     , 1303     , 1307     , 1319     , 1321
+     , 1327     , 1361     , 1367     , 1373     , 1381     , 1399     , 1409     , 1423
+     , 1427     , 1429     , 1433     , 1439     , 1447     , 1451     , 1453     , 1459
+     , 1471     , 1481     , 1483     , 1487     , 1489     , 1493     , 1499     , 1511
+     , 1523     , 1531     , 1543     , 1549     , 1553     , 1553     , 1567     , 1571
+     , 1579     , 1583     , 1597     , 1601     , 1607     , 1609     , 1613     , 1619
+     , 1621     , 1627     , 1637     , 1657     , 1663     , 1667     , 1669     , 1693
+     , 1697     , 1699     , 1709     , 1721     , 1723     , 1733     , 1741     , 1747
+     , 1753     , 1759     , 1777     , 1783     , 1787     , 1789     , 1801     , 1811
+     , 1823     , 1831     , 1847     , 1861     , 1867     , 1871     , 1873     , 1877
+     , 1879     , 1889     , 1901     , 1907     , 1913     , 1931     , 1933     , 1949
+     , 1951     , 1973     , 1979     , 1987     , 1993     , 1997     , 1999     , 2003
+     , 2011     , 2017     , 2027     , 2029     , 2039     , 2053     , 2063     , 2069
+     , 2081     , 2083     , 2087     , 2089     , 2099     , 2111     , 2113     , 2129
+     , 2131     , 2137     , 2141     , 2143     , 2153     , 2161     , 2179     , 2203
+     , 2207     , 2213     , 2221     , 2237     , 2239     , 2243     , 2251     , 2267
+
+     *
+            , 59       , 61       , 67       , 71       , 73       , 79       , 83       , 89
+       , 97      , 101      , 103      , 107      , 109      , 113      , 127      , 131
+      , 137      , 139      , 149      , 151      , 157      , 163      , 167      , 173
+      , 179      , 181      , 191      , 193      , 197      , 199      , 211      , 223
+      , 227      , 229      , 233      , 239      , 241      , 251      , 257      , 263
+      , 269      , 271      , 277      , 281      , 283      , 293      , 307      , 311
+      , 313      , 317      , 331      , 337      , 347      , 349      , 353      , 359
+      , 367      , 373      , 379      , 383      , 389      , 397      , 401      , 409
+      , 419      , 421      , 431      , 433      , 439      , 443      , 449      , 457
+      , 461      , 463      , 467      , 479      , 487      , 491      , 499      , 503
+      , 509      , 521      , 523      , 541      , 547      , 557      , 563      , 569
+      , 571      , 577      , 587      , 593      , 599      , 601      , 607      , 613
+      , 617      , 619      , 631      , 641      , 643      , 647      , 653      , 659
+*
+     */
+
+    FxLateReverbParam::Mode01_Housholder mode01_Housholder = {
+
+        // MonoDelayFeedbackTap
+#if 0
+        0.4999, 0.4999, 0.4999, 0.4999,
+        0.4999, 0.4999, 0.4999, 0.4999,
+#endif
+        0.39, 0.39, 0.39, 0.39,
+        0.39, 0.39, 0.39, 0.39,
+
+        0.88, 0.88, 0.88, 0.88,
+        0.88, 0.88, 0.88, 0.88,
+
+        1327, 1427, 1511, 1567,
+        1019, 1151, 1213, 1277,
+
+        // MonoDelayTap - internal
+
+        0.22, 0.22, 0.22, 0.22,
+        0.22, 0.22, 0.22, 0.22,
+
+        211,  137,  293,  347,
+        101,  233,  173,  191,
+
+        // MonoAllpassTap
+        0.6,0.6,0.6,0.6,
+        227,277,311,397
+    };
+
+    msgBuffer.clear();
+    msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
+                    ,   uint8_t( TagEffectCollector::EffectInstance )
+                    ,   uint8_t( TagEffectType::FxLateReverb )
+                    ,   uint8_t( TagEffectFxLateReverbMode::SetParametersMode01 )
+                    );
+
+    msgBuffer.setPar(   EffectInstance_FxLateReverb );
+
+    msgBuffer.getTargetData(mode01_Housholder);
+    sysman->evalParameterMessage(msgBuffer);
+
+    if( msgBuffer.messageType == 0 ) {
+        std::cout << "---- Reverb ok" << std::endl;
+    } else {
+        std::cout << "---- Reverb error " <<uint16_t(msgBuffer.messageType) << std::endl;
+        exit(-1);
+    }
+// ------------------------------------------------------------
+    std::cout << "\n---- Early Reflection \n" << std::endl;
+
+    FxEarlyReflectionParam::Mode01 fxEarlyReflection_mode01 = {
+    // delayLateReverb
+    1024, 1024, 
+    // delaysEarlyreflection
+    3809,   3809,
+    4777,   4477,
+    5547,   5947,
+    6977,   6177,
+    7109,   7809,
+    8877,   8177,
+    9147,   9947,
+    10977,  10977,
+    11809,  11809,
+    12777,   12477,
+    13547,   13947,
+    14977,   14177,
+    15109,   15809,
+    16877,   16177,
+    17147,   17947,
+    23000,  23000,
+    // coeffsEarlyreflection
+    0.8000000, 0.7200000,
+    0.6400000, 0.5760000,
+    0.5120000, 0.4608000,
+    0.4096000, 0.3686400,
+    0.3276800, 0.2949120,
+    0.2621440, 0.2359296,
+    0.2097152, 0.1887437,
+    0.1677722, 0.1509950,
+    0.1342178, 0.1207960,
+    0.1073742, 0.0966368,
+    0.0858994, 0.0773094,
+    0.0687195, 0.0618475,
+    0.0549756, 0.0494780,
+    0.0439805, 0.0395824,
+    0.0351844, 0.0316659,
+    0.0281475, 0.0253328,
+
+    0.7693853, 0.7260897,
+    0.6155083, 0.5808718,
+    0.4924066, 0.4646974,
+    0.3939253, 0.3717580,
+    0.3151402, 0.2974064,
+    0.2521122, 0.2379251,
+    0.2016897, 0.1903401,
+    0.1613518, 0.1522721,
+    0.1290814, 0.1218177,
+    0.1032652, 0.0974541,
+    0.0826121, 0.0779633,
+    0.0660897, 0.0623706,
+    0.0528718, 0.0498965,
+    0.0422974, 0.0399172,
+    0.0338379, 0.0319338,
+    0.0270703, 0.0255470,
+
+    0.7434315, 0.7434315,
+    0.5947452, 0.5947452,
+    0.4757962, 0.4757962,
+    0.3806370, 0.3806370,
+    0.3045096, 0.3045096,
+    0.2436077, 0.2436077,
+    0.1948861, 0.1948861,
+    0.1559089, 0.1559089,
+    0.1247271, 0.1247271,
+    0.0997817, 0.0997817,
+    0.0798254, 0.0798254,
+    0.0638603, 0.0638603,
+    0.0510882, 0.0510882,
+    0.0408706, 0.0408706,
+    0.0326965, 0.0326965,
+    0.0261572, 0.0261572,
+
+    0.7260897, 0.7693853,
+    0.5808718, 0.6155083,
+    0.4646974, 0.4924066,
+    0.3717580, 0.3939253,
+    0.2974064, 0.3151402,
+    0.2379251, 0.2521122,
+    0.1903401, 0.2016897,
+    0.1522721, 0.1613518,
+    0.1218177, 0.1290814,
+    0.0974541, 0.1032652,
+    0.0779633, 0.0826121,
+    0.0623706, 0.0660897,
+    0.0498965, 0.0528718,
+    0.0399172, 0.0422974,
+    0.0319338, 0.0338379,
+    0.0255470, 0.0270703,
+
+    0.7200000, 0.8000000,
+    0.5760000, 0.6400000,
+    0.4608000, 0.5120000,
+    0.3686400, 0.4096000,
+    0.2949120, 0.3276800,
+    0.2359296, 0.2621440,
+    0.1887437, 0.2097152,
+    0.1509950, 0.1677722,
+    0.1207960, 0.1342178,
+    0.0966368, 0.1073742,
+    0.0773094, 0.0858994,
+    0.0618475, 0.0687195,
+    0.0494780, 0.0549756,
+    0.0395824, 0.0439805,
+    0.0316659, 0.0351844,
+    0.0253328, 0.0281475,
+
+    0.7260897, 0.8306147,
+    0.5808718, 0.6644918,
+    0.4646974, 0.5315934,
+    0.3717580, 0.4252748,
+    0.2974064, 0.3402198,
+    0.2379251, 0.2721759,
+    0.1903401, 0.2177407,
+    0.1522721, 0.1741926,
+    0.1218177, 0.1393541,
+    0.0974541, 0.1114832,
+    0.0779633, 0.0891866,
+    0.0623706, 0.0713493,
+    0.0498965, 0.0570794,
+    0.0399172, 0.0456635,
+    0.0319338, 0.0365308,
+    0.0255470, 0.0292247,
+
+    0.7434315, 0.8565685,
+    0.5947452, 0.6852548,
+    0.4757962, 0.5482039,
+    0.3806370, 0.4385631,
+    0.3045096, 0.3508505,
+    0.2436077, 0.2806804,
+    0.1948861, 0.2245443,
+    0.1559089, 0.1796355,
+    0.1247271, 0.1437084,
+    0.0997817, 0.1149667,
+    0.0798254, 0.0919734,
+    0.0638603, 0.0735787,
+    0.0510882, 0.0588630,
+    0.0408706, 0.0470904,
+    0.0326965, 0.0376723,
+    0.0261572, 0.0301378,
+
+    0.7693853, 0.8739104,
+    0.6155083, 0.6991283,
+    0.4924066, 0.5593027,
+    0.3939253, 0.4474421,
+    0.3151402, 0.3579537,
+    0.2521122, 0.2863630,
+    0.2016897, 0.2290904,
+    0.1613518, 0.1832723,
+    0.1290814, 0.1466178,
+    0.1032652, 0.1172943,
+    0.0826121, 0.0938354,
+    0.0660897, 0.0750683,
+    0.0528718, 0.0600547,
+    0.0422974, 0.0480437,
+    0.0338379, 0.0384350,
+    0.0270703, 0.0307480,
+
+    0.8000000, 0.8800001,
+    0.6400000, 0.7040001,
+    0.5120000, 0.5632001,
+    0.4096000, 0.4505601,
+    0.3276800, 0.3604481,
+    0.2621440, 0.2883584,
+    0.2097152, 0.2306868,
+    0.1677722, 0.1845494,
+    0.1342178, 0.1476395,
+    0.1073742, 0.1181116,
+    0.0858994, 0.0944893,
+    0.0687195, 0.0755914,
+    0.0549756, 0.0604732,
+    0.0439805, 0.0483785,
+    0.0351844, 0.0387028,
+    0.0281475, 0.0309623,
+
+    0.8306147, 0.8739104,
+    0.6644918, 0.6991283,
+    0.5315934, 0.5593027,
+    0.4252748, 0.4474421,
+    0.3402198, 0.3579537,
+    0.2721759, 0.2863630,
+    0.2177407, 0.2290904,
+    0.1741926, 0.1832723,
+    0.1393541, 0.1466178,
+    0.1114832, 0.1172943,
+    0.0891866, 0.0938354,
+    0.0713493, 0.0750683,
+    0.0570794, 0.0600547,
+    0.0456635, 0.0480437,
+    0.0365308, 0.0384350,
+    0.0292247, 0.0307480,
+
+    0.8565685, 0.8565685,
+    0.6852548, 0.6852548,
+    0.5482039, 0.5482039,
+    0.4385631, 0.4385631,
+    0.3508505, 0.3508505,
+    0.2806804, 0.2806804,
+    0.2245443, 0.2245443,
+    0.1796355, 0.1796355,
+    0.1437084, 0.1437084,
+    0.1149667, 0.1149667,
+    0.0919734, 0.0919734,
+    0.0735787, 0.0735787,
+    0.0588630, 0.0588630,
+    0.0470904, 0.0470904,
+    0.0376723, 0.0376723,
+    0.0301378, 0.0301378,
+
+    0.8739104, 0.8306147,
+    0.6991283, 0.6644918,
+    0.5593027, 0.5315934,
+    0.4474421, 0.4252748,
+    0.3579537, 0.3402198,
+    0.2863630, 0.2721759,
+    0.2290904, 0.2177407,
+    0.1832723, 0.1741926,
+    0.1466178, 0.1393541,
+    0.1172943, 0.1114832,
+    0.0938354, 0.0891866,
+    0.0750683, 0.0713493,
+    0.0600547, 0.0570794,
+    0.0480437, 0.0456635,
+    0.0384350, 0.0365308,
+    0.0307480, 0.0292247,
+
+    0.8800001, 0.8000000,
+    0.7040001, 0.6400000,
+    0.5632001, 0.5120000,
+    0.4505601, 0.4096000,
+    0.3604481, 0.3276800,
+    0.2883584, 0.2621440,
+    0.2306868, 0.2097152,
+    0.1845494, 0.1677722,
+    0.1476395, 0.1342178,
+    0.1181116, 0.1073742,
+    0.0944893, 0.0858994,
+    0.0755914, 0.0687195,
+    0.0604732, 0.0549756,
+    0.0483785, 0.0439805,
+    0.0387028, 0.0351844,
+    0.0309623, 0.0281475,
+
+    0.8739104, 0.7693853,
+    0.6991283, 0.6155083,
+    0.5593027, 0.4924066,
+    0.4474421, 0.3939253,
+    0.3579537, 0.3151402,
+    0.2863630, 0.2521122,
+    0.2290904, 0.2016897,
+    0.1832723, 0.1613518,
+    0.1466178, 0.1290814,
+    0.1172943, 0.1032652,
+    0.0938354, 0.0826121,
+    0.0750683, 0.0660897,
+    0.0600547, 0.0528718,
+    0.0480437, 0.0422974,
+    0.0384350, 0.0338379,
+    0.0307480, 0.0270703,
+
+    0.8565685, 0.7434314,
+    0.6852548, 0.5947452,
+    0.5482039, 0.4757961,
+    0.4385631, 0.3806369,
+    0.3508505, 0.3045095,
+    0.2806804, 0.2436076,
+    0.2245443, 0.1948861,
+    0.1796355, 0.1559089,
+    0.1437084, 0.1247271,
+    0.1149667, 0.0997817,
+    0.0919734, 0.0798253,
+    0.0735787, 0.0638603,
+    0.0588630, 0.0510882,
+    0.0470904, 0.0408706,
+    0.0376723, 0.0326965,
+    0.0301378, 0.0261572,
+
+    0.8306147, 0.7260897,
+    0.6644918, 0.5808718,
+    0.5315934, 0.4646974,
+    0.4252748, 0.3717580,
+    0.3402198, 0.2974064,
+    0.2721759, 0.2379251,
+    0.2177407, 0.1903401,
+    0.1741926, 0.1522721,
+    0.1393541, 0.1218177,
+    0.1114832, 0.0974541,
+    0.0891866, 0.0779633,
+    0.0713493, 0.0623706,
+    0.0570794, 0.0498965,
+    0.0456635, 0.0399172,
+    0.0365308, 0.0319338,
+    0.0292247, 0.0255470,
+    // modulatorPeriod
+    5, 7, 9, 11,
+    13, 16, 17, 19,
+    23, 29, 31, 37,
+    41, 43, 47, 51, 
+        
+        
+    };
+    
+    msgBuffer.clear();
+    msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
+                    ,   uint8_t( TagEffectCollector::EffectInstance )
+                    ,   uint8_t( TagEffectType::FxEarlyReflection )
+                    ,   uint8_t( TagEffectFxEarlyReflectionMode::SetParametersMode01 )
+                    );
+
+    msgBuffer.setPar( EffectInstance_FxEarlyReflection );
+
+    msgBuffer.getTargetData( fxEarlyReflection_mode01 );
+    sysman->evalParameterMessage(msgBuffer);
+
+    if( msgBuffer.messageType == 0 ) {
+        std::cout << "---- Early Reflection ok" << std::endl;
+    } else {
+        std::cout << "---- Early Reflection error " <<uint16_t(msgBuffer.messageType) << std::endl;
+        exit(-1);
+    }
+    
+// ------------------------------------------------------------
+    std::cout << "\n---- SetOvertoneCOunt \n" << std::endl;
+
+    msgBuffer.clear();
+    msgBuffer.setTags(  uint8_t( TagMain::ToneShaper )
+                    ,   uint8_t( TagToneShaper::SetOvertoneCount )
+                    );
+    msgBuffer.setPar( 0, 8 ); // number of overtones of vector 0
+
+    sysman->evalParameterMessage(msgBuffer);
+
+    if( msgBuffer.messageType == 0 ) {
+        std::cout << "---- SetOvertoneCOunt ok" << std::endl;
+    } else {
+        std::cout << "---- SetOvertoneCOunt error " <<uint16_t(msgBuffer.messageType) << std::endl;
+        exit(-1);
+    }
+// ------------------------------------------------------------
 }
+
 
 
 // --------------------------------------------------------------------
@@ -332,52 +1130,16 @@ int main( int argc, char** argv )
     // FxCollector::getInstance().check();
 
     auto& fxRunner = iOThread->getFxRunner();
+
+//    generator_FxEarlyReflectionParam(1.0f);
+//    exit(0);
     
-#if 0
-#if 1
 
-    fxRunner.add(3);
-    fxRunner.add(4);
-//    fxRunner.add(8);
-    fxRunner.add(9);
-//    fxRunner.add(5);
-//    fxRunner.list();
-
-
-    //fxRunner.connect(2,0);    // connect fxOscillatorMixer to fxEndMixer,0
-
-    fxRunner.connect(2,3,0);
-    //fxRunner.connect(4,2,1);
-    //fxRunner.connect(8,0); // modulator
-    fxRunner.connect(9,0);
-
-#else
-    fxRunner.add(3);
-    fxRunner.add(4);
-//    fxRunner.add(8);
-    fxRunner.add(9);
-//    fxRunner.add(5);
-    fxRunner.list();
-    fxmod->setProcMode(1);
-    fxosc->setProcMode(1);
-    fxfilt->setProcMode(2);
-    fxnoise->setProcMode(1);
-
-    //fxRunner.connect(2,0);    // connect fxOscillatorMixer to fxEndMixer,0
-
-    fxRunner.connect(3,3,0);
-    //fxRunner.connect(4,2,1);
-    //fxRunner.connect(8,0); // modulator
-    fxRunner.connect(9,0);
-
-#endif
     
-#endif
-
     // load initial setup
 
     setupEffects(sysman);
-    
+
     try {
         //-------------------------
         // start jack thread
@@ -395,21 +1157,21 @@ int main( int argc, char** argv )
         // -------------------------------------
         std::cout << "\n\n save ToneShaper[0]\n\n" << std::endl;
         ToneShaperMatrix& ts = oscArray->getToneShaperMatrix();
-        
+
         Yaxp::Message yms;
-        
-        yms.setTags( 
+
+        yms.setTags(
             uint8_t(TagMainLevel_00::TagMain::ToneShaper),
             uint8_t(TagToneShaperLevel_01::TagToneShaper::SetOvertone)
         );
-        
+
         std::ofstream file_tsout;
         file_tsout.open("toneshaper_out");
 
         YsifOutStream * yser= new YsifOutStream();
-        
+
         serialize(*yser, yms);
-        
+
         ts.dump( *yser );
         file_tsout << yser->rdbuf();
         file_tsout.close();
@@ -424,9 +1186,9 @@ int main( int argc, char** argv )
             ydeser->seekp(0);
             *ydeser << file_tsin.rdbuf();
             file_tsin.close();
-        
+
             deserialize(*ydeser, yms);
-            
+
             if( !ts.fill( *ydeser ) ) {
                 std::cerr << "error in loading toneshaper_in" << std::endl;
             }
