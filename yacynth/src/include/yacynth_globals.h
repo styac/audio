@@ -24,7 +24,6 @@
  *
  * Created on January 26, 2016, 11:35 PM
  */
-#include    "yacynth_results.h"
 
 // this will go from here
 
@@ -159,8 +158,6 @@ inline Tdata saturate ( const Tdata x )
 
 //====================================================
 
-// for generating the parameter mapping
-//#define     JSONNET_GENERATOR_ENABLE     1
 #if 0
 template<typename T>
 T saturate(T val, T min, T max) {
@@ -177,6 +174,11 @@ T saturate(T val) {
     return std::min(std::max(val, -lim), lim);
 }
 #endif
+
+constexpr double kOnePoleLowPass( const double f )
+{
+    return std::exp( -PI2 * f / samplingFrequency );
+}
 
 } // end namespace yacynth
 

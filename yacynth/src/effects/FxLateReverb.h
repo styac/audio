@@ -24,8 +24,7 @@
  *
  */
 
-
-// TODO early reflection FxEarlyReflection -- simple fast short echo without feedback
+// TODO output taps with own lowpass
 // TODO try more internal reflections
 // TODO extend to 16 combs
 
@@ -97,7 +96,12 @@ public:
     static constexpr std::size_t allpassCount   = 4;
     static constexpr std::size_t combCount      = 8;
 
-    static constexpr float householderFeedback  = -2.0f / combCount;
+    static constexpr float householderFeedback  = -2.0f;     // combCount;
+    static constexpr float lowpassLowLimit      = kOnePoleLowPass( 18000.0 );
+    static constexpr float lowpassHighLimit     = kOnePoleLowPass( 30.0 );
+    static constexpr float feedbackLimit        = 0.6f;
+    static constexpr float outputLimit          = 0.8f;
+    static constexpr float crossFeedbackLimit   = 0.8f;
 
     bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
@@ -106,42 +110,66 @@ public:
     // control early reflection - other effect
     // control mixing dry - wet - mixer
 
-    struct Mode01_Housholder {
+    struct Mode01 {
         bool check()
         {
             for( uint16_t ci = 0; ci <combCount; ++ci ) {
-                if( std::abs( combTaps.coeffFB_v[ci] ) >= 0.5f ) // householder case
+                // check tapFeedback
+                if(( tapFeedback.coeffLowPass.v[ci] > lowpassHighLimit ) || ( tapFeedback.coeffLowPass.v[ci] < lowpassLowLimit )) {
+                    std::cout << "\n---- check 2"  << std::endl;
                     return false;
-                if( (combTaps.coeffLP_v[ci] > 0.999f) || (combTaps.coeffLP_v[ci] < 0 ) )
+                }
+                // feedback -- householder actually 0.5?
+                if( std::abs( tapFeedback.coeff.v[ci] ) >= feedbackLimit * ( 1.0f - tapFeedback.coeffLowPass.v[ci] )) {
+                    std::cout << "\n---- check 1" << std::endl;
                     return false;
-                if( std::abs( combTapsInternal.coeffFB_v[ci] ) >= 0.5f ) // householder case
+                }
+                if(( tapFeedback.coeffHighPass.v[ci] > lowpassHighLimit ) || ( tapFeedback.coeffHighPass.v[ci] < lowpassLowLimit )) {
+                    std::cout << "\n---- check 3" << std::endl;
                     return false;
-                if( combTaps.delaySrc[ci] >= (1<<(combLngExp+EbufferPar::sectionSizeExp)) )
+                }
+
+                // check output
+                if(( tapOutput.coeffLowPass.v[ci] > lowpassHighLimit ) || ( tapOutput.coeffLowPass.v[ci] < lowpassLowLimit ))  {
+                    std::cout << "\n---- check 4" << std::endl;
                     return false;
-                if( combTapsInternal.delaySrc[ci] > (combTaps.delaySrc[ci]-3) ) // 3 is practical const
+                }
+                // 0.8f -- summ of 4 combs must be less then 1.0
+                if( std::abs( tapOutput.coeff.v[ci] ) >= outputLimit * ( 1.0f - tapOutput.coeffLowPass.v[ci] ))  {
+                    std::cout << "\n---- check 5" << std::endl;
                     return false;
+                }
+                if( tapOutput.delayIndex[ci] >= (1<<( combLngExp+EbufferPar::sectionSizeExp ))) {
+                    std::cout << "\n---- check 6" << std::endl;
+                    return false;
+                }
+
+                // check internal
+                if( std::abs( tapFeedbackInternal.coeff.v[ci] ) >= crossFeedbackLimit )  {
+                    std::cout << "\n---- check 7" << std::endl;
+                    return false;
+                }
+                if( tapFeedbackInternal.delayIndex[ci]  >= (1<<( combLngExp+EbufferPar::sectionSizeExp ))) { // 3 is practical const
+                    std::cout << "\n---- check 8" << std::endl;
+                    return false;
+                }
             }
             return true;
         }
-        // TODO considering 1coeff version - check if 4 is needed
-        MonoDelayLowpassTapArray<combCount>  combTaps;
-        MonoDelayTapArray<combCount>         combTapsInternal;
-        MonoDelayTapArray<allpassCount>      allpassTaps;
-        // controller index...
-    } mode01_Householder;
+        MonoDelayBandpassTapArray<combCount> tapFeedback;
+        MonoDelayLowpassTapArray<combCount>  tapFeedbackInternal;
+        MonoDelayLowpassTapArray<combCount>  tapOutput;
+    } mode01;
 };
 
 class FxLateReverb : public Fx<FxLateReverbParam>  {
 public:
-    typedef EDelayLineArray<FxLateReverbParam::combCount>       CombDelay;
-    typedef EDelayLineArray<FxLateReverbParam::allpassCount>    AllpassDelay;
+    typedef EDelayLineArray<FxLateReverbParam::combCount>  CombDelay;
 
     using MyType = FxLateReverb;
     FxLateReverb()
     :   Fx<FxLateReverbParam>()
-//    ,   preDelay(param.delayLngExp)
-    ,   allPassVector(param.allpassLngExp)
-    ,   combVector(param.combLngExp)
+    ,   combVector(FxLateReverbParam::combLngExp)
     {
         fillSprocessv<0>(sprocess_00);
         fillSprocessv<1>(sprocess_01);
@@ -183,348 +211,118 @@ public:
 
 private:
     virtual void clearTransient(void) override;
-
     static void sprocessTransient( void * thp );
-
     static void sprocess_00( void * thp );  // bypass > inp<0> -> out
-
     static void sprocess_01( void * thp );  // reverb 1 mode
-
     static void sprocess_02( void * thp );  // reverb 2 mode
-
     static void sprocess_03( void * thp );  // reverb 3 mode
-#if 0
-    // save for later
-    inline void process_01_2(void)
-    {
-        static_assert( param.combCount==8, "this uses 8 comb filters" );
-        static_assert( param.allpassCount==4, "this uses 4 allpass filters" );
 
-        // TODO: controller for change feedback, lowpwass
-
-        coeffFeedback.v4[0]   = param.mode01_Householder.combTaps.coeffFB_v4[0];
-        coeffFeedback.v4[1]   = param.mode01_Householder.combTaps.coeffFB_v4[1];
-        coeffLowpass.v4[0]    = param.mode01_Householder.combTaps.coeffLP_v4[0];
-        coeffLowpass.v4[1]    = param.mode01_Householder.combTaps.coeffLP_v4[1];
-        coeffAllpass.v4[0]    = param.mode01_Householder.allpassTaps.coeffFB_v4[0];
-
-        union alignas(16) {
-            v4sf    vchannel[ EbufferPar::vsectionSize ];
-            float   channel[ EbufferPar::sectionSize ];
-        };
-
-        AllpassDelay::PackedChannel apOutput;
-        AllpassDelay::PackedChannel apTmp;
-        CombDelay::PackedChannel    combOutput;
-        CombDelay::PackedChannel    combTmp;
-#if 0
-        // add input to local buff
-        for( auto i=0u; i < vsectionSize; ++i ) {
-            vchannel[i] = inp<0>().vchannel[chA][i] + inp<0>().vchannel[chB][i];
-        }
-#else
-        // test
-        for( auto si=0u; si < vsectionSize; ++si ) {
-            vchannel[si] = inp<0>().vchannel[chA][si];
-//            out().vchannel[chA][si] = inp<0>().vchannel[chA][si];
-        }
-
-#endif
-        // TODO
-        // calculate allpasses
-        // 1st experiment: parallel +1 framedelay
-
-/*
-
-    template< std::size_t CH >
-    inline void allpass1( const float x0, float& y0 )
-    {
-
-        const float t0 = ( input - storage ) * k;
-        output = t0 + storage;
-        storage = t0 + input;
-    }
-
- */
-#if 0
-        // 4x allpass - serial - 1 mult version
-        for( auto si=0u; si<sectionSize; ++si ) {
-            allPassVector.get( param.mode01_Householder.allpassTaps.delaySrc, apTmp );
-            const V4vf input ( channel[si], apTmp.v[0], apTmp.v[1], apTmp.v[2] );
-            const V4vf t0   = ( input.v4[0] - apTmp.v4[0] ) * coeffAllpass.v4[0];
-            channel[si] = t0.v[3] + apTmp.v[3]; // write back
-            apTmp.v4[0]   = t0.v4 + input.v4;
-            allPassVector.push( apTmp );
-
-            // test
-            //out().channel[0][si] = channel[si];
-        }
-        //return;
-#endif
-        // calc combs 2x4 channel
-        for( auto si=0u; si<sectionSize; ++si ) {
-            combOutput.v4[0] = stateLowPass.v4[0];
-            combOutput.v4[1] = stateLowPass.v4[1];
-            // generate output
-            const V4vf res1 ( combOutput.v4[0] + combOutput.v4[1] ); // summ 8 output to 4 (pairs)
-            const float r00 = res1.v[0] + res1.v[2];
-            const float r11 = res1.v[1] - res1.v[3];
-            out().channel[0][si] = r00 + r11;
-            out().channel[1][si] = r00 - r11;
-
-            // output : delay + filter (1 mult)
-            // feedback output * fbmult
-            combVector.get( param.mode01_Householder.combTaps.delaySrc, combTmp );
-            // -1.0 < vcoeffFeedback < 1.0  -- positiv or negative
-            stateLowPass.v4[0] = combTmp.v4[0] + ( stateLowPass.v4[0] - combTmp.v4[0] ) * coeffLowpass.v4[0];
-            stateLowPass.v4[1] = combTmp.v4[1] + ( stateLowPass.v4[1] - combTmp.v4[1] ) * coeffLowpass.v4[1];
-
-            // 0 < coeffLowpass < 1.0
-            combTmp.v4[0] = coeffFeedback.v4[0] * combOutput.v4[0];
-            combTmp.v4[1] = coeffFeedback.v4[1] * combOutput.v4[1];
-
-            // householder feedback  4x4 2 channels
-
-            const float hp23 = combTmp.v[2] + combTmp.v[3];
-            const float hp01 = combTmp.v[0] + combTmp.v[1];
-            const float hm23 = combTmp.v[2] - combTmp.v[3];
-            const float hm01 = combTmp.v[0] - combTmp.v[1];
-
-            combOutput.v[0] =  hm01 - hp23;
-            combOutput.v[1] = -hm01 - hp23;
-            combOutput.v[2] = -hp01 + hm23;
-            combOutput.v[3] = -hp01 - hm23;
-
-            const float hp67 = combTmp.v[6] + combTmp.v[7];
-            const float hp45 = combTmp.v[4] + combTmp.v[5];
-            const float hm67 = combTmp.v[6] - combTmp.v[7];
-            const float hm45 = combTmp.v[4] - combTmp.v[5];
-
-            combOutput.v[4] =  hm45 - hp67;
-            combOutput.v[5] = -hm45 - hp67;
-            combOutput.v[6] = -hp45 + hm67;
-            combOutput.v[7] = -hp45 - hm67;
-
-            combOutput.v4[0] += channel[si];
-            combOutput.v4[1] += channel[si];
-            combVector.push( combOutput );
-        }
-    }
-
-
-    inline void process_01_3(void)
-    {
-        static_assert( param.combCount==8, "this uses 8 comb filters" );
-//        static_assert( param.allpassCount==4, "this uses 4 allpass filters" );
-
-        // TODO: controller for change feedback,internal feedback, lowpass
-        //
-
-        coeffFeedback.v4[0]         = param.mode01_Householder.combTaps.coeffFB_v4[0];
-        coeffFeedback.v4[1]         = param.mode01_Householder.combTaps.coeffFB_v4[1];
-        coeffLowpass.v4[0]          = param.mode01_Householder.combTaps.coeffLP_v4[0];
-        coeffLowpass.v4[1]          = param.mode01_Householder.combTaps.coeffLP_v4[1];
-        coeffFeedbackInternal.v4[0] = param.mode01_Householder.combTapsInternal.coeffFB_v4[0];
-        coeffFeedbackInternal.v4[1] = param.mode01_Householder.combTapsInternal.coeffFB_v4[1];
-
-        coeffAllpass.v4[0]    = param.mode01_Householder.allpassTaps.coeffFB_v4[0];
-
-
-        // temp buffer -- might not be needed
-        union alignas(16) {
-            v4sf    vchannel[ EbufferPar::vsectionSize ];
-            float   channel[ EbufferPar::sectionSize ];
-        };
-
-        AllpassDelay::PackedChannel apOutput;
-        AllpassDelay::PackedChannel apTmp;
-        CombDelay::PackedChannel    combOutput;
-        CombDelay::PackedChannel    combTmp;
-        CombDelay::PackedChannel    combInternal;
-#if 1
-        // add input to local buff
-        for( auto si=0u; si < vsectionSize; ++si ) {
-            vchannel[si] = inp<0>().vchannel[chA][si] + inp<0>().vchannel[chB][si];
-        }
-#else
-        // test
-        for( auto si=0u; si < vsectionSize; ++si ) {
-            vchannel[si] = inp<0>().vchannel[chA][si];
-            out().vchannel[chA][si] = inp<0>().vchannel[chA][si];
-        }
-
-#endif
-
-
-        // calc combs 2x4 channel
-        for( auto si=0u; si<sectionSize; ++si ) {
-            combOutput.v4[0] = stateLowPass.v4[0];
-            combOutput.v4[1] = stateLowPass.v4[1];
-            // generate output
-            const V4vf res1 ( combOutput.v4[0] + combOutput.v4[1] ); // summ 8 output to 4 (pairs)
-            const float r00 = res1.v[0] + res1.v[2];
-            const float r11 = res1.v[1] - res1.v[3];
-            out().channel[chA][si] = r00 + r11;
-            out().channel[chB][si] = r00 - r11;
-
-            // output : delay + filter (1 mult)
-            // feedback output * fbmult
-            combVector.get( param.mode01_Householder.combTaps.delaySrc, combTmp );
-            combVector.get( param.mode01_Householder.combTapsInternal.delaySrc, combInternal );
-
-            // -1.0 < vcoeffFeedback < 1.0  -- positiv or negative
-            stateLowPass.v4[0] = combTmp.v4[0] + ( stateLowPass.v4[0] - combTmp.v4[0] ) * coeffLowpass.v4[0];
-            stateLowPass.v4[1] = combTmp.v4[1] + ( stateLowPass.v4[1] - combTmp.v4[1] ) * coeffLowpass.v4[1];
-
-            // 0 < coeffLowpass < 1.0
-            combTmp.v4[0] = coeffFeedback.v4[0] * combOutput.v4[0];
-            combTmp.v4[1] = coeffFeedback.v4[1] * combOutput.v4[1];
-
-            // householder feedback  4x4 2 channels
-
-            const float hp23 = combTmp.v[2] + combTmp.v[3];
-            const float hp01 = combTmp.v[0] + combTmp.v[1];
-            const float hm23 = combTmp.v[2] - combTmp.v[3];
-            const float hm01 = combTmp.v[0] - combTmp.v[1];
-
-            combOutput.v[0] =  hm01 - hp23;
-            combOutput.v[1] = -hm01 - hp23;
-            combOutput.v[2] = -hp01 + hm23;
-            combOutput.v[3] = -hp01 - hm23;
-
-            const float hp67 = combTmp.v[6] + combTmp.v[7];
-            const float hp45 = combTmp.v[4] + combTmp.v[5];
-            const float hm67 = combTmp.v[6] - combTmp.v[7];
-            const float hm45 = combTmp.v[4] - combTmp.v[5];
-
-            combOutput.v[4] =  hm45 - hp67;
-            combOutput.v[5] = -hm45 - hp67;
-            combOutput.v[6] = -hp45 + hm67;
-            combOutput.v[7] = -hp45 - hm67;
-
-            // internal low cycle feedback
-            combOutput.v4[0] -= combInternal.v4[0] * coeffFeedbackInternal.v4[0];
-            combOutput.v4[1] -= combInternal.v4[1] * coeffFeedbackInternal.v4[1];
-
-            // if there will not be allpass section
-            // const float inp = inp<0>().channel[chA][si] + inp<0>().channel[chB][si];
-            // add input and push back delay
-            combOutput.v4[0] += channel[si];
-            combOutput.v4[1] += channel[si];
-            combVector.push( combOutput );
-        }
-    }
-
-#endif
-
-    // no allpass
+    // use internal output tap
+    // low pass uses the simple multiplier form : forward multiplier = A * (1-k) !!!
     inline void process_01(void)
     {
         static_assert( param.combCount >= 8, "this uses 8 comb filters" );
-
-        // std::cout << "CombDelay::bufferSize " <<  combVector.bufferSize  << std::endl;
-
-        // TODO:
-        // controller for change feedback,internal feedback, lowpass
-        // feedback controller value 0 < x <= 1 - input is always the max (longest reverb)
-        // low pass controller value 0 < x <= 1 - input is always the lowest freq (1 pole ! low pass coeff)
-        // delay length is only reload
-
-        coeffFeedback.v4[0]         = param.mode01_Householder.combTaps.coeffFB_v4[0];
-        coeffFeedback.v4[1]         = param.mode01_Householder.combTaps.coeffFB_v4[1];
-        coeffLowpass.v4[0]          = param.mode01_Householder.combTaps.coeffLP_v4[0];
-        coeffLowpass.v4[1]          = param.mode01_Householder.combTaps.coeffLP_v4[1];
-        coeffFeedbackInternal.v4[0] = param.mode01_Householder.combTapsInternal.coeffFB_v4[0];
-        coeffFeedbackInternal.v4[1] = param.mode01_Householder.combTapsInternal.coeffFB_v4[1];
-
-        CombDelay::PackedChannel    combOutput;
-        CombDelay::PackedChannel    combTmp;
-        CombDelay::PackedChannel    combInternal;
+        CombDelay::PackedChannel    stateOutput;
+        CombDelay::PackedChannel    stateInternal;
 
         // calc combs 2x4 channel
         for( auto si=0u; si<sectionSize; ++si ) {
-            
-            // this makes an extra 1 unit delay 
-            // TODO to clean it
-            combOutput.v4[0] = stateLowPass.v4[0];
-            combOutput.v4[1] = stateLowPass.v4[1];
+            //
+            // get the output and filter - low pass
+            //
+            combVector.get( param.mode01.tapOutput.delayIndex, stateOutput );
+            stateOutput.v4[ 0 ] = stateLowPassOutput.v4[ 0 ] * param.mode01.tapOutput.coeffLowPass.v4[ 0 ] +
+                stateOutput.v4[ 0 ] * param.mode01.tapOutput.coeff.v4[ 0 ];
+            stateOutput.v4[ 1 ] = stateLowPassOutput.v4[ 1 ] * param.mode01.tapOutput.coeffLowPass.v4[ 1 ] +
+                stateOutput.v4[ 1 ] * param.mode01.tapOutput.coeff.v4[ 1 ];
+            stateLowPassOutput.v4[ 0 ] = stateOutput.v4[ 0 ];
+            stateLowPassOutput.v4[ 1 ] = stateOutput.v4[ 1 ];
+            //
             // generate output
-            const V4vf res1 ( combOutput.v4[0] + combOutput.v4[1] ); // summ 8 output to 4 (pairs)
-            const float r00 = res1.v[0] + res1.v[2];
-            const float r11 = res1.v[1] - res1.v[3];
+            //
+            const V4vf res1 ( stateOutput.v4[ 0 ] - stateOutput.v4[ 1 ] ); // diff: lower peaks in the 1st round
+            //
+            // spatialize
+            //
+            const float r00 = res1.v[ 0 ] + res1.v[ 2 ];
+            const float r11 = res1.v[ 1 ] - res1.v[ 3 ];
             out().channel[chA][si] = r00 + r11;
             out().channel[chB][si] = r00 - r11;
-
-            // output : delay + filter (1 mult)
-            // feedback output * fbmult
-            combVector.get( param.mode01_Householder.combTaps.delaySrc, combTmp );
-            combVector.get( param.mode01_Householder.combTapsInternal.delaySrc, combInternal );
-
-            // -1.0 < vcoeffFeedback < 1.0  -- positiv or negative
-            stateLowPass.v4[0] = combTmp.v4[0] + ( stateLowPass.v4[0] - combTmp.v4[0] ) * coeffLowpass.v4[0];
-            stateLowPass.v4[1] = combTmp.v4[1] + ( stateLowPass.v4[1] - combTmp.v4[1] ) * coeffLowpass.v4[1];
-
-            // 0 < coeffLowpass < 1.0
-            combTmp.v4[0] = coeffFeedback.v4[0] * combOutput.v4[0];
-            combTmp.v4[1] = coeffFeedback.v4[1] * combOutput.v4[1];
-
+            //
+            // do the feedback
+            //
+            combVector.get( param.mode01.tapFeedback.delayIndex, stateOutput );
+            //
+            // high pass
+            //
+            const CombDelay::PackedChannel tmp = stateHighPassFeedback;
+            stateOutput.v4[ 0 ] += stateHighPassFeedback.v4[ 0 ] * param.mode01.tapFeedback.coeffHighPass.v4[ 0 ];
+            stateOutput.v4[ 1 ] += stateHighPassFeedback.v4[ 1 ] * param.mode01.tapFeedback.coeffHighPass.v4[ 1 ];
+            stateHighPassFeedback.v4[ 0 ] = stateOutput.v4[ 0 ];
+            stateHighPassFeedback.v4[ 1 ] = stateOutput.v4[ 1 ];
+            stateOutput.v4[ 0 ] -= tmp.v4[ 0 ];
+            stateOutput.v4[ 1 ] -= tmp.v4[ 1 ];
+            //
+            // low pass pole
+            // amplification
+            //
+            stateOutput.v4[ 0 ] = stateLowPassFeedback.v4[ 0 ] * param.mode01.tapFeedback.coeffLowPass.v4[ 0 ] +
+                stateOutput.v4[ 0 ] * param.mode01.tapFeedback.coeff.v4[ 0 ];
+            stateOutput.v4[ 1 ] = stateLowPassFeedback.v4[ 1 ] * param.mode01.tapFeedback.coeffLowPass.v4[ 1 ] +
+                stateOutput.v4[ 1 ] * param.mode01.tapFeedback.coeff.v4[ 1 ];
+            stateLowPassFeedback.v4[ 0 ] = stateOutput.v4[ 0 ];
+            stateLowPassFeedback.v4[ 1 ] = stateOutput.v4[ 1 ];
+            //
             // householder feedback  4x4 2 channels
+            //
+            const float hp23 = stateOutput.v[ 2 ] + stateOutput.v[ 3 ];
+            const float hp01 = stateOutput.v[ 0 ] + stateOutput.v[ 1 ];
+            const float hm23 = stateOutput.v[ 2 ] - stateOutput.v[ 3 ];
+            const float hm01 = stateOutput.v[ 0 ] - stateOutput.v[ 1 ];
+            stateOutput.v[ 0 ] =  hm01 - hp23;
+            stateOutput.v[ 1 ] = -hm01 - hp23;
+            stateOutput.v[ 2 ] = -hp01 + hm23;
+            stateOutput.v[ 3 ] = -hp01 - hm23;
 
-            const float hp23 = combTmp.v[2] + combTmp.v[3];
-            const float hp01 = combTmp.v[0] + combTmp.v[1];
-            const float hm23 = combTmp.v[2] - combTmp.v[3];
-            const float hm01 = combTmp.v[0] - combTmp.v[1];
+            const float hp67 = stateOutput.v[ 6 ] + stateOutput.v[ 7 ];
+            const float hp45 = stateOutput.v[ 4 ] + stateOutput.v[ 5 ];
+            const float hm67 = stateOutput.v[ 6 ] - stateOutput.v[ 7 ];
+            const float hm45 = stateOutput.v[ 4 ] - stateOutput.v[ 5 ];
+            stateOutput.v[ 4 ] =  hm45 - hp67;
+            stateOutput.v[ 5 ] = -hm45 - hp67;
+            stateOutput.v[ 6 ] = -hp45 + hm67;
+            stateOutput.v[ 7 ] = -hp45 - hm67;
+            //
+            // inner cross feedback : rotate by 1 channel
+            //
+            combVector.getRotate( param.mode01.tapFeedbackInternal.delayIndex, stateInternal );
 
-            combOutput.v[0] =  hm01 - hp23;
-            combOutput.v[1] = -hm01 - hp23;
-            combOutput.v[2] = -hp01 + hm23;
-            combOutput.v[3] = -hp01 - hm23;
-
-            const float hp67 = combTmp.v[6] + combTmp.v[7];
-            const float hp45 = combTmp.v[4] + combTmp.v[5];
-            const float hm67 = combTmp.v[6] - combTmp.v[7];
-            const float hm45 = combTmp.v[4] - combTmp.v[5];
-
-            combOutput.v[4] =  hm45 - hp67;
-            combOutput.v[5] = -hm45 - hp67;
-            combOutput.v[6] = -hp45 + hm67;
-            combOutput.v[7] = -hp45 - hm67;
-
-            // internal low cycle feedback
-            combOutput.v4[0] -= combInternal.v4[0] * coeffFeedbackInternal.v4[0];
-            combOutput.v4[1] -= combInternal.v4[1] * coeffFeedbackInternal.v4[1];
-
+            // low pass
+            stateInternal.v4[ 0 ] = stateLowPassInternal.v4[ 0 ] * param.mode01.tapFeedbackInternal.coeffLowPass.v4[ 0 ] +
+                stateOutput.v4[ 0 ] * param.mode01.tapFeedbackInternal.coeff.v4[ 0 ];
+            stateInternal.v4[ 1 ] = stateLowPassInternal.v4[ 1 ] * param.mode01.tapFeedbackInternal.coeffLowPass.v4[ 1 ] +
+                stateOutput.v4[ 1 ] * param.mode01.tapFeedbackInternal.coeff.v4[ 1 ];
+            stateLowPassInternal.v4[ 0 ] = stateInternal.v4[ 0 ];
+            stateLowPassInternal.v4[ 1 ] = stateInternal.v4[ 1 ];
+            //
             // add input and push back delay
-            combOutput.v4[0] += inp<0>().channel[0][si];
-            combOutput.v4[1] += inp<0>().channel[1][si];
-            combVector.push( combOutput );
+            // inner cross feedback
+            //
+            stateOutput.v4[ 0 ] += inp<0>().channel[ 0 ][ si ] +
+                stateInternal.v4[ 1 ] * param.mode01.tapFeedbackInternal.coeff.v4[ 1 ];
+            stateOutput.v4[ 1 ] += inp<0>().channel[ 1 ][ si ] +
+                stateInternal.v4[ 0 ] * param.mode01.tapFeedbackInternal.coeff.v4[ 0 ];
+            combVector.push( stateOutput );
         }
     }
 
-    inline void process_02(void)
-    {
-    }
-
-    inline void process_03(void)
-    {
-    }
-
-    // + controllerCache?
-
-    // parameter cache
-    CombDelay::PackedChannel    coeffFeedback;
-    CombDelay::PackedChannel    coeffFeedbackInternal;
-    CombDelay::PackedChannel    coeffLowpass;
-
-    // low pass state
-    CombDelay::PackedChannel    stateLowPass;
-
-
-    AllpassDelay::PackedChannel coeffAllpass; // obsolate
-
-    // delay lines
+    // filter  states
+    CombDelay::PackedChannel    stateLowPassFeedback;
+    CombDelay::PackedChannel    stateHighPassFeedback;
+    CombDelay::PackedChannel    stateLowPassInternal;
+    CombDelay::PackedChannel    stateLowPassOutput;
+    // delay line
     CombDelay                   combVector;
-    AllpassDelay                allPassVector; // obsolate
 };
 
 

@@ -17,33 +17,34 @@
  */
 
 /*
- * File:   FxLateReverb.cpp
+ * File:   FxFlanger.cpp
  * Author: Istvan Simon -- stevens37 at gmail dot com
  *
  * Created on June 23, 2016, 7:46 PM
  */
 
-#include    "FxLateReverb.h"
-#include    "yacynth_globals.h"
+#include    "FxFlanger.h"
 
 namespace yacynth {
+using namespace TagEffectFxFlangerModeLevel_03;
 
-bool FxLateReverbParam::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool FxFlangerParam::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     const uint8_t tag = message.getTag(tagIndex);
-    switch( TagEffectFxLateReverbMode( tag ) ) {
-    case TagEffectFxLateReverbMode::Clear :
-        TAG_DEBUG(TagEffectFxLateReverbMode::Clear, tagIndex, paramIndex, "TagEffectFxLateReverbMode" );
+    switch( TagEffectFxFlangerMode( tag ) ) {
+    case TagEffectFxFlangerMode::Clear :
+        TAG_DEBUG(TagEffectFxFlangerMode::Clear, tagIndex, paramIndex, "TagEffectFxFlangerMode" );
         return true;
 
-    case TagEffectFxLateReverbMode::SetParametersMode01 :
-        TAG_DEBUG(TagEffectFxLateReverbMode::SetParametersMode01, tagIndex, paramIndex, "TagEffectFxLateReverbMode" );
+    case TagEffectFxFlangerMode::SetParametersMode01 :
+        TAG_DEBUG(TagEffectFxFlangerMode::SetParametersMode01, tagIndex, paramIndex, "TagEffectFxFlangerMode" );
         if( !message.checkTargetData(mode01) ) {
-            message.setStatus( Yaxp::MessageT::illegalData, tag );
+            message.setStatus( Yaxp::MessageT::illegalData, 0);
             return false;
         }
+
         if( !message.setTargetData(mode01) ) {
-            message.setStatus( Yaxp::MessageT::illegalDataLength,uint8_t(TagEffectFxLateReverbMode::SetParametersMode01));
+            message.setStatus( Yaxp::MessageT::illegalDataLength, 0);
             return false;
         }
         return true;
@@ -52,36 +53,37 @@ bool FxLateReverbParam::parameter( Yaxp::Message& message, uint8_t tagIndex, uin
     return false;
 }
 
-void FxLateReverb::clearTransient()
+void FxFlanger::clearTransient()
 {
     EIObuffer::clear();
 }
 
-bool FxLateReverb::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool FxFlanger::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     // 1st tag is tag effect type
     const uint8_t tagType = message.getTag(tagIndex);
     if( uint8_t(param.type) != tagType ) {
         message.setStatus( Yaxp::MessageT::illegalTagEffectType, uint8_t(param.type) );
-        TAG_DEBUG(Yaxp::MessageT::illegalTagEffectType, uint8_t(param.type), tagType, "FxLateReverb" );
+        TAG_DEBUG(Yaxp::MessageT::illegalTagEffectType, uint8_t(param.type), tagType, "FxFlanger" );
         return false;
     }
+
     // 2nd tag is tag operation
     const uint8_t tag = message.getTag(++tagIndex);
-    if( uint8_t(TagEffectFxLateReverbMode::Clear) == tag ) {
+    if( uint8_t(TagEffectFxFlangerMode::Clear) == tag ) {
         clearTransient(); // this must be called to cleanup
     }
     // forward to param
     return param.parameter( message, tagIndex, paramIndex );
  }
 
-bool FxLateReverb::connect( const FxBase * v, uint16_t ind )
+bool FxFlanger::connect( const FxBase * v, uint16_t ind )
 {
     doConnect(v,ind);
 };
 
 
-void FxLateReverb::sprocessTransient( void * thp )
+void FxFlanger::sprocessTransient( void * thp )
 {
     auto& th = *static_cast< MyType * >(thp);
     switch( th.fadePhase ) {
@@ -130,23 +132,33 @@ void FxLateReverb::sprocessTransient( void * thp )
 }
 
 // 00 is always clear for output or bypass for in-out
-void FxLateReverb::sprocess_00( void * thp )
+void FxFlanger::sprocess_00( void * thp )
 {
-    static_cast< MyType * >(thp)->clear();
-}
-void FxLateReverb::sprocess_01( void * thp )
-{
-    static_cast< MyType * >(thp)->process_01();
+//        static_cast< MyType * >(thp)->clear();
 }
 
-void FxLateReverb::sprocess_02( void * thp )
+void FxFlanger::sprocess_01( void * thp )
 {
-//    static_cast< MyType * >(thp)->process();
+    static_cast< MyType * >(thp)->useSine();
+    static_cast< MyType * >(thp)->processForward();
 }
 
-void FxLateReverb::sprocess_03( void * thp )
+void FxFlanger::sprocess_02( void * thp )
 {
-//    static_cast< MyType * >(thp)->process();
+    static_cast< MyType * >(thp)->useTriangle();
+    static_cast< MyType * >(thp)->processForward();
+}
+
+void FxFlanger::sprocess_03( void * thp )
+{
+    static_cast< MyType * >(thp)->useSine();
+    static_cast< MyType * >(thp)->processFeedback();
+}
+
+void FxFlanger::sprocess_04( void * thp )
+{
+    static_cast< MyType * >(thp)->useTriangle();
+    static_cast< MyType * >(thp)->processFeedback();
 }
 
 } // end namespace yacynth

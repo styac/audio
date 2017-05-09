@@ -34,72 +34,110 @@
 
 namespace yacynth {
 
+// used in LateReverb
+// delay with lowpass + highpass
+template< std::size_t N >
+struct alignas(16) MonoDelayBandpassTapArray {
+    static constexpr std::size_t size = N;
+    typedef std::array<uint32_t, N> DelayIndex;
+    static constexpr std::size_t v4size = (N+3)/4;
 
+    struct {
+        union {
+            float   v[N];             // feedback - output
+            v4sf    v4[(N+3)/4];
+        };
+    } coeff;
+
+    struct {
+        union {
+            float   v[N];             // feedback - output
+            v4sf    v4[(N+3)/4];
+        };
+    } coeffLowPass;
+    struct {
+        union {
+            float   v[N];             // feedback - output
+            v4sf    v4[(N+3)/4];
+        };
+    } coeffHighPass;
+
+    DelayIndex    delayIndex;             // delay of the tap
+};
+
+// used in LateReverb
 // delay with lowpass
 template< std::size_t N >
 struct alignas(16) MonoDelayLowpassTapArray {
+    static constexpr std::size_t size = N;
     typedef std::array<uint32_t, N> DelayIndex;
     static constexpr std::size_t v4size = (N+3)/4;
 
-    // V4array
-    union {
-        float   coeffFB_v[N];
-        v4sf    coeffFB_v4[(N+3)/4];
-    };
+    struct {
+        union {
+            float   v[N];             // feedback - output
+            v4sf    v4[(N+3)/4];
+        };
+    } coeff;
 
-    // V4array
-    union {
-        float   coeffLP_v[N];
-        v4sf    coeffLP_v4[(N+3)/4];
-    };
-    DelayIndex    delaySrc;       // delay of the tap
+    struct {
+        union {
+            float   v[N];             // feedback - output
+            v4sf    v4[(N+3)/4];
+        };
+    } coeffLowPass;
+
+    DelayIndex    delayIndex;             // delay of the tap
 };
 
+// used in LateReverb
 // simple delay
 template< std::size_t N >
 struct alignas(16) MonoDelayTapArray {
+    static constexpr std::size_t size = N;
     typedef std::array<uint32_t, N> DelayIndex;
     static constexpr std::size_t v4size = (N+3)/4;
-    // V4array
-    union {
-        float   coeffFB_v[N];
-        v4sf    coeffFB_v4[(N+3)/4];
-    };
-    DelayIndex    delaySrc;       // delay of the tap
+    struct {
+        union {
+            float   v[N];             // feedback - output
+            v4sf    v4[(N+3)/4];
+        };
+    } coeff;
+
+    DelayIndex    delayIndex;             // delay of the tap
 };
 
 
-// this uses 1 coeff for all taps
-
-template< std::size_t N >
-struct alignas(16) MonoDelayLowpassTap1CoeffArray {
-    typedef std::array<uint32_t, N> DelayIndex;
-
-    float       coeffFB_v;      // feedback
-    float       coeffLP_v;      // low pass
-    DelayIndex  delaySrc;       // delay of the tap
-};
-
-// for simple comb, allpass
-template< std::size_t N >
-struct alignas(16) MonoDelayTap1CoeffArray {
-    typedef std::array<uint32_t, N> DelayIndex;
-
-    float       coeffFB_v;      // feedback
-    DelayIndex  delaySrc;       // delay of the tap
-};
-
+// used in Echo
 template< std::size_t N >
 struct StereoDelayTapArray {
     typedef std::array<uint32_t, N> DelayIndex;
-    static constexpr std::size_t N4 = (N+3)/2;
-    union {
-        float   coeffFB_v[2][N];
-        v4sf    coeffFB_v4[2][N4];
-    };
-    
-    DelayIndex  delaySrc[2];       // delay of the tap
+    static constexpr std::size_t size = N;
+    V4vf        coeff[N];
+    uint32_t    delayIndex[N][2];
 };
+
+// used in Echo
+template< std::size_t N >
+struct StereoDelayLowPassTapArray {
+    typedef std::array<uint32_t, N> DelayIndex;
+    static constexpr std::size_t size = N;
+    V4vf        coeff[N];
+    V4vf        coeffLowPass[N];
+    uint32_t    delayIndex[N][2];
+};
+
+template< std::size_t N >
+struct StereoFractionalDelayTapArray {
+    typedef std::array<uint32_t, N> DelayIndex;
+    static constexpr std::size_t size = N;
+    V4vf        coeff[N];
+    uint64_t    delayIndex[N][2];
+};
+
+
+#if 0
+// ------------------------------------------------
 // --------------------------------------------------------------------
 // out      = delay * wet
 // delay    = delay * decay
@@ -109,10 +147,9 @@ struct Gains {
     float   decay;
 };
 
-
 // --------------------------------------------------------------------
 // store/create
-struct StereoDelayTap {
+struct StereoDelayTapOld {
     void clear(void)
     {
         delaySrc = delayDst = 0;
@@ -167,7 +204,7 @@ struct alignas(16) StereoDelayTapVar /* : public StereoDelayTap */ {
         coeff.clear();
         coeff0.clear();
     }
-    void set( const StereoDelayTap& tap ) {
+    void set( const StereoDelayTapOld& tap ) {
         coeff.v = coeff0.v = tap.coeff.v;
         delaySrc = tap.delaySrc;
         delayDst = tap.delayDst;
@@ -305,14 +342,14 @@ struct alignas(16) StereoDelayTapVector {
         }
         return true;
     }
-    bool add( const StereoDelayTap& tap ) {
+    bool add( const StereoDelayTapOld& tap ) {
         if( usedTapCount > vectorSize)
             return false;
         dtvec[usedTapCount++].set(tap);
         return dropLastInvalid();
     }
     uint16_t fill( std::stringstream& ser ) {
-        StereoDelayTap    tmp;
+        StereoDelayTapOld    tmp;
         clear();
 //        deserializeBegin(ser);
         for( auto i = 0u; i < vectorSize; ++i ) {
@@ -396,6 +433,6 @@ struct alignas(16) StereoEchoFilter {
         };
     };
 };
-
+#endif
 // --------------------------------------------------------------------
 } // end namespace yacynth

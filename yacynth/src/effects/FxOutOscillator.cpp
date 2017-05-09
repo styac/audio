@@ -187,6 +187,40 @@ void FxOutOscillator::sprocess_07( void * thp )
     static_cast< MyType * >(thp)->processTestSinImpulse();
 }
 
+void FxOutOscillator::sprocess_08( void * thp )
+{
+    static_cast< MyType * >(thp)->processTestSine440d16();
+}
+
+void FxOutOscillator::sprocess_09( void * thp )
+{
+    static_cast< MyType * >(thp)->processTestSine440d4();
+}
+
+void FxOutOscillator::sprocess_10( void * thp )
+{
+    static_cast< MyType * >(thp)->processTestSine440();
+}
+
+void FxOutOscillator::sprocess_11( void * thp )
+{
+    static_cast< MyType * >(thp)->processTestSine440m4();
+}
+
+void FxOutOscillator::sprocess_12( void * thp )
+{
+    static_cast< MyType * >(thp)->processTestSine440m16();
+}
+
+void FxOutOscillator::sprocess_13( void * thp )
+{
+    static_cast< MyType * >(thp)->processTestSine20000();
+}
+
+
+
+
+
 template<>
 bool FxSlave<FxOutOscillatorParam>::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {

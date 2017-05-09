@@ -28,9 +28,9 @@
 #include    "v4.h"
 #include    "../utils/Fastsincos.h"
 #include    "../utils/Fastexp.h"
-#include    "Tags.h"
 
-#include    "protocol.h"
+#include    "../../include/Tags.h"
+#include    "../../include/protocol.h"
 
 #include    <cstdint>
 #include    <string>
@@ -127,7 +127,7 @@ public:
         // ------------- filtered range end
         // switch controllers
         CC_BEGIN_SWITCH                 = 3*(1<<8),
-        // software controllers 
+        // software controllers
         CC_BEGIN_SW                     = 4*(1<<8),
         CC_END                          = 5*(1<<8)
     };
@@ -358,7 +358,7 @@ public:
     static constexpr std::size_t controllerChanAftertouch   = controllerCount+1;
     static constexpr std::size_t controllerPRogramChange    = controllerCount+2;
     static constexpr std::size_t controllerPitchbend        = controllerCount+3;
-    static constexpr std::size_t controllerCountAll         = controllerCount+4; 
+    static constexpr std::size_t controllerCountAll         = controllerCount+4;
 
     struct ControlData {
         uint8_t    index;
@@ -412,7 +412,7 @@ public:
         CM_UNMUTE           = CM_DISABLE-41,
         CM_RESET            = CM_DISABLE-42,
         // more MIDI ????
-                
+
         /* 0..128 direct value */
     };
 
@@ -477,10 +477,10 @@ public:
         cdt[ channel & channelCountMask ] [ controller ].index = ind;
         cdt[ channel & channelCountMask ] [ controller ].mode  = mode;
         std::cout << std::hex
-            << "  +++++++++ channel " << uint16_t(channel) 
-            << " controller " << uint16_t(controller) 
-            << " index " << uint16_t(cdt[ channel & channelCountMask ] [ controller ].index) 
-            << " mode " << uint16_t(cdt[ channel & channelCountMask ] [ controller ].mode)  
+            << "  +++++++++ channel " << uint16_t(channel)
+            << " controller " << uint16_t(controller)
+            << " index " << uint16_t(cdt[ channel & channelCountMask ] [ controller ].index)
+            << " mode " << uint16_t(cdt[ channel & channelCountMask ] [ controller ].mode)
             << std::endl;
     }
 
@@ -498,7 +498,7 @@ private:
 // new
 //
 
-// define an index 
+// define an index
 struct ControllerIndex {
     uint16_t    index;
     bool setIndex( uint16_t ind )
@@ -513,13 +513,60 @@ struct ControllerIndex {
     {
         InnerController::getInstance().set( index, v );
     }
-    inline float getExpValue(void) const
+    inline float getExpValueFloat() const
     {
         return InnerController::getInstance().getExpValue( InnerController::getInstance().get( index ));
     }
-    inline uint32_t getPhaseValue(void) const
+    inline uint32_t getPhaseValueU32() const
     {
         return InnerController::getInstance().getPhaseValue(InnerController::getInstance().get( index ));
+    }
+
+    inline int32_t getLfoSawI16() const
+    {
+        return(int32_t(InnerController::getInstance().get( index ))>>16);
+    }
+
+    inline int32_t getLfoSinI16() const
+    {
+        return tables::waveSinTable[ uint16_t(InnerController::getInstance().get( index )>>16) ];
+    }
+
+    inline int32_t getLfoSinI32() const
+    {
+        return tables::waveSinTable[ uint16_t(InnerController::getInstance().get( index )>>16) ] << 16;
+    }
+
+    inline int32_t getLfoSinU32() const
+    {
+        return ( int32_t(tables::waveSinTable[ uint16_t(InnerController::getInstance().get( index )>>16) ]) << 15 ) + 0x3FFF0000;
+    }
+
+    inline int32_t getLfoTriangleI16() const
+    {
+        const int32_t tmp = (int32_t(InnerController::getInstance().get( index ))>>15);
+        return ((tmp>>16) ^ tmp ) - 0x7FFF;
+    }
+
+    // not tested
+    inline int32_t getLfoTriangleU16() const
+    {
+        const int32_t tmp = (int32_t(InnerController::getInstance().get( index ))>>15);
+        return ((tmp>>16) ^ tmp );
+    }
+    
+    // not tested
+    inline int32_t getLfoTriangleI32() const
+    {
+        const int32_t tmp = (int32_t(InnerController::getInstance().get( index ))>>1);
+        return ((tmp>>30) ^ tmp ) - 0x7FFFFFFF;
+    }
+
+    // not tested
+    inline int32_t getLfoTriangleU32() const
+    {
+        const int32_t tmp = (int32_t(InnerController::getInstance().get( index ))>>1);
+        return ((tmp>>30) ^ tmp );
     }
 };
 
@@ -561,9 +608,9 @@ struct ControllerCache {
     {
         return value & 0x7FFFF;
     }
-    inline void trigger(void) 
+    inline void trigger(void)
     {
-        value &= 0x8000; // trigger a change 
+        value &= 0x8000; // trigger a change
     }
     // cache is not used for oscillator -- normally midi is max 14 bit
 //    int32_t     value;
@@ -572,7 +619,7 @@ struct ControllerCache {
 
 // always adds only a fraction of the change to the value
 // compare this with filtered controller
-template< int32_t lim > 
+template< int32_t lim >
 struct ControllerCacheDelta : public ControllerCache {
     static_assert( lim > 2 && lim < 30 ,"value out of limits");
     inline bool updateDelta( const ControllerIndex ind )
@@ -593,7 +640,7 @@ template< uint8_t acount >
 struct ControllerMapLinear {
     static constexpr uint8_t offsetCount = acount;
     static constexpr int32_t maxMult  = 1<<24;   // min input 7 bit
-    static constexpr int32_t maxOffs  = 1<<30;   
+    static constexpr int32_t maxOffs  = 1<<30;
     inline int32_t getScaled( int32_t val ) const
     {
         return mult * val;
@@ -609,18 +656,18 @@ struct ControllerMapLinear {
         static_assert( offsetCount>0,"not usable" );
         return y0[ind] + val;
     }
-    bool check() 
+    bool check()
     {
         const int32_t abm = std::abs(mult);
         if( abm == 0 || abm > maxMult ) {
-            std::cout << "  ControllerMapLinear err mult " << mult << std::endl;            
+            std::cout << "  ControllerMapLinear err mult " << mult << std::endl;
             return false;
-        } 
+        }
         for( auto &y : y0 ) {
             const int32_t aby = std::abs(y);
             if( aby > maxOffs ) {
-                std::cout << "  ControllerMapLinear err offs " << aby << std::endl;            
-                return false;                
+                std::cout << "  ControllerMapLinear err offs " << aby << std::endl;
+                return false;
             }
         }
         return true;
@@ -629,6 +676,37 @@ struct ControllerMapLinear {
     int32_t     y0[offsetCount];
 };
 
+//
+// N is the iteration count -> 1<<itCountExp
+//
+
+template< typename T, std::size_t itCountExp >
+class ControllerLinearIterator {
+public:
+    ControllerLinearIterator()
+    : delta(0)
+    , lastValue(0)
+    , currValue(0)
+    {}
+
+    inline void set( T v )
+    {
+       lastValue = currValue;
+       currValue = v;
+        delta = ( currValue - lastValue ) >> itCountExp;
+//        delta = ( currValue - lastValue + (1LL<<(itCountExp)) ) >> itCountExp;
+    }
+
+    inline T getInc()
+    {
+        return lastValue += delta;
+    }
+
+private:
+    T delta;
+    T lastValue;
+    T currValue;
+};
 
 // OBSOLATE !!
 

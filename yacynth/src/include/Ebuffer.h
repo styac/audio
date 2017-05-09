@@ -29,25 +29,28 @@
 #include    <array>
 #include    <cstring>
 #include    <iostream>
+// #include    <ieee754.h>
 
 namespace yacynth {
 // --------------------------------------------------------------------
 // manipulate the floats
-union   floatexp {
-    float   inFl;
-    struct {
-        uint32_t mantisa    : 23;
+union floatexp {
+    float       f;
+    uint32_t    i;
+    struct __attribute__((packed)) {
+        uint32_t mantissa   : 23;
         uint32_t exponent   : 8;
         uint32_t sign       : 1;
     };
 };
 
-template< int level >
-inline float noisefloor( const float val )
+
+// to kill small numbers
+inline float noisefloor( float val )
 {
-    const floatexp  fexpv { .inFl = val };
-    return fexpv.exponent < (127+level) ? 0.0f : val;    // 2^-27
+    return (floatexp{val}).i & 0x60000000 ? val : 0.0f; // ca. 1e-19 .... highest 2 bits of exponent zero
 }
+
 // --------------------------------------------------------------------
 
 //
@@ -89,7 +92,7 @@ struct FadeBufferTag { FadeBufferTag(int){} };
 struct EIObuffer : public EbufferPar {
     static constexpr std::size_t channelCount       = 2;
     typedef std::array<float,channelCount> elementSetType;
-    
+
     EIObuffer()
     { clear(); };
 
@@ -181,7 +184,15 @@ struct EIObuffer : public EbufferPar {
         }
     }
 
-    inline void mult( const EIObuffer& inp0, const EIObuffer& inp1, 
+    inline void mult( const EIObuffer& inp, float gain0, float gain1 )
+    {
+        for( auto i=0u; i < vsectionSize; ++i ) {
+            vchannel[chA][i] = inp.vchannel[chA][i] * gain0;
+            vchannel[chB][i] = inp.vchannel[chB][i] * gain1;
+        }
+    }
+
+    inline void mult( const EIObuffer& inp0, const EIObuffer& inp1,
                       float gain0, float gain1 )
     {
         for( auto i=0u; i < vsectionSize; ++i ) {
@@ -191,17 +202,17 @@ struct EIObuffer : public EbufferPar {
             vchannel[chB][i] = inp0.vchannel[chB][i] * gain0 + inp1.vchannel[chB][i] * gain1;
         }
     }
-        
+
     inline void mult( const EIObuffer& inp0, const EIObuffer& inp1, const EIObuffer& inp2,
                       float gain0, float gain1, float gain2 )
     {
         for( auto i=0u; i < vsectionSize; ++i ) {
-            vchannel[chA][i] = inp0.vchannel[chA][i] * gain0 
+            vchannel[chA][i] = inp0.vchannel[chA][i] * gain0
                     + inp1.vchannel[chA][i] * gain1
                     + inp2.vchannel[chA][i] * gain2;
         }
         for( auto i=0u; i < vsectionSize; ++i ) {
-            vchannel[chB][i] = inp0.vchannel[chB][i] * gain0 
+            vchannel[chB][i] = inp0.vchannel[chB][i] * gain0
                     + inp1.vchannel[chB][i] * gain1
                     + inp2.vchannel[chB][i] * gain2;
         }
@@ -211,19 +222,19 @@ struct EIObuffer : public EbufferPar {
                       float gain0, float gain1, float gain2, float gain3 )
     {
         for( auto i=0u; i < vsectionSize; ++i ) {
-            vchannel[chA][i] = inp0.vchannel[chA][i] * gain0 
+            vchannel[chA][i] = inp0.vchannel[chA][i] * gain0
                     + inp1.vchannel[chA][i] * gain1
                     + inp2.vchannel[chA][i] * gain2;
                     + inp3.vchannel[chA][i] * gain3;
         }
         for( auto i=0u; i < vsectionSize; ++i ) {
-            vchannel[chB][i] = inp0.vchannel[chB][i] * gain0 
+            vchannel[chB][i] = inp0.vchannel[chB][i] * gain0
                     + inp1.vchannel[chB][i] * gain1
                     + inp2.vchannel[chB][i] * gain2;
                     + inp3.vchannel[chB][i] * gain3;
         }
     }
-    
+
     inline void mult( float gain )
     {
         for( auto i=0u; i < vsectionSize; ++i ) {
@@ -232,9 +243,17 @@ struct EIObuffer : public EbufferPar {
         }
     }
 
+    inline void multAdd( float gain, const EIObuffer& inp0 )
+    {
+        for( auto i=0u; i < vsectionSize; ++i ) {
+            vchannel[chA][i] = vchannel[chA][i] * gain + inp0.vchannel[chA][i];
+            vchannel[chB][i] = vchannel[chB][i] * gain + inp0.vchannel[chB][i];
+        }
+    }
+
     inline void fade( const EIObuffer& inp, float& gain, float dgain )
     {
-        static constexpr float fadeGain     =  (1.0f/(1<<6)); 
+        static constexpr float fadeGain     =  (1.0f/(1<<6));
         dgain *= fadeGain;
         float gaini = gain;
         for( auto i=0u; i < sectionSize; ++i ) {
@@ -257,9 +276,9 @@ struct EIObuffer : public EbufferPar {
         }
         gain = gaini;
     }
-       
-    inline void fadeV4( const EIObuffer& inp0, const EIObuffer& inp1, 
-        float& gain0, float& gain1, 
+
+    inline void fadeV4( const EIObuffer& inp0, const EIObuffer& inp1,
+        float& gain0, float& gain1,
         float dgain0, float dgain1 )
     {
         constexpr float fadeGainV4   =  (1.0f/(1<<4));
@@ -272,19 +291,19 @@ struct EIObuffer : public EbufferPar {
         for( auto i=0u; i < vsectionSize; ++i ) {
             gaini0 += dgain0;
             gaini1 += dgain1;
-            vchannel[chA][i] = 
+            vchannel[chA][i] =
                     inp0.vchannel[chA][i] * gain0
                   + inp1.vchannel[chA][i] * gain1;
-            vchannel[chB][i] = 
+            vchannel[chB][i] =
                     inp0.vchannel[chB][i] * gain0
                   + inp1.vchannel[chB][i] * gain1;
         }
         gain0 = gaini0;
         gain1 = gaini1;
     }
-    
-    inline void fadeV4( const EIObuffer& inp0, const EIObuffer& inp1, const EIObuffer& inp2, 
-        float& gain0, float& gain1, float& gain2, 
+
+    inline void fadeV4( const EIObuffer& inp0, const EIObuffer& inp1, const EIObuffer& inp2,
+        float& gain0, float& gain1, float& gain2,
         float dgain0, float dgain1, float dgain2 )
     {
         constexpr float fadeGainV4   =  (1.0f/(1<<4));
@@ -298,11 +317,11 @@ struct EIObuffer : public EbufferPar {
             gaini0 += dgain0;
             gaini1 += dgain1;
             gaini2 += dgain2;
-            vchannel[chA][i] = 
+            vchannel[chA][i] =
                     inp0.vchannel[chA][i] * gain0
                   + inp1.vchannel[chA][i] * gain1
                   + inp2.vchannel[chA][i] * gain2;
-            vchannel[chB][i] = 
+            vchannel[chB][i] =
                     inp0.vchannel[chB][i] * gain0
                   + inp1.vchannel[chB][i] * gain1
                   + inp2.vchannel[chB][i] * gain2;
@@ -312,8 +331,8 @@ struct EIObuffer : public EbufferPar {
         gain2 = gaini2;
     }
 
-    inline void fadeV4( const EIObuffer& inp0, const EIObuffer& inp1, const EIObuffer& inp2, const EIObuffer& inp3, 
-        float& gain0, float& gain1, float& gain2, float& gain3, 
+    inline void fadeV4( const EIObuffer& inp0, const EIObuffer& inp1, const EIObuffer& inp2, const EIObuffer& inp3,
+        float& gain0, float& gain1, float& gain2, float& gain3,
         float dgain0, float dgain1, float dgain2, float dgain3 )
     {
         constexpr float fadeGainV4   =  (1.0f/(1<<4));
@@ -329,12 +348,12 @@ struct EIObuffer : public EbufferPar {
             gaini0 += dgain0;
             gaini1 += dgain1;
             gaini2 += dgain2;
-            vchannel[chA][i] = 
+            vchannel[chA][i] =
                     inp0.vchannel[chA][i] * gain0
                   + inp1.vchannel[chA][i] * gain1
                   + inp2.vchannel[chA][i] * gain2
                   + inp3.vchannel[chA][i] * gain3;
-            vchannel[chB][i] = 
+            vchannel[chB][i] =
                     inp0.vchannel[chB][i] * gain0
                   + inp1.vchannel[chB][i] * gain1
                   + inp2.vchannel[chB][i] * gain2
@@ -345,7 +364,7 @@ struct EIObuffer : public EbufferPar {
         gain2 = gaini2;
         gain3 = gaini3;
     }
-    
+
     inline void mult( const EIObuffer& inp1, const EIObuffer& inp2  )
     {
         for( auto i=0u; i < vsectionSize; ++i ) {
@@ -460,17 +479,19 @@ struct EDelayLine : public EbufferPar {
     static constexpr std::size_t channelCount = 2;
     typedef std::array<float,channelCount> elementSetType;
     //template< std::size_t N > std::array<uint32_t, N> DelayIndex;
-    
+
     EDelayLine( std::size_t sectionCountExp ) // section count MUST BE 1<<k
     :   index(0)
     ,   bufferSizeExp( sectionCountExp + sectionSizeExp )
     ,   bufferSize( 1L << ( sectionCountExp + sectionSizeExp) )
     ,   bufferSizeMask(bufferSize-1)
     {
-// channel[0] = (float *) ::operator new  ( bufferSize * sizeof(float) * channelCount );
-// channel[1] = channel[0] + bufferSize
-        for( auto& ichn : channel ) ichn = (float *) ::operator new  ( bufferSize * sizeof(float) );
-//        for( auto& ichn : channel ) ichn = new float [ bufferSize ];
+        for( auto& ichn : channel ) ichn = (float *) new v4sf[ bufferSize >> 2 ]; // v4sf = 4 float
+        for( int i=0; i<channelCount; ++i ) {
+            if( (uint64_t) channel[i] & 0xF ) {
+                std::cerr << "illegal alignment channel:" << channel[i] << std::endl;
+            }
+        }
 
         clear();
     };
@@ -502,6 +523,8 @@ struct EDelayLine : public EbufferPar {
         channel[chA][ index ] = valA;
         index = ( ++index ) & bufferSizeMask;
     };
+    //       { return index & bufferSizeMask & ( ~sectionSizeMask ); };
+
     inline void pushSection( const float * valA, const float * valB )
     {
         auto * pA = &channel[chA][ ( index & ~sectionSizeMask ) & bufferSizeMask ];
@@ -512,63 +535,84 @@ struct EDelayLine : public EbufferPar {
         }
         incIndexBySectionSize();
     };
-    inline void pushBlock( const float * valA, float * valB )
-    {
-        for( uint32_t ind = 0u; ind < sectionSize; ++ind ) {
-            channel[chA][ index ] = *valA++;
-            channel[chB][ index ] = *valB++;
-            index = ( ++index ) & bufferSizeMask;
-        }
-    };
-    //
-    // ----------------------------------------------------------------------
-    // different utility functions - perhaps will be moved to an other class
 
-    // ----------------------------------------------------------------------
+    inline void pushSection( const EIObuffer& ebuf )
+    {
+        const v4sf * iA = ebuf.vchannel[ chA ];
+        const v4sf * iB = ebuf.vchannel[ chB ];
+        v4sf * pA = (v4sf *) &channel[chA][ ( index & ~sectionSizeMask ) & bufferSizeMask ];
+        v4sf * pB = (v4sf *) &channel[chB][ ( index & ~sectionSizeMask ) & bufferSizeMask ];
+
+        for( auto ind = 0u; ind < vsectionSize; ++ind ) {
+            *pA++ = *iA++;
+            *pB++ = *iB++;
+        }
+        incIndexBySectionSize();
+    };
+
+    inline void pushAndFeedbackSection( const EIObuffer& ebuf, uint32_t delay, float coeff )
+    {
+        const v4sf * iA = ebuf.vchannel[ chA ];
+        const v4sf * iB = ebuf.vchannel[ chB ];
+        v4sf * pA = (v4sf *) &channel[chA][ ( index & ~sectionSizeMask ) & bufferSizeMask ];
+        v4sf * pB = (v4sf *) &channel[chB][ ( index & ~sectionSizeMask ) & bufferSizeMask ];
+
+        for( auto ind = 0u; ind < vsectionSize; ++ind ) {
+            *pA++ = *iA++;
+            *pB++ = *iB++;
+        }
+        
+        uint32_t cind = getIndex(delay);
+        for( uint32_t ind = 0u; ind < sectionSize; ++ind ) {
+            channel[ chA ][ index + ind ] += channel[ chA ][ cind ] * coeff;
+            channel[ chB ][ index + ind ] += channel[ chB ][ cind ] * coeff;
+            cind = ( ++cind ) & bufferSizeMask;
+        }
+        incIndexBySectionSize();
+    };
+    
     //
+    // ----------------------------------------------------------------------
+    // different utility functions
+    // ----------------------------------------------------------------------
+
+    // 2nd order Lagrange modified Farrow
+    // bad http://users.spa.aalto.fi/vpv/publications/vesan_vaitos/ch3_pt2_lagrange.pdf page 101
+    // ok http://seat.massey.ac.nz/personal/e.lai/Publications/c/ICASSP2011.pdf page 1630
+    //
+    // input: lindex -
+    //  high 32 bit is the sample index
+    //  low 32 bit is the interpolation value between 2 samples
+    //
+    template< std::size_t chN >
+    inline float getInterpolated2Order( const uint64_t lindex ) const
+    {
+        static_assert( chN < channelCount, "channel count");
+        constexpr float range = 1.0 / (1L<<32);
+        const uint32_t  ind = ( lindex + 0x080000000LL )>>32;      // middle point -0.5..+0.5
+        const float d = int32_t( lindex & 0x0FFFFFFFFLL ) * range;  // -0.5..+0.5
+        const float sm1 = channel[ chN ][ ( index - ind - 1 ) & bufferSizeMask ] * 0.5f;
+        const float s0  = channel[ chN ][ ( index - ind     ) & bufferSizeMask ];
+        const float sp1 = channel[ chN ][ ( index - ind + 1 ) & bufferSizeMask ] * 0.5f;
+        return (( sm1 + sp1 - s0 ) * d - sp1 + sm1 ) * d + s0;
+    };
+
     // const float y0 = channel[chA][ indk0 ]
     // const float dy = y0 - channel[chA][ indk1 ]
     // return y0 + dy * ( lindex & 0x0FFFFFFFF ) * range;
     //
     // index: high 32 index, low 32 fraction - linear interpolation between the points i-1, i
     //
-    inline float getInterpolatedA( const uint64_t lindexA ) const
+    template< std::size_t chN >
+    inline float getInterpolated1Order( const uint64_t lindex ) const
     {
-        constexpr float range       = 1.0 / (1L<<32);
-        constexpr uint64_t Fmask    = 0x0FFFFFFFFLL;
-        const uint32_t  indAk0      = ( index - ( lindexA>>32 ) ) & bufferSizeMask; // from the past
-        const float     multAF0     = ( lindexA & Fmask ) * range;
-        return channel[chA][ ( indAk0 - 1 ) & bufferSizeMask ] * multAF0 + channel[chA][ indAk0 ] * ( 1.0f - multAF0 );
+        static_assert( chN < channelCount, "channel count");
+        constexpr float range   = 1.0 / (1L<<32);
+        const uint32_t  ind     = ( index - ( lindex>>32 ) ) & bufferSizeMask;
+        const float     d       = ( lindex & 0x0FFFFFFFFLL ) * range;
+        return channel[chN][ ind ] * ( 1.0f - d ) + channel[chN][( ind-1 ) & bufferSizeMask ] * d;
     };
 
-    inline float getInterpolatedB( const uint64_t lindexB ) const
-    {
-        constexpr float range       = 1.0 / (1L<<32);
-        constexpr uint64_t Fmask    = 0x0FFFFFFFFLL;
-        const uint32_t  indBk0      = ( index - ( lindexB>>32 ) ) & bufferSizeMask; // from the past
-        const float     multBF0     = ( lindexB & Fmask ) * range;
-        return channel[chB][ ( indBk0 - 1 ) & bufferSizeMask ] * multBF0 + channel[chB][ indBk0 ] * ( 1.0f - multBF0 );
-    };
-
-    // ---------------------------------------------------------------------
-
-    // these are used by the Echo
-    inline void multAddMixStereo( const uint32_t delay, const V4sfMatrix trm, float& A, float& B ) const
-    {
-        const uint32_t cind = getIndex(delay);
-        A += channel[chA][cind] * trm.aa + channel[chB][cind] * trm.ab;
-        B += channel[chA][cind] * trm.ba + channel[chB][cind] * trm.bb;
-    }
-
-    template< int Noisefloor >
-    inline void multAddMixStereoNoisefloor( const uint32_t delay, const V4sfMatrix trm, float& A, float& B ) const
-    {
-        const uint32_t cind = getIndex(delay);
-        const float inA = noisefloor<Noisefloor>(channel[chA][cind]);  // 2^-24
-        const float inB = noisefloor<Noisefloor>(channel[chB][cind]);
-        A += inA * trm.aa + inB * trm.ab;
-        B += inA * trm.ba + inB * trm.bb;
-    }
     // ----------------------------------------------------------------------
     // these are used by the Comb
     inline void multAdd( const uint32_t delay, const float mult, float& A, float& B ) const
@@ -577,6 +621,13 @@ struct EDelayLine : public EbufferPar {
         A += channel[chA][cind] * mult;
         B += channel[chB][cind] * mult;
     }
+
+    template< std::size_t chN >
+    inline float get( const uint32_t delay ) const
+    {
+        return channel[chN][getIndex(delay)];
+    }
+
     inline void get( const uint32_t delay, float& A, float& B ) const
     {
         const uint32_t cind = getIndex(delay);
@@ -584,183 +635,124 @@ struct EDelayLine : public EbufferPar {
         B = channel[chB][cind];
     }
 
-    // lin interpolated delay line  used by the Comb
-    inline void getInterpolatedMult( const uint64_t lindexA, const uint64_t lindexB, const float mult, float& A, float& B ) const
+    inline void feedbackSection(
+        uint32_t delay,
+        float  coeff
+        )
     {
-        constexpr float range       = 1.0 / (1L<<32);
-        constexpr uint64_t Fmask    = 0x0FFFFFFFFLL;
-        const float     multR       = mult * range;
-        const uint32_t  indAk0      = ( index - ( lindexA>>32 ) ) & bufferSizeMask;
-        const float     multAF0     = ( lindexA & Fmask ) * multR;
-        const uint32_t  indBk0      = ( index - ( lindexB>>32 ) ) & bufferSizeMask;
-        const float     multBF0     = ( lindexB & Fmask ) * multR;
-        A = channel[chA][ ( indAk0 - 1 ) & bufferSizeMask ] * multAF0 + channel[chA][ indAk0 ] * ( mult - multAF0 );
-        B = channel[chB][ ( indBk0 - 1 ) & bufferSizeMask ] * multBF0 + channel[chB][ indBk0 ] * ( mult - multBF0 );
-    };
-    // lin interpolated delay line  used by the Comb
-    inline void getInterpolated( const uint64_t lindexA, const uint64_t lindexB, float& A, float& B ) const
-    {
-        constexpr float range       = 1.0 / (1L<<32);
-        constexpr uint64_t Fmask    = 0x0FFFFFFFFLL;
-        const uint32_t  indAk0      = ( index - ( lindexA>>32 ) ) & bufferSizeMask;
-        const float     multAF0     = ( lindexA & Fmask ) * range;
-        const uint32_t  indBk0      = ( index - ( lindexB>>32 ) ) & bufferSizeMask;
-        const float     multBF0     = ( lindexB & Fmask ) * range;
-        A = channel[chA][ ( indAk0 - 1 ) & bufferSizeMask ] * multAF0 + channel[chA][ indAk0 ] * ( 1.0f - multAF0 );
-        B = channel[chB][ ( indBk0 - 1 ) & bufferSizeMask ] * multBF0 + channel[chB][ indBk0 ] * ( 1.0f - multBF0 );
-    };
+        uint32_t cind = getIndex(delay);
+        for( uint32_t ind = 0u; ind < sectionSize; ++ind ) {
+            channel[ chA ][ index + ind ] += channel[ chA ][ cind ] * coeff;
+            channel[ chB ][ index + ind ] += channel[ chB ][ cind ] * coeff;
+            cind = ( ++cind ) & bufferSizeMask;
+        }
+    }
 
+    inline void feedbackSection(
+        uint32_t delayA,
+        uint32_t delayB,
+        float  coeffA,
+        float  coeffB
+        )
+    {
+        uint32_t cindA = getIndex(delayA);
+        uint32_t cindB = getIndex(delayB);
+        for( uint32_t ind = 0u; ind < sectionSize; ++ind ) {
+            channel[ chA ][ index + ind ] += channel[ chA ][ cindA ] * coeffA;
+            channel[ chB ][ index + ind ] += channel[ chB ][ cindB ] * coeffB;
+            cindA = ( ++cindA ) & bufferSizeMask;
+            cindB = ( ++cindB ) & bufferSizeMask;
+        }
+    }
     // ----------------------------------------------------------------------
-    // mono stereo
-    inline void combFeedbackA(
-        const uint32_t  lindexA,
-        const float     multA,
-        const float     inA,
-        float& outA  )
-    {
-        channel[chA][ index ] = outA = inA + channel[chA][ getIndex(lindexA) ] * multA;
-        incIndex();
-    };
-
-    inline void combFeedbackStereo(
-        const uint32_t  lindexA, const uint32_t  lindexB,
-        const float multA, const float multB,
-        const float inA, const float inB,
-        float& outA, float& outB  )
-    {
-        channel[chA][ index ] = outA = inA + channel[chA][ getIndex(lindexA) ] * multA;
-        channel[chB][ index ] = outB = inB + channel[chB][ getIndex(lindexB) ] * multB;
-        incIndex();
-    };
-    inline void combFeedbackDelayA(
-        const uint32_t  lindexA,
-        const float     multA,
-        const float     inA,
-        float& outA  )
-    {
-        outA = channel[chA][ getIndex(lindexA) ];
-        channel[chA][ index ] = inA + outA * multA;
-        incIndex();
-    };
-
-    inline void combFeedbackDelayStereo(
-        const uint32_t  lindexA, const uint32_t  lindexB,
-        const float multA, const float multB,
-        const float inA, const float inB,
-        float& outA, float& outB  )
-    {
-        outA = channel[chA][ getIndex(lindexA) ];
-        channel[chA][ index ] = inA + outA * multA;
-        outB = channel[chA][ getIndex(lindexA) ];
-        channel[chB][ index ] = inB + outB * multB;
-        incIndex();
-    };
-
-    inline void combAllpassA(
-        const uint32_t  lindexA,
-        const float     multA,
-        const float     inA,
-        float& outA  )
-    {
-        const auto yA = channel[chA][ getIndex(lindexA) ];
-        const auto xA = channel[chA][ index ] = inA - yA * multA;
-        outA = yA + xA * multA;
-        incIndex();
-    };
-
-    inline void combAllpassStereo(
-        const uint32_t  lindexA, const uint32_t  lindexB,
-        const float     multA, const float     multB,
-        const float inA, const float inB,
-        float& outA, float& outB  )
-    {
-        const auto yA = channel[chA][ getIndex(lindexA) ];
-        const auto yB = channel[chB][ getIndex(lindexB) ];
-        const auto xA = channel[chA][ index ] = inA - yA * multA;
-        const auto xB = channel[chB][ index ] = inB - yB * multB;
-        outA = yA + xA * multA;
-        outB = yB + xB * multB;
-        incIndex();
-    };
-    // ----------------------------------------------------------------------
-    // tapped line delay (FIR) 
-    // 
-    void fillTLDSection( 
-        uint32_t delayA, 
-        uint32_t delayB, 
-        float * chnA, 
+    // tapped delay line - TDL (FIR)
+    //
+    void fillTDLSection(
+        uint32_t delayA,
+        uint32_t delayB,
+        float * chnA,
         float * chnB
-        ) 
+        )
     {
-        // might be better for cache 
+        // might be better for cache
         uint32_t cindA = getIndex(delayA);
         for( uint32_t ind = 0u; ind < sectionSize; ++ind ) {
             *chnA++ = channel[chA][ cindA ];
             cindA = ( ++cindA ) & bufferSizeMask;
         }
-        
+
         uint32_t cindB = getIndex(delayB);
         for( uint32_t ind = 0u; ind < sectionSize; ++ind ) {
             *chnB++ = channel[chB][ cindB ];
             cindB = ( ++cindB ) & bufferSizeMask;
-        }            
+        }
     }
-    
-    void fillTLDSection( 
-        uint32_t delayA, 
-        uint32_t delayB, 
+
+    void fillTDLSection(
+        uint32_t delayA,
+        uint32_t delayB,
         float  coeffA,
         float  coeffB,
-        float * chnA, 
+        float * chnA,
         float * chnB
-        ) 
+        )
     {
         uint32_t cindA = getIndex(delayA);
         for( uint32_t ind = 0u; ind < sectionSize; ++ind ) {
             *chnA++ = channel[chA][ cindA ] * coeffA;
             cindA = ( ++cindA ) & bufferSizeMask;
         }
-        
+
         uint32_t cindB = getIndex(delayB);
         for( uint32_t ind = 0u; ind < sectionSize; ++ind ) {
             *chnB++ = channel[chB][ cindB ] * coeffB;
             cindB = ( ++cindB ) & bufferSizeMask;
-        }            
+        }
     }
 
-    void addTLDSection( 
-        uint32_t delayA, 
-        uint32_t delayB, 
+    void addTDLSection(
+        uint32_t delayA,
+        uint32_t delayB,
         float  coeffA,
         float  coeffB,
-        float * chnA, 
+        float * chnA,
         float * chnB
-        ) 
+        )
     {
         uint32_t cindA = getIndex(delayA);
         for( uint32_t ind = 0u; ind < sectionSize; ++ind ) {
             *chnA++ += channel[chA][ cindA ] * coeffA;
             cindA = ( ++cindA ) & bufferSizeMask;
         }
-        
+
         uint32_t cindB = getIndex(delayB);
         for( uint32_t ind = 0u; ind < sectionSize; ++ind ) {
             *chnB++ += channel[chB][ cindB ] * coeffB;
             cindB = ( ++cindB ) & bufferSizeMask;
-        }            
+        }
     }
+
     // ----------------------------------------------------------------------
 
     inline uint32_t getIndex( void )  const
         { return index; };
+
     inline uint32_t getIndex( const uint32_t delay )  const
         { return ( index - delay ) & bufferSizeMask; };
+
     inline void incIndex(void)
         { index = (++index) & bufferSizeMask; };
+
     inline std::size_t getSectionIndex( const uint32_t sectionOffset ) const
         { return ( index - ( sectionOffset & (~sectionSizeMask) )) & bufferSizeMask; };
+
+    inline std::size_t getSectionIndex() const
+        { return index & bufferSizeMask & ( ~sectionSizeMask ); };
+
     inline void incIndexBySectionSize( void )
-        { index = ( index + sectionSize ) & ( bufferSizeMask & ~sectionSizeMask ); };
+        { 
+            index = ( index + sectionSize ) & ( bufferSizeMask & ~sectionSizeMask ); 
+        };
 
     // ----------------------------------------------------------------------
 
@@ -777,7 +769,6 @@ struct EDelayLine : public EbufferPar {
 
 template< std::size_t channelCount >
 struct EDelayLineArray : public EbufferPar {
-    typedef std::array<float,channelCount> elementSetType;
     static constexpr std::size_t V4channelCount = (channelCount+3)/4;
 
     typedef union alignas(16) {
@@ -792,8 +783,13 @@ struct EDelayLineArray : public EbufferPar {
     ,   bufferSize( 1L << ( sectionCountExp + sectionSizeExp) )
     ,   bufferSizeMask(bufferSize-1)
     {
-//        for( auto& ichn : channel ) ichn = new float ( bufferSize );
-        for( auto& ichn : channel ) ichn = (float *) ::operator new  ( bufferSize * sizeof(float) );
+        // debug
+        for( int i=0; i<channelCount; ++i ) {
+            channel[ i ] = (float *) new v4sf[ bufferSize >> 2 ]; // v4sf = 4 float
+            if( (uint64_t) channel[i] & 0xF ) {
+                std::cerr << "illegal alignment channel:" << channel[i] << std::endl;
+            }
+        }
         clear();
     };
 
@@ -801,36 +797,91 @@ struct EDelayLineArray : public EbufferPar {
 
     void clear(void)
     {
-        for( auto& ichn : channel ) memset( ichn, 0, bufferSize*sizeof(float) );
+        for( int i=0; i<channelCount; ++i ) {
+            memset( channel[ i ], 0, bufferSize*sizeof(float) );
+        }
         index = 0;
     };
 
     ~EDelayLineArray()
     {
-        for( auto& ichn : channel ) delete ichn;
+        for( int i=0; i<channelCount; ++i ) {
+            v4sf *p = (v4sf *) channel[ i ];
+            delete[] p;
+        }
     };
 
     inline void push( const PackedChannel& p )
     {
         for( uint32_t i=0; i<channelCount; ++i )
-            channel[i][ index ] = p.v[i];
+            channel[ i ][ index ] = p.v[i];
         incIndex();
     };
 
     inline void get( const DelayIndex ind, PackedChannel& p ) const
     {
         for( uint32_t i=0; i<channelCount; ++i )
-             p.v[i] = channel[i][ getIndex( ind[i] ) ];
+             p.v[i] = channel[ i ][ getIndex( ind[i] ) ];
+    };
+
+    // get: 0->1.... n-2->n-1 n-1->0
+    inline void getRotate( const DelayIndex ind, PackedChannel& p ) const
+    {
+        static_assert( channelCount>2," channel count min 3" );
+        for( uint32_t i=1; i<channelCount; ++i )
+             p.v[i-1] = channel[ i ][ getIndex( ind[i] ) ];
+        p.v[channelCount-1] = channel[ 0 ][ getIndex( ind[0] ) ];
+    };
+
+    // 2nd order Lagrange modified Farrow
+    // bad http://users.spa.aalto.fi/vpv/publications/vesan_vaitos/ch3_pt2_lagrange.pdf page 101
+    // ok http://seat.massey.ac.nz/personal/e.lai/Publications/c/ICASSP2011.pdf page 1630
+    //
+    // input: lindex -
+    //  high 32 bit is the sample index
+    //  low 32 bit is the interpolation value between 2 samples
+    //
+    template< std::size_t chN >
+    inline float getInterpolated2Order( const uint64_t lindex ) const
+    {
+        static_assert( chN < channelCount, "channel count");
+        constexpr float range = 1.0 / (1L<<32);
+        const uint32_t  ind = ( lindex + 0x080000000LL )>>32;      // middle point -0.5..+0.5
+        const float d = int32_t( lindex & 0x0FFFFFFFFLL ) * range;  // -0.5..+0.5
+        const float sm1 = channel[ chN ][ ( index - ind - 1 ) & bufferSizeMask ] * 0.5f;
+        const float s0  = channel[ chN ][ ( index - ind     ) & bufferSizeMask ];
+        const float sp1 = channel[ chN ][ ( index - ind + 1 ) & bufferSizeMask ] * 0.5f;
+        return (( sm1 + sp1 - s0 ) * d - sp1 + sm1 ) * d + s0;
+    };
+
+    // const float y0 = channel[chA][ indk0 ]
+    // const float dy = y0 - channel[chA][ indk1 ]
+    // return y0 + dy * ( lindex & 0x0FFFFFFFF ) * range;
+    //
+    // index: high 32 index, low 32 fraction - linear interpolation between the points i-1, i
+    //
+    template< std::size_t chN >
+    inline float getInterpolated1Order( const uint64_t lindex ) const
+    {
+        static_assert( chN < channelCount, "channel count");
+        constexpr float range   = 1.0 / (1L<<32);
+        const uint32_t  ind     = ( index - ( lindex>>32 ) ) & bufferSizeMask;
+        const float     d       = ( lindex & 0x0FFFFFFFFLL ) * range;
+        return channel[chN][ ind ] * ( 1.0f - d ) + channel[chN][( ind-1 ) & bufferSizeMask ] * d;
     };
 
     inline uint32_t getIndex( void )  const
         { return index; };
+
     inline uint32_t getIndex( const uint32_t delay )  const
         { return ( index - delay ) & bufferSizeMask; };
+
     inline void incIndex(void)
         { index = (++index) & bufferSizeMask; };
+
     inline std::size_t getSectionIndex( const uint32_t sectionOffset ) const
         { return ( index - ( sectionOffset & (~sectionSizeMask) )) & bufferSizeMask; };
+
     inline void incIndexBySectionSize( void )
         { index = ( index + sectionSize ) & ( bufferSizeMask & ~sectionSizeMask ); };
 

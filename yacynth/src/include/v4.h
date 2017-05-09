@@ -34,31 +34,6 @@ typedef float       v4sf __attribute__((mode(SF)))  __attribute__ ((vector_size(
 typedef int         v4si __attribute__((mode(SI)))  __attribute__ ((vector_size(16),aligned(16)));
 typedef long long   v2di __attribute__((mode(DI)))  __attribute__ ((vector_size(16),aligned(16)));
 
-using V4sf_m = struct alignas(16) V4sf
-{
-    float   aa;
-    float   ab;
-    float   ba;
-    float   bb;
-};
-
-struct alignas(16) V4sfMatrix {
-    void clear(void)
-    {
-        aa = ab = ba = bb = 0.0f;
-    }
-    union  {
-        v4sf    v;
-        struct {
-            float   aa;
-            float   ab;
-            float   ba;
-            float   bb;
-        };
-    };
-};
-
-
 struct alignas(16) V4vf {
     inline void clear(void)
     {
@@ -79,6 +54,7 @@ struct alignas(16) V4vf {
     }
     union  {
         float   v[4];
+        float   v2[2][2];
         v4sf    v4;
     };
 };

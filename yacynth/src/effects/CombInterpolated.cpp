@@ -137,8 +137,8 @@ void CombInterpolated::feedforwardInterpolated(  const EIObuffer& inp, EIObuffer
         for( uint16_t sami = 0; sami < sectionSize; ++sami, lfo.inc() ) {
             const float csmplA  = *chnIAp++;
             const float csmplB  = *chnIBp++;
-            const float dlsmplA = delay.getInterpolatedA( dlind64 + lfo.get( Lfo::PHASE0 ));
-            const float dlsmplB = delay.getInterpolatedB( dlind64 + lfo.get( Lfo::PHASE1 ));
+            const float dlsmplA = delay.getInterpolated1Order<0>( dlind64 + lfo.get( Lfo::PHASE0 ));
+            const float dlsmplB = delay.getInterpolated1Order<1>( dlind64 + lfo.get( Lfo::PHASE1 ));
             *chnOAp++ = dlsmplA * multDelay + csmplA * multOut;
             *chnOBp++ = dlsmplB * multDelay + csmplB * multOut;
             delay.push( csmplA, csmplB );
@@ -159,9 +159,9 @@ void CombInterpolated::feedbackInterpolated(  const EIObuffer& inp, EIObuffer& o
         for( uint16_t sami = 0; sami < sectionSize; ++sami, lfo.inc() ) {
             const float csmplA  = *chnIAp++;
             const float csmplB  = *chnIBp++;
-            const float tmpA    = delay.getInterpolatedA( dlind64 + lfo.get( Lfo::PHASE0 ))
+            const float tmpA    = delay.getInterpolated1Order<0>( dlind64 + lfo.get( Lfo::PHASE0 ))
                                     * multDelay + csmplA;
-            const float tmpB    = delay.getInterpolatedB( dlind64 + lfo.get( Lfo::PHASE1 ))
+            const float tmpB    = delay.getInterpolated1Order<1>( dlind64 + lfo.get( Lfo::PHASE1 ))
                                     * multDelay + csmplB;
             *chnOAp++ = tmpA * multOut;
             *chnOBp++ = tmpB * multOut;
@@ -182,9 +182,9 @@ void CombInterpolated::allpassInterpolated(  const EIObuffer& inp, EIObuffer& ou
         const float * chnIBp = inp.channel[EbufferPar::chB];
         float * chnOBp = out.channel[EbufferPar::chB];
         for( uint16_t sami = 0; sami < sectionSize; ++sami, lfo.inc() ) {
-            const float dlA     = delay.getInterpolatedA( dlind64 + lfo.get( Lfo::PHASE0 ));
+            const float dlA     = delay.getInterpolated1Order<0>( dlind64 + lfo.get( Lfo::PHASE0 ));
             const float csmplA  = *chnIAp++;
-            const float dlB     = delay.getInterpolatedB( dlind64 + lfo.get( Lfo::PHASE1 ));
+            const float dlB     = delay.getInterpolated1Order<1>( dlind64 + lfo.get( Lfo::PHASE1 ));
             const float csmplB  = *chnIBp++;
             const float tmpA    = dlA * multDelay + csmplA;
             const float tmpB    = dlB * multDelay + csmplB;
@@ -206,13 +206,13 @@ void CombInterpolated::barberpole(  const EIObuffer& inp, EIObuffer& out )
         const float * chnIBp = inp.channel[EbufferPar::chB];
         float * chnOBp = out.channel[EbufferPar::chB];
         for( uint16_t sami = 0; sami < sectionSize; ++sami, lfo.inc() ) {
-            const float dlA1    = delay.getInterpolatedA( dlind64 + ( lfo.get( Lfo::PHASE0, Lfo::SAW )))
+            const float dlA1    = delay.getInterpolated1Order<0>( dlind64 + ( lfo.get( Lfo::PHASE0, Lfo::SAW )))
                                 * lfo.getFloatOffs( Lfo::PHASE1, Lfo::SIN );
-            const float dlA     = delay.getInterpolatedA( dlind64 + ( lfo.get( Lfo::PHASE2, Lfo::SAW )))
+            const float dlA     = delay.getInterpolated1Order<0>( dlind64 + ( lfo.get( Lfo::PHASE2, Lfo::SAW )))
                                 * lfo.getFloatOffs( Lfo::PHASE3, Lfo::SIN ) + dlA1;
-            const float dlB1    = delay.getInterpolatedB( dlind64 + ( lfo.get( Lfo::PHASE1, Lfo::SAW )))
+            const float dlB1    = delay.getInterpolated1Order<1>( dlind64 + ( lfo.get( Lfo::PHASE1, Lfo::SAW )))
                                 * lfo.getFloatOffs( Lfo::PHASE2, Lfo::SIN );
-            const float dlB     = delay.getInterpolatedB( dlind64 + ( lfo.get( Lfo::PHASE3, Lfo::SAW )))
+            const float dlB     = delay.getInterpolated1Order<1>( dlind64 + ( lfo.get( Lfo::PHASE3, Lfo::SAW )))
                                 * lfo.getFloatOffs( Lfo::PHASE0, Lfo::SIN ) + dlB1;
 
             const float csmplA  = *chnIAp++;

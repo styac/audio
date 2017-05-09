@@ -37,7 +37,7 @@ std::cout \
     << "  " << comment \
     << std::endl;
 #else
-#define TAG_DEBUG( tagname, tag, tagc, comment )
+#define TAG_DEBUG( tagname, tag, tagc, comment );
 #endif
 
 
@@ -103,6 +103,7 @@ namespace TagEffectFactoryLevel_01 {
     enum class EffectFactory : uint8_t {
         Nop,
         Clear,
+        Create,     // create a new effect
     };
 } // end namespace
 
@@ -204,6 +205,8 @@ namespace TagEffectTypeLevel_02 {
         FxEcho,
         FxLateReverb,
         FxEarlyReflection,
+        FxChorus,
+        FxFlanger,
     };
 } // end namespace
 // /Effect/TagFxFilter/TagMode_01_ap22x4x  FxCollectorid, struct Mode_01_ap22x4x
@@ -214,6 +217,7 @@ namespace TagEffectFxFilterModeLevel_03 {
     enum class TagEffectFxFilterMode : uint8_t {
         Nop,
         Clear,                      // clear all
+        GetFeatures,
         SetMode_01_ap4x,
         SetMode_02_ap4x,
         SetMode_03_ap4x,
@@ -229,7 +233,8 @@ namespace TagEffectFxMixerModeLevel_03 {
     enum class TagEffectFxMixerMode : uint8_t {
         Nop,
         Clear,                      // clear all
-        SetVolumeControllerIndex,    
+        GetFeatures,
+        SetVolumeControllerIndex,
         SetVolumeRange,
     };
 } // end namespace
@@ -238,8 +243,7 @@ namespace TagEffectFxOscillatorMixerModeLevel_03 {
     enum class TagEffectFxOscillatorMixerMode : uint8_t {
         Nop,
         Clear,                      // clear all
-        SetMode_01___,
-        GetMode_01___,
+        GetFeatures,
     };
 } // end namespace
 
@@ -247,6 +251,7 @@ namespace TagEffectFxModulatorModeLevel_03 {
     enum class TagEffectFxModulatorMode : uint8_t {
         Nop,
         Clear,
+        GetFeatures,
         SetParameters,
 //        SetMode_01_amplitudeModulation,
 //        GetMode_01_amplitudeModulation,
@@ -257,6 +262,7 @@ namespace TagEffectFxOutNoiseModeLevel_03 {
     enum class TagEffectFxOutNoiseMode : uint8_t {
         Nop,
         Clear,                      // clear all
+        GetFeatures,
         SetParameters,
     };
 } // end namespace
@@ -265,17 +271,27 @@ namespace TagEffectFxOutOscillatorModeLevel_03 {
     enum class TagEffectFxOutOscillatorMode : uint8_t {
         Nop,
         Clear,                      // clear all
+        GetFeatures,
         SetParameters,
     };
 } // end namespace
+
 
 namespace TagEffectFxEchoModeLevel_03 {
     enum class TagEffectFxEchoMode : uint8_t {
         Nop,
         Clear,                      // clear all
-        SetParameters,
-        SetMode_01___,
-        GetMode_01___,
+        GetFeatures,
+        SetParameters,              // all params
+        SetTapOutput,               // select params
+        SetTapFeedback,
+        SetTapOutputLP,
+        SetTapFeedbackLP,
+        SetDryCoeffs,
+        SetTapOutputCount,
+        SetTapFeedbackCount,
+        SetTapOutputLPCount,
+        SetTapFeedbackLPCount,
     };
 } // end namespace
 
@@ -283,6 +299,7 @@ namespace TagEffectFxLateReverbModeLevel_03 {
     enum class TagEffectFxLateReverbMode : uint8_t {
         Nop,
         Clear,                      // clear all
+        GetFeatures,
         SetParametersMode01,
     };
 } // end namespace
@@ -291,6 +308,25 @@ namespace TagEffectFxEarlyReflectionModeLevel_03 {
     enum class TagEffectFxEarlyReflectionMode : uint8_t {
         Nop,
         Clear,                      // clear all
+        GetFeatures,
+        SetParametersMode01,
+    };
+} // end namespace
+
+namespace TagEffectFxChorusModeLevel_03 {
+    enum class TagEffectFxChorusMode : uint8_t {
+        Nop,
+        Clear,                      // clear all
+        GetFeatures,
+        SetParametersMode01,
+    };
+} // end namespace
+
+namespace TagEffectFxFlangerModeLevel_03 {
+    enum class TagEffectFxFlangerMode : uint8_t {
+        Nop,
+        Clear,                      // clear all
+        GetFeatures,
         SetParametersMode01,
     };
 } // end namespace
@@ -299,6 +335,7 @@ namespace TagEffect__ModeLevel_03 {
     enum class TagEffect__Mode : uint8_t {
         Nop,
         Clear,                      // clear all
+        GetFeatures,
         SetParameters,
         SetMode_01___,
         GetMode_01___,

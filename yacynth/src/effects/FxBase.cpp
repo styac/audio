@@ -65,7 +65,7 @@ bool FxBase::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramI
 }
 
 bool FxBase::setProcMode( uint16_t ind )
-{    
+{
      std::cout
          << " *** FxBase::setProcMode"
          << std::endl;
@@ -91,12 +91,12 @@ bool FxCollector::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t p
                 message.setStatus( Yaxp::MessageT::illegalParam );
                 return false;
             }
-            std::cout 
-                    << "---- FxCollector setProcMode call " << uint16_t(effectInd ) 
-                    << " mode " << message.getParam(paramIndex+1) 
+            std::cout
+                    << "---- FxCollector setProcMode call " << uint16_t(effectInd )
+                    << " mode " << message.getParam(paramIndex+1)
                     <<  std::endl;
             if( get(effectInd)->setProcMode(message.getParam(paramIndex+1)) ) {
-                return true;                
+                return true;
             }
             message.setStatus( Yaxp::MessageT::illegalProcMode );
             return false;
@@ -119,15 +119,15 @@ bool FxCollector::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t p
                 data->fxMaxMode     = nodes[ind]->getMaxMode();
                 data->inputCount    = nodes[ind]->getInputCount();
                 data->masterId      = nodes[ind]->getMasterId();
-                std::memset( data->name,'\0',data->nameLength);  
-                std::strncpy( data->name,nodes[ind]->name().data() ,data->nameLength-1);  
+                std::memset( data->name,'\0',data->nameLength);
+                std::strncpy( data->name,nodes[ind]->name().data() ,data->nameLength-1);
             }
             message.setLength(listLength);
         }
         return true;
 
     case TagEffectCollector::EffectInstance : {
-            TAG_DEBUG(TagEffectCollector::EffectInstance, ++tagIndex, paramIndex, "FxCollector" );
+            TAG_DEBUG(TagEffectCollector::EffectInstance, tagIndex, paramIndex, "FxCollector" );
             if( !message.checkParamIndex(paramIndex) )
                 return false;
             const uint8_t effectInd = message.getParam(paramIndex);
@@ -135,7 +135,7 @@ bool FxCollector::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t p
                 message.setStatus( Yaxp::MessageT::illegalParam );
                 return false;
             }
-            return get(effectInd)->parameter( message, tagIndex, ++paramIndex ); // tag will be dispatched in the effect
+            return get(effectInd)->parameter( message, ++tagIndex, ++paramIndex ); // tag will be dispatched in the effect
         }
     }
     message.setStatus( Yaxp::MessageT::illegalTag, tag );
@@ -191,7 +191,7 @@ bool FxRunner::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t para
             }
 
             EffectRunnerSetConnections *data = static_cast<EffectRunnerSetConnections *>((void *)(&message.data[0]));
-            
+
             clearConnections();
             for( uint16_t ind = 0; ind < countParam; ++ind, ++data ) {
                 FxRunner::RET ret = connect( data->fxIdOfFxCollector, data->fxIdOfFxRunner, data->inputIdOfFxRunner );
@@ -201,7 +201,7 @@ bool FxRunner::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t para
                     return false;
                 }
             }
-            
+
             return true;
         }
     case TagEffectRunner::GetEffectList : {
@@ -220,8 +220,8 @@ bool FxRunner::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t para
                 data->fxMaxMode     = nodes[ind].thp->getMaxMode();
                 data->inputCount    = nodes[ind].thp->getInputCount();
                 data->masterId      = nodes[ind].thp->getMasterId();
-                std::memset( data->name,'\0',data->nameLength);  
-                std::strncpy( data->name,nodes[ind].thp->name().data() ,data->nameLength-1);  
+                std::memset( data->name,'\0',data->nameLength);
+                std::strncpy( data->name,nodes[ind].thp->name().data() ,data->nameLength-1);
             }
             message.setLength(listLength);
         }

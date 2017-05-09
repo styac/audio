@@ -45,13 +45,15 @@ public:
     static constexpr std::size_t tapCountMask       = tapCount-1;
     static constexpr std::size_t coeffSetCount      = 1<<4;
     static constexpr std::size_t coeffSetCountMask  = coeffSetCount-1;
-    
-    static constexpr std::size_t delayLngExp        = 9; // ca: 600 msec - 512*1.3 
+
+    static constexpr std::size_t delayLngExp        = 9; // ca: 600 msec - 512*1.3
     static constexpr std::size_t delayLng           = 1<<(delayLngExp+EbufferPar::sectionSizeExp);
     static constexpr std::size_t delayOffsMaxLng    = delayLng - 1;
     static constexpr std::size_t delayOffsMinLng    = EbufferPar::sectionSize * 2;
-    
+
     bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
+
+    // no Tap... type is used because of the modulation experiment
     
     struct Mode01 {
         // should return error code not bool
@@ -60,42 +62,42 @@ public:
             for( auto &v0 : delayLateReverb ) {
                 if(( v0 > delayOffsMaxLng ) || ( v0 < delayOffsMinLng )) {
                     return false;
-                }                
-            }            
+                }
+            }
             for( auto &v0 : delaysEarlyreflection ) {
                 for( auto &v1 : v0 ) {
                     if( ( v1 > delayOffsMaxLng ) || ( v1 < delayOffsMinLng )) {
                         return false;
-                    }                                    
+                    }
                 }
-            }            
+            }
             for( auto &v0 : coeffsEarlyreflection ) {
                 for( auto &v1 : v0 ) {
                     for( auto &v2 : v1 ) {
                         if(( v2 > 1.0f ) || ( v2 < -1.0f )) {
                             return false;
-                        }                                        
+                        }
                     }
                 }
-            }                
+            }
             for( auto &v0 : modulatorPeriod ) {
                 constexpr std::size_t maxPeriod = 2048 / coeffSetCount; // 2.5 sec if 1 period / set
                 constexpr std::size_t minPeriod = 3;    // 3 period ca 4 msec * 16 - 64 msec - 10-15 Hz
                 if(( v0 > maxPeriod ) || ( v0 < minPeriod )) { // irreal
                     return false;
-                }                
-            }                        
+                }
+            }
             return true;
         }
         // left-right delay for late reverb
         // need a controller later !
         uint32_t    delayLateReverb[channelCount];
-        // left-right delay for early reflections 
-        uint32_t    delaysEarlyreflection[tapCount][channelCount];        
-        // left-right for early reflections 
-        // coeffSetCount - rotating with low frequency modulation -simple case uses 0   
-        // there should be 1 period - deviance about 10%        
-        float       coeffsEarlyreflection[coeffSetCount][tapCount][channelCount];        
+        // left-right delay for early reflections
+        uint32_t    delaysEarlyreflection[tapCount][channelCount];
+        // left-right for early reflections
+        // coeffSetCount - rotating with low frequency modulation -simple case uses 0
+        // there should be 1 period - deviance about 10%
+        float       coeffsEarlyreflection[coeffSetCount][tapCount][channelCount];
         uint16_t    modulatorPeriod[tapCount];
     } mode01;
 };
@@ -109,8 +111,8 @@ public:
     ,   delayLine(FxEarlyReflectionParam::delayLngExp)
     ,   modulatorIndex{0}
     {
-        for( auto& si : slaves ) si.setMasterId(id());        
-        
+        for( auto& si : slaves ) si.setMasterId(id());
+
         fillSprocessv<0>(sprocess_00);
         fillSprocessv<1>(sprocess_01);
         fillSprocessv<2>(sprocess_02);
@@ -157,74 +159,74 @@ private:
     static void sprocessTransient( void * thp );
 
     static void sprocess_00( void * thp );  // bypass > inp<0> -> out
-    static void sprocess_01( void * thp ); 
-    static void sprocess_02( void * thp ); 
-    static void sprocess_03( void * thp ); 
-    static void sprocess_04( void * thp ); 
+    static void sprocess_01( void * thp );
+    static void sprocess_02( void * thp );
+    static void sprocess_03( void * thp );
+    static void sprocess_04( void * thp );
 
     // simple: no coeff modulation
     inline void process_01_simple(void)
     {
         static_assert(FxEarlyReflectionParam::tapCount>1,"tap count must be greater then 1");
-        delayLine.pushSection( inp<0>().channel[ chA ], inp<0>().channel[ chB ] ); 
-        delayLine.fillTLDSection(
-                param.mode01.delayLateReverb[ chA ], 
-                param.mode01.delayLateReverb[ chB ], 
-                slaves[ 0 ].out().channel[ chA ], 
-                slaves[ 0 ].out().channel[ chB ] );            
+        delayLine.pushSection( inp<0>().channel[ chA ], inp<0>().channel[ chB ] );
+        delayLine.fillTDLSection(
+                param.mode01.delayLateReverb[ chA ],
+                param.mode01.delayLateReverb[ chB ],
+                slaves[ 0 ].out().channel[ chA ],
+                slaves[ 0 ].out().channel[ chB ] );
 
         // first tap deletes
-        delayLine.fillTLDSection( 
-                param.mode01.delaysEarlyreflection[ 0 ][ chA ], 
-                param.mode01.delaysEarlyreflection[ 0 ][ chB ], 
-                param.mode01.coeffsEarlyreflection[ 0 ][ 0 ][ chA ], 
-                param.mode01.coeffsEarlyreflection[ 0 ][ 0 ][ chB ], 
-                out().channel[chA], 
-                out().channel[chB] );            
-                
+        delayLine.fillTDLSection(
+                param.mode01.delaysEarlyreflection[ 0 ][ chA ],
+                param.mode01.delaysEarlyreflection[ 0 ][ chB ],
+                param.mode01.coeffsEarlyreflection[ 0 ][ 0 ][ chA ],
+                param.mode01.coeffsEarlyreflection[ 0 ][ 0 ][ chB ],
+                out().channel[chA],
+                out().channel[chB] );
+
         // 1..n added
         for( uint32_t si=1; si<FxEarlyReflectionParam::tapCount; ++si ) {
-            delayLine.addTLDSection( 
-                param.mode01.delaysEarlyreflection[ si ][ chA ], 
-                param.mode01.delaysEarlyreflection[ si ][ chB ], 
-                param.mode01.coeffsEarlyreflection[ 0 ][ si ][ chA ], 
-                param.mode01.coeffsEarlyreflection[ 0 ][ si ][ chB ], 
-                out().channel[ chA ], 
-                out().channel[ chB ] );                       
-        }        
+            delayLine.addTDLSection(
+                param.mode01.delaysEarlyreflection[ si ][ chA ],
+                param.mode01.delaysEarlyreflection[ si ][ chB ],
+                param.mode01.coeffsEarlyreflection[ 0 ][ si ][ chA ],
+                param.mode01.coeffsEarlyreflection[ 0 ][ si ][ chB ],
+                out().channel[ chA ],
+                out().channel[ chB ] );
+        }
     }
 
     // coeff modulation
     inline void process_02_modulated(void)
     {
-        static_assert(param.tapCount>1,"tap count must be greater then 1");        
-        delayLine.pushSection( inp<0>().channel[ chA ], inp<0>().channel[ chB ] ); 
-        delayLine.fillTLDSection(
-                param.mode01.delayLateReverb[ chA ], 
-                param.mode01.delayLateReverb[ chB ], 
-                slaves[ 0 ].out().channel[ chA ], 
-                slaves[ 0 ].out().channel[ chB ] );            
+        static_assert(param.tapCount>1,"tap count must be greater then 1");
+        delayLine.pushSection( inp<0>().channel[ chA ], inp<0>().channel[ chB ] );
+        delayLine.fillTDLSection(
+                param.mode01.delayLateReverb[ chA ],
+                param.mode01.delayLateReverb[ chB ],
+                slaves[ 0 ].out().channel[ chA ],
+                slaves[ 0 ].out().channel[ chB ] );
 
         incModulatorIndex();
-        
+
         // first tap deletes
-        delayLine.fillTLDSection( 
-                param.mode01.delaysEarlyreflection[ 0 ][ chA ], 
-                param.mode01.delaysEarlyreflection[ 0 ][ chB ], 
-                param.mode01.coeffsEarlyreflection[ modulatorIndex[ 0 ][ 0 ] ][ 0 ][ chA ], 
-                param.mode01.coeffsEarlyreflection[ modulatorIndex[ 0 ][ 1 ] ][ 0 ][ chB ], 
-                out().channel[chA], 
-                out().channel[chB] );            
-                
+        delayLine.fillTDLSection(
+                param.mode01.delaysEarlyreflection[ 0 ][ chA ],
+                param.mode01.delaysEarlyreflection[ 0 ][ chB ],
+                param.mode01.coeffsEarlyreflection[ modulatorIndex[ 0 ][ 0 ] ][ 0 ][ chA ],
+                param.mode01.coeffsEarlyreflection[ modulatorIndex[ 0 ][ 1 ] ][ 0 ][ chB ],
+                out().channel[chA],
+                out().channel[chB] );
+
         // 1..n added
         for( uint32_t si=1; si<FxEarlyReflectionParam::tapCount; ++si ) {
-            delayLine.addTLDSection( 
-                param.mode01.delaysEarlyreflection[ si ][ chA ], 
-                param.mode01.delaysEarlyreflection[ si ][ chB ], 
-                param.mode01.coeffsEarlyreflection[ modulatorIndex[ si ][ 0 ] ][ si ][ chA ], 
-                param.mode01.coeffsEarlyreflection[ modulatorIndex[ si ][ 1 ] ][ si ][ chB ], 
-                out().channel[ chA ], 
-                out().channel[ chB ] );         
+            delayLine.addTDLSection(
+                param.mode01.delaysEarlyreflection[ si ][ chA ],
+                param.mode01.delaysEarlyreflection[ si ][ chB ],
+                param.mode01.coeffsEarlyreflection[ modulatorIndex[ si ][ 0 ] ][ si ][ chA ],
+                param.mode01.coeffsEarlyreflection[ modulatorIndex[ si ][ 1 ] ][ si ][ chB ],
+                out().channel[ chA ],
+                out().channel[ chB ] );
         }
     }
 
@@ -232,56 +234,56 @@ private:
     inline void process_03_simple_noslave(void)
     {
         static_assert(FxEarlyReflectionParam::tapCount>1,"tap count must be greater then 1");
-        delayLine.pushSection( inp<0>().channel[ chA ], inp<0>().channel[ chB ] ); 
+        delayLine.pushSection( inp<0>().channel[ chA ], inp<0>().channel[ chB ] );
 
         // first tap deletes
-        delayLine.fillTLDSection( 
-                param.mode01.delaysEarlyreflection[ 0 ][ chA ], 
-                param.mode01.delaysEarlyreflection[ 0 ][ chB ], 
-                param.mode01.coeffsEarlyreflection[ 0 ][ 0 ][ chA ], 
-                param.mode01.coeffsEarlyreflection[ 0 ][ 0 ][ chB ], 
-                out().channel[chA], 
-                out().channel[chB] );            
-                
+        delayLine.fillTDLSection(
+                param.mode01.delaysEarlyreflection[ 0 ][ chA ],
+                param.mode01.delaysEarlyreflection[ 0 ][ chB ],
+                param.mode01.coeffsEarlyreflection[ 0 ][ 0 ][ chA ],
+                param.mode01.coeffsEarlyreflection[ 0 ][ 0 ][ chB ],
+                out().channel[chA],
+                out().channel[chB] );
+
         // 1..n added
         for( uint32_t si=1; si<FxEarlyReflectionParam::tapCount; ++si ) {
-            delayLine.addTLDSection( 
-                param.mode01.delaysEarlyreflection[ si ][ chA ], 
-                param.mode01.delaysEarlyreflection[ si ][ chB ], 
-                param.mode01.coeffsEarlyreflection[ 0 ][ si ][ chA ], 
-                param.mode01.coeffsEarlyreflection[ 0 ][ si ][ chB ], 
-                out().channel[ chA ], 
-                out().channel[ chB ] );                       
-        }        
+            delayLine.addTDLSection(
+                param.mode01.delaysEarlyreflection[ si ][ chA ],
+                param.mode01.delaysEarlyreflection[ si ][ chB ],
+                param.mode01.coeffsEarlyreflection[ 0 ][ si ][ chA ],
+                param.mode01.coeffsEarlyreflection[ 0 ][ si ][ chB ],
+                out().channel[ chA ],
+                out().channel[ chB ] );
+        }
     }
 
     // // same as 02 but slave is not supplíed
     inline void process_04_modulated_noslave(void)
     {
         static_assert(param.tapCount>1,"tap count must be greater then 1");
-        
-        delayLine.pushSection( inp<0>().channel[ chA ], inp<0>().channel[ chB ] ); 
+
+        delayLine.pushSection( inp<0>().channel[ chA ], inp<0>().channel[ chB ] );
 
         incModulatorIndex();
-        
+
         // first tap deletes
-        delayLine.fillTLDSection( 
-                param.mode01.delaysEarlyreflection[ 0 ][ chA ], 
-                param.mode01.delaysEarlyreflection[ 0 ][ chB ], 
-                param.mode01.coeffsEarlyreflection[ modulatorIndex[ 0 ][ 0 ]  ][ 0 ][ chA ], 
-                param.mode01.coeffsEarlyreflection[ modulatorIndex[ 0 ][ 1 ]  ][ 0 ][ chB ], 
-                out().channel[chA], 
-                out().channel[chB] );                    
-        
+        delayLine.fillTDLSection(
+                param.mode01.delaysEarlyreflection[ 0 ][ chA ],
+                param.mode01.delaysEarlyreflection[ 0 ][ chB ],
+                param.mode01.coeffsEarlyreflection[ modulatorIndex[ 0 ][ 0 ]  ][ 0 ][ chA ],
+                param.mode01.coeffsEarlyreflection[ modulatorIndex[ 0 ][ 1 ]  ][ 0 ][ chB ],
+                out().channel[chA],
+                out().channel[chB] );
+
         // 1..n added
         for( uint32_t si=1; si<FxEarlyReflectionParam::tapCount; ++si ) {
-            delayLine.addTLDSection( 
-                param.mode01.delaysEarlyreflection[ si ][ chA ], 
-                param.mode01.delaysEarlyreflection[ si ][ chB ], 
-                param.mode01.coeffsEarlyreflection[ modulatorIndex[ si ][ 0 ] ][ si ][ chA ], 
-                param.mode01.coeffsEarlyreflection[ modulatorIndex[ si ][ 1 ] ][ si ][ chB ], 
-                out().channel[ chA ], 
-                out().channel[ chB ] );         
+            delayLine.addTDLSection(
+                param.mode01.delaysEarlyreflection[ si ][ chA ],
+                param.mode01.delaysEarlyreflection[ si ][ chB ],
+                param.mode01.coeffsEarlyreflection[ modulatorIndex[ si ][ 0 ] ][ si ][ chA ],
+                param.mode01.coeffsEarlyreflection[ modulatorIndex[ si ][ 1 ] ][ si ][ chB ],
+                out().channel[ chA ],
+                out().channel[ chB ] );
         }
     }
 
@@ -302,11 +304,11 @@ private:
     }
     // slave instance
     FxSlave<FxEarlyReflectionParam>   slaves[ FxEarlyReflectionParam::slaveCount ];
-    
+
     EDelayLine  delayLine;
-    
+
     int16_t     modulatorIndexPhase[    FxEarlyReflectionParam::tapCount ];
-    uint8_t     modulatorIndex[         FxEarlyReflectionParam::tapCount ][ 2 ];    
+    uint8_t     modulatorIndex[         FxEarlyReflectionParam::tapCount ][ 2 ];
 };
 
 // generator for test parameters

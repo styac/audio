@@ -45,6 +45,9 @@
 #include    "../effects/FxEcho.h"
 #include    "../effects/FxLateReverb.h"
 #include    "../effects/FxEarlyReflection.h"
+#include    "../effects/FxChorus.h"
+#include    "../effects/FxFlanger.h"
+
 #include    "../control/Controllers.h"
 #include    "../control/Sysman.h"
 #include    "../control/SynthFrontend.h"
@@ -93,6 +96,9 @@ using namespace TagEffectFxOutOscillatorModeLevel_03;
 using namespace TagEffectFxEchoModeLevel_03;
 using namespace TagEffectFxLateReverbModeLevel_03;
 using namespace TagEffectFxEarlyReflectionModeLevel_03;
+using namespace TagEffectFxChorusModeLevel_03;
+using namespace TagEffectFxFlangerModeLevel_03;
+
 
 // put to main()
 YaIoJack&    jack = YaIoJack::getInstance();
@@ -120,7 +126,6 @@ void setupEffects(Sysman  * sysman)
 
 
 /*
-
 ---- ind  0 id 0 type 1 maxMode 0 inputCount 0 masterId 0  Nil
 ---- ind  1 id 1 type 3 maxMode 3 inputCount 4 masterId 0  Mixer4
 ---- ind  2 id 2 type 4 maxMode 1 inputCount 0 masterId 0  OscillatorMixer
@@ -133,41 +138,51 @@ void setupEffects(Sysman  * sysman)
 ---- ind  9 id 9 type 8 maxMode 9 inputCount 1 masterId 0  Filter
 ---- ind  a id a type 9 maxMode 1 inputCount 1 masterId 0  Echo
 ---- ind  b id b type a maxMode 3 inputCount 1 masterId 0  FxReverb
-
  */
 
     // put the standard components into here
     // sequence important !!
-    constexpr int   EffectInstance_Nil              = 0;
-    constexpr int   EffectInstance_Mixer4           = EffectInstance_Nil + 1;
-    constexpr int   EffectInstance_OscillatorMixer  = EffectInstance_Nil + 2;
+    constexpr int   EffectInstance_Nil                  = 0;
+    constexpr int   EffectInstance_Mixer4               = EffectInstance_Nil + 1;
+    constexpr int   EffectInstance_OscillatorMixer      = EffectInstance_Nil + 2;
     FxOutNoise      * fxnoise = new FxOutNoise();
-    constexpr int   EffectInstance_FxOutNoise       = EffectInstance_Nil + 3;
+    constexpr int   EffectInstance_FxOutNoise           = EffectInstance_Nil + 3;
     FxOutOscillator * fxosc   = new FxOutOscillator();
-    constexpr int   EffectInstance_FxOutOscillator  = EffectInstance_Nil + 4;
-    constexpr int   EffectInstance_FxOutO_Slave1    = EffectInstance_Nil + 5;
-    constexpr int   EffectInstance_FxOutO_Slave2    = EffectInstance_Nil + 6;
-    constexpr int   EffectInstance_FxOutO_Slave3    = EffectInstance_Nil + 7;
+    constexpr int   EffectInstance_FxOutOscillator      = EffectInstance_Nil + 4;
+    constexpr int   EffectInstance_FxOutO_Slave1        = EffectInstance_Nil + 5;
+    constexpr int   EffectInstance_FxOutO_Slave2        = EffectInstance_Nil + 6;
+    constexpr int   EffectInstance_FxOutO_Slave3        = EffectInstance_Nil + 7;
     FxModulator     * fxmod   = new FxModulator();
-    constexpr int   EffectInstance_FxModulator      = EffectInstance_Nil + 8;
+    constexpr int   EffectInstance_FxModulator          = EffectInstance_Nil + 8;
     FxFilter        * fxfilt  = new FxFilter();
-    constexpr int   EffectInstance_FxFilter         = EffectInstance_Nil + 9;
-    FxEcho          * fxecho  = new FxEcho(100);
-    constexpr int   EffectInstance_FxEcho           = EffectInstance_Nil + 10;
+    constexpr int   EffectInstance_FxFilter             = EffectInstance_Nil + 9;
+    FxEcho          * fxecho  = new FxEcho();
+    constexpr int   EffectInstance_FxEcho               = EffectInstance_Nil + 10;
     FxLateReverb        * fxrevb  = new FxLateReverb();
-    constexpr int   EffectInstance_FxLateReverb      = EffectInstance_Nil + 11;
+    constexpr int   EffectInstance_FxLateReverb         = EffectInstance_Nil + 11;
     FxEarlyReflection  * fxearlyref  = new FxEarlyReflection();
-    constexpr int   EffectInstance_FxEarlyReflection = EffectInstance_Nil + 12;
+    constexpr int   EffectInstance_FxEarlyReflection    = EffectInstance_Nil + 12;
     constexpr int   EffectInstance_FxEarlyReflection_Slave1 = EffectInstance_Nil + 13;
+    FxChorus  * fxchorus  = new FxChorus();
+    constexpr int   EffectInstance_FxChorus             = EffectInstance_Nil + 14;
+    FxFlanger  * fxFlanger  = new FxFlanger();
+    constexpr int   EffectInstance_FxFlanger            = EffectInstance_Nil + 15;
 
-    
+
     // temp
     fxmod->setProcMode(3);
-    fxosc->setProcMode(7);
+
+    fxosc->setProcMode(10);
+
     fxfilt->setProcMode(2);
     fxnoise->setProcMode(2);
     fxrevb->setProcMode(1);
     fxearlyref->setProcMode(2);
+    fxecho->setProcMode(2);
+    fxchorus->setProcMode(1);
+    fxFlanger->setProcMode(3);
+
+
 // ------------------------------------------------------------
 
     std::cout << "\n---- Collector get list\n" << std::endl;
@@ -215,22 +230,49 @@ void setupEffects(Sysman  * sysman)
     }
 
 // ------------------------------------------------------------
-    
+
     std::cout << "\n---- Fill runner\n" << std::endl;
+#if 1
+    // flanger  test
+    EffectRunnerFill effectFill[] = {
+//        EffectInstance_FxOutOscillator,
+        EffectInstance_FxFlanger
+    };    // osc + reverb
+#endif
+
+
+#if 0
+    // chorus  test
+    EffectRunnerFill effectFill[] = {
+        EffectInstance_FxOutOscillator,
+        EffectInstance_FxChorus
+    };    // osc + reverb
+#endif
+
+#if 0
+    // echo  test
+    EffectRunnerFill effectFill[] = {
+        EffectInstance_FxOutOscillator,
+        EffectInstance_FxEcho
+    };    // osc + reverb
+#endif
+
 
 #if 0
     // latereverb osc test
     EffectRunnerFill effectFill[] = {
         EffectInstance_FxOutOscillator,
-        EffectInstance_FxReverb
+        EffectInstance_FxLateReverb
     };    // osc + reverb
 #endif
 
+#if 0
     EffectRunnerFill effectFill[] = {
         EffectInstance_FxEarlyReflection,
         EffectInstance_FxLateReverb,
     };    // osc + reverb
-    
+#endif
+
     //EffectRunnerFill effectFill[] = {4,8};    // osc + mod
     //EffectRunnerFill effectFill[] = {3};    // noise
 
@@ -278,6 +320,15 @@ void setupEffects(Sysman  * sysman)
 
 // connect
     std::cout << "\n---- Connect effects\n" << std::endl;
+#if 1
+    // flanger test
+    EffectRunnerSetConnections  effectRunnerSetConnections[] = {
+//        { EffectInstance_FxOutOscillator, 2, 0 },    // audio osc out to reverb 0
+        { EffectInstance_OscillatorMixer, 1, 0 },     // audio osc out to reverb 0
+        { EffectInstance_FxFlanger, 0, 0 }           // chorus to output 0
+    };
+#endif
+
 #if 0
     EffectRunnerSetConnections  effectRunnerSetConnections[] = {
         { 2, 2, 0 },    // audio osc out to modulator 0
@@ -286,16 +337,34 @@ void setupEffects(Sysman  * sysman)
     };
 #endif
 
+
+
 #if 0
-    // reverb test
+    // chorus test
     EffectRunnerSetConnections  effectRunnerSetConnections[] = {
-        { 4, 2, 0 },    // audio osc out to reverb 0
-        { 11, 0, 0 }     // reverb to output 0
+        { EffectInstance_FxOutOscillator, 2, 0 },    // audio osc out to reverb 0
+        { EffectInstance_FxChorus, 0, 0 }           // chorus to output 0
     };
 #endif
 
-    
-#if 1
+#if 0
+    // echo test
+    EffectRunnerSetConnections  effectRunnerSetConnections[] = {
+        { EffectInstance_FxOutOscillator, 2, 0 },    // audio osc out to reverb 0
+        { EffectInstance_FxEcho, 0, 0 }     // echo to output 0
+    };
+#endif
+
+#if 0
+    // reverb test
+    EffectRunnerSetConnections  effectRunnerSetConnections[] = {
+        { EffectInstance_FxOutOscillator, 2, 0 },    // audio osc out to reverb 0
+        { EffectInstance_FxLateReverb, 0, 0 }     // reverb to output 0
+    };
+#endif
+
+
+#if 0
     // reverb test
     EffectRunnerSetConnections  effectRunnerSetConnections[] = {
         { EffectInstance_OscillatorMixer,           1, 0 },     // audio osc out to reverb 0
@@ -458,7 +527,7 @@ void setupEffects(Sysman  * sysman)
         std::cout << "---- Volume control range0 error " <<uint16_t(msgBuffer.messageType) << std::endl;
     }
 // ------------------------------------------------------------
-    
+
     msgBuffer.clear();
     msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
                     ,   uint8_t( TagEffectCollector::EffectInstance )
@@ -477,7 +546,7 @@ void setupEffects(Sysman  * sysman)
     }
 
 // ------------------------------------------------------------
-    
+
     msgBuffer.clear();
     msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
                     ,   uint8_t( TagEffectCollector::EffectInstance )
@@ -494,9 +563,9 @@ void setupEffects(Sysman  * sysman)
     } else {
         std::cout << "---- Volume control range2 error " <<uint16_t(msgBuffer.messageType) << std::endl;
     }
-    
+
 // ------------------------------------------------------------
-    
+
     std::cout << "\n---- Outoscillator control\n" << std::endl;
     FxOutOscillatorParam fxOutOscillatorParam = {
         // 1x offset + 1xslope
@@ -647,33 +716,51 @@ void setupEffects(Sysman  * sysman)
 *
      */
 
-    FxLateReverbParam::Mode01_Housholder mode01_Housholder = {
 
-        // MonoDelayFeedbackTap
-#if 0
-        0.4999, 0.4999, 0.4999, 0.4999,
-        0.4999, 0.4999, 0.4999, 0.4999,
-#endif
-        0.39, 0.39, 0.39, 0.39,
-        0.39, 0.39, 0.39, 0.39,
+    FxLateReverbParam::Mode01 mode01_Housholder = {
 
-        0.88, 0.88, 0.88, 0.88,
-        0.88, 0.88, 0.88, 0.88,
+    //  MonoDelayBandpassTapArray<combCount> tapFeedback;
 
-        1327, 1427, 1511, 1567,
-        1019, 1151, 1213, 1277,
+        // coeff
+        0.115, 0.115, 0.115, 0.115,
+        0.115, 0.115, 0.115, 0.115,
 
-        // MonoDelayTap - internal
+        // low pass k
+        0.79, 0.79, 0.79, 0.79,
+        0.79, 0.79, 0.79, 0.79,
 
-        0.22, 0.22, 0.22, 0.22,
-        0.22, 0.22, 0.22, 0.22,
+        // high pass k
+        0.95, 0.95, 0.95, 0.95,
+        0.95, 0.95, 0.95, 0.95,
 
-        211,  137,  293,  347,
-        101,  233,  173,  191,
+        // delay index
+        1327,   1427,   1511,   1567,
+        1019,   1151,   1213,   1277,
 
-        // MonoAllpassTap
-        0.6,0.6,0.6,0.6,
-        227,277,311,397
+    //  MonoDelayTapArray<combCount>         tapFeedbackInternal;
+
+        -0.111, -0.111, -0.111, -0.111,
+        -0.111, -0.111, -0.111, -0.111,
+
+        0.91, 0.91, 0.91, 0.91,
+        0.91, 0.91, 0.91, 0.91,
+
+        // delay index
+        211,    137,    193,    199,
+        101,    233,    173,    191,
+
+    //  MonoDelayLowpassTapArray<combCount>  tapOutput;
+        // coeff
+        0.05, 0.05, 0.05, 0.05,
+        0.05, 0.05, 0.05, 0.05,
+
+        // low pass k
+        0.90, 0.90, 0.90, 0.90,
+        0.90, 0.90, 0.90, 0.90,
+
+        // delay index
+        771,    891,    929,    571,
+        771,    891,    929,    571,
     };
 
     msgBuffer.clear();
@@ -699,7 +786,7 @@ void setupEffects(Sysman  * sysman)
 
     FxEarlyReflectionParam::Mode01 fxEarlyReflection_mode01 = {
     // delayLateReverb
-    1024, 1024, 
+    1024, 1024,
     // delaysEarlyreflection
     3809,   3809,
     4777,   4477,
@@ -993,11 +1080,11 @@ void setupEffects(Sysman  * sysman)
     5, 7, 9, 11,
     13, 16, 17, 19,
     23, 29, 31, 37,
-    41, 43, 47, 51, 
-        
-        
+    41, 43, 47, 51,
+
+
     };
-    
+
     msgBuffer.clear();
     msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
                     ,   uint8_t( TagEffectCollector::EffectInstance )
@@ -1016,7 +1103,7 @@ void setupEffects(Sysman  * sysman)
         std::cout << "---- Early Reflection error " <<uint16_t(msgBuffer.messageType) << std::endl;
         exit(-1);
     }
-    
+
 // ------------------------------------------------------------
     std::cout << "\n---- SetOvertoneCOunt \n" << std::endl;
 
@@ -1024,7 +1111,7 @@ void setupEffects(Sysman  * sysman)
     msgBuffer.setTags(  uint8_t( TagMain::ToneShaper )
                     ,   uint8_t( TagToneShaper::SetOvertoneCount )
                     );
-    msgBuffer.setPar( 0, 8 ); // number of overtones of vector 0
+    msgBuffer.setPar( 0, 12 ); // number of overtones of vector 0
 
     sysman->evalParameterMessage(msgBuffer);
 
@@ -1034,6 +1121,255 @@ void setupEffects(Sysman  * sysman)
         std::cout << "---- SetOvertoneCOunt error " <<uint16_t(msgBuffer.messageType) << std::endl;
         exit(-1);
     }
+
+    for( auto i=100.f; i<5000.0f; i += 200.0f  ) {
+        std::cout
+            << "---- low pass i:" << i
+            << " k:" << kOnePoleLowPass( i )
+            << std::endl;
+
+    }
+// ------------------------------------------------------------
+    std::cout << "\n---- Echo \n" << std::endl;
+
+    FxEchoParam fxEchoParam = {
+        .tapOutput = {
+
+            // output
+//                  AA      AB      BA      BB
+            V4vf(   0.9f,   0.0f,   0.0f,   -0.9f ),
+            V4vf(   0.0f,   0.0f,   0.0f,   0.0f ),
+            V4vf(   0.0f,   0.0f,   0.0f,   0.0f ),
+            V4vf(   0.0f,   0.0f,   0.0f,   0.0f ),
+
+            V4vf(   0.0f,   0.0f,   0.0f,   0.0f ),
+            V4vf(   0.0f,   0.0f,   0.0f,   0.0f ),
+            V4vf(   0.0f,   0.0f,   0.0f,   0.0f ),
+            V4vf(   0.0f,   0.0f,   0.0f,   0.0f ),
+
+            2048, 2048,
+            2048, 2048,
+            2048, 2048,
+            2048, 2048,
+
+            2048, 2048,
+            2048, 2048,
+            2048, 2048,
+            2048, 2048,
+        },
+
+        .tapFeedback = {
+
+            // feedback
+//                  AA      AB      BA      BB
+            V4vf(   0.0f,   0.8f,   0.6f,   0.0f),
+            V4vf(   0.0f,   0.0f,   0.0f,   0.0f),
+            V4vf(   0.0f,   0.0f,   0.0f,   0.0f),
+            V4vf(   0.0f,   0.0f,   0.0f,   0.0f),
+
+            V4vf(   0.0f,   0.0f,   0.0f,   0.0f),
+            V4vf(   0.0f,   0.0f,   0.0f,   0.0f),
+            V4vf(   0.0f,   0.0f,   0.0f,   0.0f),
+            V4vf(   0.0f,   0.0f,   0.0f,   0.0f),
+
+            65536+64, 65536+64,
+            2048, 2048,
+            2048, 2048,
+            2048, 2048,
+
+            2048, 2048,
+            2048, 2048,
+            2048, 2048,
+            2048, 2048,
+        },
+
+        .tapOutputLP = {
+
+            // output
+//                  AA      AB      BA      BB
+            V4vf(   0.1f,   0.1f,   -0.1f,   0.1f),
+            V4vf(   0.0f,   0.0f,   0.0f,   0.0f),
+            V4vf(   0.0f,   0.0f,   0.0f,   0.0f),
+            V4vf(   0.0f,   0.0f,   0.0f,   0.0f),
+
+            V4vf(   0.0f,   0.0f,   0.0f,   0.0f),
+            V4vf(   0.0f,   0.0f,   0.0f,   0.0f),
+            V4vf(   0.0f,   0.0f,   0.0f,   0.0f),
+            V4vf(   0.0f,   0.0f,   0.0f,   0.0f),
+
+            // low pass
+            V4vf(   0.89f,  0.89f,  0.89f,  0.89f),
+            V4vf(   0.9f,   0.9f,   0.9f,   0.9f),
+            V4vf(   0.9f,   0.9f,   0.9f,   0.9f),
+            V4vf(   0.9f,   0.9f,   0.9f,   0.9f),
+
+            V4vf(   0.9f,   0.9f,   0.9f,   0.9f),
+            V4vf(   0.9f,   0.9f,   0.9f,   0.9f),
+            V4vf(   0.9f,   0.9f,   0.9f,   0.9f),
+            V4vf(   0.9f,   0.9f,   0.9f,   0.9f),
+
+            2048, 2048,
+            2048, 2048,
+            2048, 2048,
+            2048, 2048,
+
+            2048, 2048,
+            2048, 2048,
+            2048, 2048,
+            2048, 2048,
+        },
+        .tapFeedbackLP = {
+
+            // feedback
+//                  AA      AB      BA      BB
+            V4vf(   0.1f,   0.0f,   0.0f,   0.1f),
+            V4vf(   0.0f,   0.0f,   0.0f,   0.0f),
+            V4vf(   0.0f,   0.0f,   0.0f,   0.0f),
+            V4vf(   0.0f,   0.0f,   0.0f,   0.0f),
+
+            V4vf(   0.0f,   0.0f,   0.0f,   0.0f),
+            V4vf(   0.0f,   0.0f,   0.0f,   0.0f),
+            V4vf(   0.0f,   0.0f,   0.0f,   0.0f),
+            V4vf(   0.0f,   0.0f,   0.0f,   0.0f),
+
+            // low pass
+            V4vf(   0.8f,   0.8f,   0.8f,   0.8f),
+            V4vf(   0.9f,   0.9f,   0.9f,   0.9f),
+            V4vf(   0.9f,   0.9f,   0.9f,   0.9f),
+            V4vf(   0.9f,   0.9f,   0.9f,   0.9f),
+
+            V4vf(   0.9f,   0.9f,   0.9f,   0.9f),
+            V4vf(   0.9f,   0.9f,   0.9f,   0.9f),
+            V4vf(   0.9f,   0.9f,   0.9f,   0.9f),
+            V4vf(   0.9f,   0.9f,   0.9f,   0.9f),
+
+            65536+64, 65536+64,
+            65536, 65536,
+            2048, 2048,
+            2048, 2048,
+
+            2048, 2048,
+            2048, 2048,
+            2048, 2048,
+            2048, 2048,
+        },
+
+        .tapOutputCount=0,
+        .tapFeedbackCount=0,
+        .tapOutputLPCount=1,
+        .tapFeedbackLPCount=1,
+
+        .dry={0.0f,0.0f},
+    };
+
+    msgBuffer.clear();
+    msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
+                    ,   uint8_t( TagEffectCollector::EffectInstance )
+                    ,   uint8_t( TagEffectType::FxEcho )
+                    ,   uint8_t( TagEffectFxEchoMode::SetParameters )
+                    );
+
+    msgBuffer.setPar( EffectInstance_FxEcho );
+
+    msgBuffer.getTargetData( fxEchoParam );
+
+    sysman->evalParameterMessage(msgBuffer);
+
+    if( msgBuffer.messageType == 0 ) {
+        std::cout << "---- Echo ok" << std::endl;
+    } else {
+        std::cout << "---- Echo error " <<uint16_t(msgBuffer.messageType) << std::endl;
+        exit(-1);
+    }
+
+// ------------------------------------------------------------
+    std::cout << "\n---- Chorus \n" << std::endl;
+
+    FxChorusParam::Mode01 chorusParam = {
+
+        .baseDelay  = 2048LL<<32,
+        .wetgain  =  0.4,
+        .sineRange = 1<<23,     // max
+        .noiseRange = 1<<30,    // max
+
+        .depthIndex         = { 0 },
+        .deltaPhaseIndex    = { InnerController::CC_LFO_MASTER_DELTA_PHASE_BEGIN },
+        .phaseDiffIndex     = { InnerController::CC_LFO_SLAVE_DELTA_PHASE_BEGIN },
+        .oscMasterIndex     = { InnerController::CC_LFO_MASTER_PHASE_BEGIN },
+        .oscSlaveIndex      = { InnerController::CC_LFO_SLAVE_PHASE_BEGIN },
+
+        .basaeDepthNoiseExp = 5,
+        .tapCount   = 4,
+
+
+    };
+
+    msgBuffer.clear();
+    msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
+                    ,   uint8_t( TagEffectCollector::EffectInstance )
+                    ,   uint8_t( TagEffectType::FxChorus )
+                    ,   uint8_t( TagEffectFxChorusMode::SetParametersMode01 )
+                    );
+
+    msgBuffer.setPar( EffectInstance_FxChorus );
+
+    msgBuffer.getTargetData( chorusParam );
+
+    sysman->evalParameterMessage(msgBuffer);
+
+    if( msgBuffer.messageType == 0 ) {
+        std::cout << "---- Chorus ok" << std::endl;
+    } else {
+        std::cout << "---- Chorus error " <<uint16_t(msgBuffer.messageType) << std::endl;
+        exit(-1);
+    }
+
+
+// ------------------------------------------------------------
+    std::cout << "\n---- Flanger \n" << std::endl;
+
+    FxFlangerParam::Mode01 flangerParam = {
+
+        .baseDelay      = 65LL<<32,
+        .gain           = 0.7,
+        .feedbackGain   = 0.7,
+        .depth          = 1<<27,    // limit
+
+        .feedbackIndex      = { 0 }, // TODO
+        .depthIndex         = { 0 }, // TODO
+        .deltaPhaseIndex    = { InnerController::CC_LFO_MASTER_DELTA_PHASE_BEGIN },
+        .phaseDiffIndex     = { InnerController::CC_LFO_SLAVE_DELTA_PHASE_BEGIN },
+        .oscMasterIndex     = { InnerController::CC_LFO_MASTER_PHASE_BEGIN },
+        .oscSlaveIndex      = { InnerController::CC_LFO_SLAVE_PHASE_BEGIN },
+
+    };
+
+    flangerParam.deltaPhaseIndex.setInnerValue( 0x300000 );
+    flangerParam.phaseDiffIndex.setInnerValue( 0x40000000 ); // cos
+
+    msgBuffer.clear();
+    msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
+                    ,   uint8_t( TagEffectCollector::EffectInstance )
+                    ,   uint8_t( TagEffectType::FxFlanger )
+                    ,   uint8_t( TagEffectFxFlangerMode::SetParametersMode01 )
+                    );
+
+    msgBuffer.setPar( EffectInstance_FxFlanger );
+
+    msgBuffer.getTargetData( flangerParam );
+
+    sysman->evalParameterMessage(msgBuffer);
+
+    if( msgBuffer.messageType == 0 ) {
+        std::cout << "---- Flanger ok" << std::endl;
+    } else {
+        std::cout << "---- Flanger error " <<uint16_t(msgBuffer.messageType) << std::endl;
+        exit(-1);
+    }
+
+// ------------------------------------------------------------
+
+
 // ------------------------------------------------------------
 }
 
@@ -1054,9 +1390,7 @@ void teststuff(void)
         << "\nYax::Header size: "           << sizeof(Yaxp::Header)
         << "\n--------------------"
         << "\nsize: v4sf "                  << sizeof(v4sf)
-        << "\nsize: V4sf_m "                << sizeof(V4sf_m)
         << std::hex
-        << "\nsize: v4sf_u "                << sizeof(V4sfMatrix)
         << "\nfreq2deltaPhase( 1.0 ) "      << freq2deltaPhase( 1.0 )
         << "\nrefA440ycent:       "         << refA440ycent
         << "\nrefA440ycentDouble: "         << uint64_t(std::llround(refA440ycentDouble))
@@ -1068,7 +1402,21 @@ void teststuff(void)
         << "\n refA440ycentDouble: "        << refA440ycentDouble
         << "\n Filter4Pole: "               << sizeof(Filter4PoleOld<3>)
         << "\n wchar_t: "                   << sizeof(wchar_t)
+        << "\n\n"
         << std::endl;
+#if 0
+    for( float i=1.0e+30f; i>std::numeric_limits<float>::min(); i /= 10 ) {
+        float v = noisefloor(i);
+        uint32_t b = *reinterpret_cast<uint32_t*>(&i);
+        if( v != i )
+            std::cout << std::dec
+                << "i=" << i
+                << " b=" << std::hex << b
+                << " val=" << v
+                << std::endl;
+    }
+    exit(0);
+#endif
 }
 
 // --------------------------------------------------------------------
@@ -1133,9 +1481,9 @@ int main( int argc, char** argv )
 
 //    generator_FxEarlyReflectionParam(1.0f);
 //    exit(0);
-    
 
-    
+
+
     // load initial setup
 
     setupEffects(sysman);

@@ -27,12 +27,14 @@
 
 #include    "YaIoInQueue.h"
 #include    "../oscillator/OscillatorOutput.h"
+#include    "../oscillator/BaseOscillator.h"
 #include    "../message/Midi.h"
 #include    "../control/Controllers.h"
 #include    "../router/SimpleMidiRouter.h"
 #include    "../effects/Panmix.h"
 #include    "../effects/FxMixer.h"
 #include    "../effects/FxOscillatorMixer.h"
+
 
 #include    <cstddef>
 #include    <cstdint>

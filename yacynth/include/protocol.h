@@ -60,9 +60,9 @@ enum class MessageT : uint8_t {
     illegalTargetIndex,             // 138
     illegalEffectCollectorIndex,    // 139
     illegalEffectRunnerIndex,       // 140  - too high
-    illegalEffectInputIndex,        // 141  - no such input 
+    illegalEffectInputIndex,        // 141  - no such input
     illegalProcMode,                // 142
-    dataCheckError,                 // 143 
+    dataCheckError,                 // 143
 };
 
 struct Header
@@ -209,7 +209,7 @@ struct Message : public Header
     void getTargetData(const T& d)
     {
         constexpr std::size_t tsize = sizeof(T);
-        std::cout << "-----  getTargetData sizeof " << std::dec << tsize << std::endl;        
+        std::cout << "-----  getTargetData sizeof " << std::dec << tsize << std::endl;
         static_assert(tsize < size ,"data size too big" );
         length = tsize;
         *((T*)data)  = d;
@@ -221,17 +221,17 @@ struct Message : public Header
     {
         constexpr std::size_t tsize = sizeof(T)*N;
         using tarray = std::array<uint8_t,tsize>; // avoid const-ness of input type - maybe dirty
-        std::cout << "-----  getTargetData sizeof " << std::dec << tsize << std::endl;        
+        std::cout << "-----  getTargetData sizeof " << std::dec << tsize << std::endl;
         static_assert(tsize < size ,"data size too big" );
         length = tsize;
         *((tarray *)data)  = *((tarray*)&d);
     }
-    
+
     template<typename T>
     bool setTargetData(T& d)
     {
-        constexpr std::size_t tsize = sizeof(T);        
-        std::cout << "-----  setTargetData sizeof " << std::dec << tsize << " length " << length << std::endl;        
+        constexpr std::size_t tsize = sizeof(T);
+        std::cout << "-----  setTargetData sizeof " << std::dec << tsize << " length " << length << std::endl;
         static_assert(tsize < size ,"data size too big" );
         if( length != tsize ) {
             return false;
@@ -240,11 +240,26 @@ struct Message : public Header
         return true;
     }
 
+    // if T has a check() method
+    // check in the message
+    // d is not used
+    template<typename T>
+    bool checkTargetData(const T& d)
+    {
+        constexpr std::size_t tsize = sizeof(T);
+        std::cout << "-----  checkTargetData sizeof " << std::dec << tsize << " length " << length << std::endl;
+        static_assert(tsize < size ,"data size too big" );
+        if( length != tsize ) {
+            return false;
+        }
+        return (*((T*)data)).check();
+    }
+    
     template<typename T>
     bool addMessageData(T& d, bool first=false)
     {
         constexpr std::size_t tsize = sizeof(T);
-        std::cout << "-----  getTargetData sizeof " << std::dec << tsize << std::endl;        
+        std::cout << "-----  getTargetData sizeof " << std::dec << tsize << std::endl;
         static_assert(tsize < size ,"data size too big" );
         if( first ) {
             length=0;
@@ -260,8 +275,8 @@ struct Message : public Header
     template<typename T1, typename T2>
     bool setTargetData(T1& d1, T1& d2)
     {
-        constexpr std::size_t tsize = sizeof(T1) + sizeof(T2);        
-        std::cout << "-----  setTargetData sizeof " << std::dec << tsize << " length " << length << std::endl;        
+        constexpr std::size_t tsize = sizeof(T1) + sizeof(T2);
+        std::cout << "-----  setTargetData sizeof " << std::dec << tsize << " length " << length << std::endl;
         static_assert(tsize < size ,"data size too big" );
         if( length != tsize ) {
             return false;
