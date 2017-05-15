@@ -71,8 +71,8 @@ public:
     static constexpr std::size_t delayOffsMaxLng    = delayLng - 1;
     static constexpr std::size_t delayOffsMinLng    = EbufferPar::sectionSize * 2;
 
-    static constexpr float lowpassLowLimit          = kOnePoleLowPass( 18000.0 );
-    static constexpr float lowpassHighLimit         = kOnePoleLowPass( 30.0 );
+    static constexpr float lowpassLowLimit          = f2FilterOnePole_F( 18000.0 );
+    static constexpr float lowpassHighLimit         = f2FilterOnePole_F( 30.0 );
     static constexpr float feedbackLimit            = 0.6f;
     static constexpr float outputLimit              = 1.0f;
 

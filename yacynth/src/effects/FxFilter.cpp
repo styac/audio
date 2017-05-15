@@ -28,79 +28,51 @@
 namespace yacynth {
 using namespace TagEffectFxFilterModeLevel_03;
 
-// obsolate if setting is ready
-FxFilterParam::FxFilterParam()
-{
-    const uint16_t masterLfo = 0;
-    const uint16_t slaveLfo = 0;
-
-
-    // test lfo 0, 0
-    InnerController& inco = InnerController::getInstance();
-
-    // OBSOLATE
-    testMasterLfo1.index = inco.getIndexMasterLfoPhase(masterLfo);
-    testSlaveLfo1.index = inco.getIndexSlaveMasterLfoPhase(masterLfo,slaveLfo);
-
-   // set test values for delta phase
-    testMasterLfoDeltaPhase1.index = inco.getIndexMasterLfoDeltaPhase(masterLfo);
-    testSlaveLfoDeltaPhase1.index = inco.getIndexSlaveMasterLfoDeltaPhase(masterLfo,slaveLfo);
-
-    uint32_t masterDDP = freq2deltaPhase(0.1f) << 6; // 1 Hz - 1/64 sampling freq
-    uint32_t slaveDDP = 0x40000000; // phase diff
-
-    testMasterLfoDeltaPhase1.set( masterDDP ); // ???
-    testSlaveLfoDeltaPhase1.set( slaveDDP );
-
-    const int32_t freq_01 = freq2ycent(200.0f);
-    const int32_t freq_02 = freq2ycent(200.0f);
-    testMasterLfo1.setYcent8Parameter(freq_01 , 512);
-    testSlaveLfo1.setYcent8Parameter(freq_02 , 300);
-
-    // NEW
-    // defaults
-    // mode 01
-    mode_01_ap4x.cindex_masterLfo.index              = inco.getIndexMasterLfoPhase(masterLfo);
-    mode_01_ap4x.cindex_masterLfoDeltaPhase.index    = inco.getIndexMasterLfoDeltaPhase(masterLfo);
-    mode_01_ap4x.cmaplin_masterLfo.mult      = 512;
-    mode_01_ap4x.cmaplin_masterLfo.y0[0]     = freq2ycent(80.0f);
-    mode_01_ap4x.cmaplin_masterLfo.y0[1]     = freq2ycent(160.0f);
-    mode_01_ap4x.cmaplin_masterLfo.y0[2]     = freq2ycent(320.0f);
-    mode_01_ap4x.cmaplin_masterLfo.y0[3]     = freq2ycent(640.0f);
-    mode_01_ap4x.cmaplin_masterLfo.y0[4]     = freq2ycent(1280.0f);
-    mode_01_ap4x.cmaplin_masterLfo.y0[5]     = freq2ycent(2560.0f);
-    mode_01_ap4x.cmaplin_masterLfo.y0[6]     = freq2ycent(5120.0f);
-    mode_01_ap4x.cmaplin_masterLfo.y0[7]     = freq2ycent(10240.0f);
-
-}
-
 bool FxFilterParam::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     const uint8_t tag = message.getTag(tagIndex);
     switch( TagEffectFxFilterMode( tag ) ) {
-    case TagEffectFxFilterMode::SetMode_01_ap4x :
-        TAG_DEBUG(TagEffectFxFilterMode::SetMode_01_ap4x, tagIndex, paramIndex, "FxFilterParam - SetMode_01_ap4x" );
-        if( message.setTargetData(mode_01_ap4x) ) {
+    case TagEffectFxFilterMode::SetMode_2ch_x4ap_phaser_mode01 :
+        TAG_DEBUG(TagEffectFxFilterMode::SetMode_2ch_x4ap_phaser_mode01, tagIndex, paramIndex, "FxFilterParam - SetMode_2ch_x4ap_phaser_mode01" );
+        if( ! message.checkTargetData(mode_2ch_x4ap_phaser_mode01) ) {
+            message.setStatus( Yaxp::MessageT::illegalData, tag );
+            return false;
+        }
+        if( message.setTargetData(mode_2ch_x4ap_phaser_mode01) ) {
             return true;
         }
         message.setStatus( Yaxp::MessageT::illegalDataLength, tag );
         return false;
         
-    case TagEffectFxFilterMode::SetMode_02_ap4x :
-        TAG_DEBUG(TagEffectFxFilterMode::SetMode_02_ap4x, tagIndex, paramIndex, "FxFilterParam - SetMode_02_ap4x" );
-        if( message.setTargetData(mode_02_ap4x) ) {
+    case TagEffectFxFilterMode::SetMode_SVF01_2ch_mode01 :
+        TAG_DEBUG(TagEffectFxFilterMode::SetMode_SVF01_2ch_mode01, tagIndex, paramIndex, "FxFilterParam - SetMode_SVF01_2ch_mode01" );
+        if( ! message.checkTargetData(mode_SVF01_2ch) ) {
+            message.setStatus( Yaxp::MessageT::illegalData, tag );
+            return false;
+        }
+        if( message.setTargetData(mode_SVF01_2ch) ) {
             return true;
         }
         message.setStatus( Yaxp::MessageT::illegalDataLength, tag );
-        return false;        
+        return false;
+        
+    case TagEffectFxFilterMode::SetMode_4p_2ch :
+        TAG_DEBUG(TagEffectFxFilterMode::SetMode_4p_2ch, tagIndex, paramIndex, "FxFilterParam - SetMode_4p_2ch" );
+        if( ! message.checkTargetData(mode_SVF01_2ch) ) {
+            message.setStatus( Yaxp::MessageT::illegalData, tag );
+            return false;
+        }
+        if( message.setTargetData(mode_4p_2ch) ) {
+            return true;
+        }
+        message.setStatus( Yaxp::MessageT::illegalDataLength, tag );
+        return false;
     // more modes
     }
             
     message.setStatus( Yaxp::MessageT::illegalTag, tag );
     return false;    
 }
-
-
 
 void FxFilter::clearTransient()
 {
@@ -138,11 +110,11 @@ void FxFilter::sprocess_01( void * thp )
 }
 void FxFilter::sprocess_02( void * thp )
 {
-    static_cast< MyType * >(thp)->process_01_ap4x();
+    static_cast< MyType * >(thp)->process_02_svf_1x();
 }
 void FxFilter::sprocess_03( void * thp )
 {
-    static_cast< MyType * >(thp)->process_01_ap4x();
+    static_cast< MyType * >(thp)->process_03_pole4_1x();
 }
 void FxFilter::sprocess_04( void * thp )
 {
@@ -168,8 +140,6 @@ void FxFilter::sprocess_09( void * thp )
 {
     static_cast< MyType * >(thp)->process_01_ap4x();
 }
-
-
 
 } // end namespace yacynth
 

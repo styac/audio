@@ -37,7 +37,9 @@ OscillatorArray::OscillatorArray()
 ,   maxVoice(voiceCount)
 ,   commonFMPitch(0)
 {
-    pitchBend.index = InnerController::CC_PITCHBEND;
+    pitchBendIndex.setIndex( InnerController::CC_PITCHBEND );
+    pitchBendIndex.setInnerValue( pitchBendRange.middleValue );
+    pitchBendRange.setRange();
 }
 // --------------------------------------------------------
 bool OscillatorArray::initialize( void )

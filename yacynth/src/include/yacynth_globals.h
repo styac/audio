@@ -77,6 +77,9 @@ constexpr   int         velocityTableSize           = 1 << 8;
 constexpr   uint16_t    oscillatorOutSampleCountExp = 6;        // 64 sample
 constexpr   uint16_t    oscillatorOutSampleCount    = 1<<oscillatorOutSampleCountExp;
 constexpr   uint16_t    effectChannelCount          = 16;
+
+constexpr   uint16_t    effectFrameSizeExp          = oscillatorOutSampleCountExp;        // 64 sample
+constexpr   uint16_t    effectFrameSize             = 1<<effectFrameSizeExp;        // 64 sample
 //
 // ------------------------------------------------------------
 //  lowest 8 bit: linear interpolation
@@ -92,9 +95,15 @@ constexpr   double      deltaPhaseScalerBase    =
 constexpr inline uint64_t freq2deltaPhase( double freq )
     { return uint64_t( std::llround(  deltaPhaseScalerBase * freq )); };
 
+constexpr inline uint64_t freq2deltaPhaseControlLfo( double freq )
+    { return freq2deltaPhase(freq) << effectFrameSizeExp; };
+        
 constexpr inline double freq2deltaPhaseDouble( double freq )
     { return deltaPhaseScalerBase * freq; };
 
+constexpr inline double freq2deltaPhaseControlLfoDouble( double freq )
+    { return freq2deltaPhaseDouble( freq ) * effectFrameSize; };
+    
 constexpr inline uint32_t deltaPhase2ycent( double delta )
     { return uint32_t( std::lround( std::log2( delta ) * ycentNorm) ); };
 
@@ -175,10 +184,41 @@ T saturate(T val) {
 }
 #endif
 
-constexpr double kOnePoleLowPass( const double f )
+
+// one pole filter F parameter
+constexpr inline double f2FilterOnePole_F( const double f, uint8_t oversampling=1 )
 {
-    return std::exp( -PI2 * f / samplingFrequency );
+    return std::exp( -PI2 * f / ( samplingFrequency * oversampling ) );
 }
+
+constexpr inline double fc2FilterOnePole_F( const double fc, uint8_t oversampling=1 )
+{
+    return std::exp( -PI2 * fc / oversampling );
+}
+
+// state variable filter F parameter
+constexpr inline double f2SVF_F( const double f, uint8_t oversampling=1 )
+{
+    return 2.0 * std::sin( PI * f / ( samplingFrequency * oversampling ) );
+}
+
+constexpr inline double fc2SVF_F( const double fc, uint8_t oversampling=1 )
+{
+    return 2.0 * std::sin( PI * fc / oversampling );
+}
+
+// 1st order allpass filter F parameter
+
+constexpr inline double fc_cosPi2_F( const double fc )
+{
+    return std::cos( PI2 * fc );
+}
+constexpr inline double fc_sinPi2_F( const double fc )
+{
+    return std::sin( PI2 * fc );
+}
+
+
 
 } // end namespace yacynth
 

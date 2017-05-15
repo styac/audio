@@ -44,7 +44,6 @@ union floatexp {
     };
 };
 
-
 // to kill small numbers
 inline float noisefloor( float val )
 {
@@ -52,7 +51,6 @@ inline float noisefloor( float val )
 }
 
 // --------------------------------------------------------------------
-
 //
 // secSize = internal buffer size (64)
 // sectionCount generally 1 but for short and long delay lines can be anything
@@ -67,9 +65,7 @@ inline float noisefloor( float val )
 //
 // possible oversampling rate 1<<EffectOversamplingRateExp
 //
-
 // --------------------------------------------------------------------
-
 
 struct EbufferPar {
     static constexpr std::size_t EffectFrameSizeExp          = 6;
@@ -251,6 +247,17 @@ struct EIObuffer : public EbufferPar {
         }
     }
 
+    //
+    // y = k * y + (1-k) * x = k * ( x - y ) + x
+    //
+    inline void wetDryBalance( const EIObuffer& inp0, float gain )
+    {
+        for( auto i=0u; i < vsectionSize; ++i ) {
+            vchannel[chA][i] = ( vchannel[chA][i] - inp0.vchannel[chA][i] )  * gain + inp0.vchannel[chA][i];
+            vchannel[chB][i] = ( vchannel[chB][i] - inp0.vchannel[chB][i] )  * gain + inp0.vchannel[chB][i];
+        }
+    }
+    
     inline void fade( const EIObuffer& inp, float& gain, float dgain )
     {
         static constexpr float fadeGain     =  (1.0f/(1<<6));

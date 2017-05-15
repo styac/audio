@@ -49,13 +49,8 @@ public:
 
     inline void getPitch() 
     {
-        constexpr  int8_t   pitchBendMaxExp     = 13 + 10;    
-        constexpr  int32_t  pitchBendMax        = 1<<pitchBendMaxExp;    
-        constexpr  float    octaveResolution    = 1<<24;        
-        constexpr  uint32_t pitchMult           = octaveResolution / 6; // fix range 
-        if( pitchBend.updateDiff() ) {
-            const int64_t pitchInd = (pitchBend.getValue()<<10) - pitchBendMax;
-            oscillatorParamGenerate.pitchDelta = (pitchInd * pitchMult)>>pitchBendMaxExp;
+        if( pitchBendCache.update( pitchBendIndex ) ) {
+            oscillatorParamGenerate.pitchDelta = pitchBendRange.getPitchYcent( pitchBendCache.getValueI32() );
         }
     }
     
@@ -68,7 +63,11 @@ private:
     bool                    enableFM;
     int16_t                 fastReleaseTick;
     int32_t                 commonFMPitch;
-    ControlledValue<1>      pitchBend;
+    
+    // new
+    ControllerIndex         pitchBendIndex;
+    ControllerCache         pitchBendCache;
+    ControllerPitchBend     pitchBendRange;
     std::array<Oscillator,overtoneCountOscDef> array;
 };
 

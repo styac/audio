@@ -166,7 +166,7 @@ private:
     inline void mix_01(void)
     {
         if( gainCache[0].update( param.gainIndex[0] )) {            
-            out().fadeV4( inp<0>(), gain[0], ( gainCache[ 0 ].getExpValue() * param.gainRange[ 0 ] - gain[ 0 ] ) );
+            out().fadeV4( inp<0>(), gain[0], ( gainCache[ 0 ].getExpValueFloat() * param.gainRange[ 0 ] - gain[ 0 ] ) );
         } else {
             out().mult( inp<0>(), gain[0] );
         }
@@ -176,7 +176,7 @@ private:
     inline void mix_02(void)
     {
         if( gainCache[0].update( param.gainIndex[0] )) {  
-            float cval0 = gainCache[ 0 ].getExpValue();
+            float cval0 = gainCache[ 0 ].getExpValueFloat();
             out().fadeV4( inp<0>(), inp<1>(), 
                     gain[0], gain[1], 
                     ( cval0 * param.gainRange[ 0 ] - gain[ 0 ] ), 
@@ -191,7 +191,7 @@ private:
     inline void mix_03(void)
     {
         if( gainCache[0].update( param.gainIndex[0] )) {            
-            float cval0 = gainCache[ 0 ].getExpValue();
+            float cval0 = gainCache[ 0 ].getExpValueFloat();
             out().fadeV4( inp<0>(), inp<1>(), inp<2>(), 
                     gain[0], gain[1], gain[2], 
                     ( cval0 * param.gainRange[ 0 ] - gain[ 0 ] ), 
@@ -206,7 +206,7 @@ private:
     inline void mix_04(void)
     {
         if( gainCache[0].update( param.gainIndex[0] )) {
-            float cval0 = gainCache[ 0 ].getExpValue();            
+            float cval0 = gainCache[ 0 ].getExpValueFloat();            
             out().fadeV4( inp<0>(), inp<1>(), inp<2>(), inp<3>(), 
                     gain[0], gain[1], gain[2], gain[3], 
                     ( cval0 * param.gainRange[ 0 ] - gain[ 0 ] ), 

@@ -35,6 +35,7 @@
 
 
 namespace yacynth {
+#if 0
 // --------------------------------------------------------------------
 ControlledFilter::ControlledFilter( )
 //:   ctrlQ(ControllerMatrix::C_INT_FILTER_Q)
@@ -131,7 +132,7 @@ void ControlledFilter::process( const EIObuffer& __restrict inp, EIObuffer& __re
     gettimeofday(&tv,NULL);
     timer += tv.tv_sec*1000000ULL + tv.tv_usec - begint;
 } // end SVFControlled::filter
-
+#endif
 } // end namespace yacynth
 
 

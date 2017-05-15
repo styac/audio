@@ -26,7 +26,7 @@
  */
 
 #include    "../control/Controllers.h"
-#include    "../utils/Filter4Pole.h"
+//#include    "../utils/Filter4Pole.h"
 #include    "../utils/Filter4PoleInteger.h"
 #include    "../utils/FilterStateVariable.h"
 #include    "../utils/FilterAllpass.h"
@@ -111,8 +111,8 @@ public:
 private:
 
 
-    Filter4PoleOld<channelCountExp>    filter;
-    FilterControl<channelCountExp>  filterControl;
+    //Filter4PoleOld<channelCountExp>    filter;
+    //FilterControl<channelCountExp>  filterControl;
 //    ControllerIterated  ctrlF1;
 //    ControllerIterated  ctrlF2;
 //    ControllerIterated  ctrlQ;

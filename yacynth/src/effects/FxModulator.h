@@ -131,8 +131,8 @@ private:
     {
         inMultIn.updateDelta(param.inMultIndex);
         mixMultIn.updateDelta(param.mixMultIndex);
-        const float inMult = inMultIn.getExpValue();
-        const float mixMult = mixMultIn.getExpValue();
+        const float inMult = inMultIn.getExpValueFloat();
+        const float mixMult = mixMultIn.getExpValueFloat();
         for( auto si=0u; si < vsectionSize; ++si ) {
             out().vchannel[0][si] = inp<0>().vchannel[0][si] * inp<1>().vchannel[0][si] * mixMult + inp<0>().vchannel[0][si] * inMult;
             out().vchannel[1][si] = inp<0>().vchannel[1][si] * inp<1>().vchannel[1][si] * mixMult + inp<0>().vchannel[1][si] * inMult;
@@ -142,7 +142,7 @@ private:
     inline void processModulation(void)
     {
         mixMultIn.updateDelta( param.mixMultIndex );
-        const float mixMult = mixMultIn.getExpValue();
+        const float mixMult = mixMultIn.getExpValueFloat();
         for( auto si=0u; si < vsectionSize; ++si ) {
             out().vchannel[0][si] = inp<0>().vchannel[0][si] * ( inp<1>().vchannel[0][si] * mixMult + 1.0f );
             out().vchannel[1][si] = inp<0>().vchannel[1][si] * ( inp<1>().vchannel[1][si] * mixMult + 1.0f );
@@ -152,7 +152,7 @@ private:
     inline void processRingVolColtrol(void)
     {
         inMultIn.updateDelta(param.inMultIndex);
-        const float inMult = inMultIn.getExpValue();
+        const float inMult = inMultIn.getExpValueFloat();
         for( auto si=0u; si < vsectionSize; ++si ) {
             out().vchannel[0][si] = inp<0>().vchannel[0][si] * inp<1>().vchannel[0][si] * inMult; 
             out().vchannel[1][si] = inp<0>().vchannel[1][si] * inp<1>().vchannel[1][si] * inMult; 
@@ -171,7 +171,7 @@ private:
     inline void processModulationMono(void)
     {
         mixMultIn.updateDelta( param.mixMultIndex );
-        const float mixMult = mixMultIn.getExpValue();
+        const float mixMult = mixMultIn.getExpValueFloat();
         for( auto si=0u; si < vsectionSize; ++si ) {
             out().vchannel[0][si] = inp<0>().vchannel[0][si] * ( inp<1>().vchannel[0][si] * mixMult + 1.0f );
         }
@@ -193,8 +193,8 @@ private:
         }            
     }
 #endif
-    ControllerCacheDelta<10> inMultIn;      // TODO test by hearing if limit is hearable
-    ControllerCacheDelta<10> mixMultIn;     // TODO test by hearing
+    ControllerCacheRate<10> inMultIn;      // TODO test by hearing if limit is hearable
+    ControllerCacheRate<10> mixMultIn;     // TODO test by hearing
 };
 
 

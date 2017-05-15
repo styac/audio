@@ -348,7 +348,7 @@ private:
 
         if( phaseDeltaValue[0].update( param.indexPhaseDelta ) ) {
             // get the ycent value
-            const auto freqYcent = param.freqMapper.getOffseted( param.freqMapper.getScaled( phaseDeltaValue[0].getValue() ) );
+            const auto freqYcent = param.freqMapper.getOffseted( param.freqMapper.getScaled( phaseDeltaValue[0].getValueI32() ) );
             phaseDelta[0][1] = phaseDelta[0][0] = tables::ExpTable::getInstance().ycent2deltafi( freqYcent );
         }
     }
@@ -358,16 +358,16 @@ private:
     {
         if( phasePhaseFreqDiffValue[0].update( param.indexPhaseFreqDiff[0] ) ) {
             // smooth transition
-            phaseDiff[0] = phasePhaseFreqDiffValue[0].getValue();
-            const auto freqYcent1 = param.freqMapper.getOffseted( param.freqMapper.getScaled( phaseDeltaValue[0].getValue() + phaseDiff[0] ) );
+            phaseDiff[0] = phasePhaseFreqDiffValue[0].getValueI32();
+            const auto freqYcent1 = param.freqMapper.getOffseted( param.freqMapper.getScaled( phaseDeltaValue[0].getValueI32() + phaseDiff[0] ) );
             phaseDelta[0][1] = tables::ExpTable::getInstance().ycent2deltafi( freqYcent1 );
             std::cout << "  updateParamPhaseDiff phaseDiff " << phaseDiff[0] << std::endl;
         }
 
         if( phaseDeltaValue[0].update( param.indexPhaseDelta ) ) {
             // get the ycent value
-            const auto freqYcent0 = param.freqMapper.getOffseted( param.freqMapper.getScaled( phaseDeltaValue[0].getValue() ) );
-            const auto freqYcent1 = param.freqMapper.getOffseted( param.freqMapper.getScaled( phaseDeltaValue[0].getValue() + phaseDiff[0] ) );
+            const auto freqYcent0 = param.freqMapper.getOffseted( param.freqMapper.getScaled( phaseDeltaValue[0].getValueI32() ) );
+            const auto freqYcent1 = param.freqMapper.getOffseted( param.freqMapper.getScaled( phaseDeltaValue[0].getValueI32() + phaseDiff[0] ) );
             phaseDelta[0][0] = tables::ExpTable::getInstance().ycent2deltafi( freqYcent0 );
             phaseDelta[0][1] = tables::ExpTable::getInstance().ycent2deltafi( freqYcent1 );
         }

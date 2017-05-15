@@ -76,6 +76,9 @@ public:
  
     // state variable
     // input is ycent
+    
+    // this uses the old table !!!
+    // TODO refactor ?
     inline void setFreqSv( const int32_t ycent ) 
     {
         f = ftable2SinPi.getInt( ycent ) >> 15; //? -> uint16

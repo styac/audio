@@ -31,339 +31,207 @@
 #include    <iostream>
 #include    <iomanip>
 
+// http://courses.cs.washington.edu/courses/cse490s/11au/Readings/Digital_Sound_Generation_2.pdf
+// Beat Frei: Digital Sound Generation – Part 2 chap 3.3 - page 13 - 14
+//      0 < Fc <= 1
+//      0.2 < Dc <= 2
+//
+// what         case PEEKPIN:
+//            return ( channelA.low2 - channelA.high1 + in ) * 0.03f;
+
 namespace filter {
-// --------------------------------------------------------------------
-//
-// OBSOLATE --> refactor
-//
-// Chamberlain state variable filter
-// 2x oversampled
-//
-#if 0
+  
+//    
+// with 2x oversampling    
+// input ycent must be corrected by the caller !!!!! 
+// the translation table is for normal
+// ycent2xOVS = ycent - (1<<24) -- 1 octave lower
+//    
 
-class FilterSV : public FilterBaseOld {
+template< std::size_t filterCountExp, std::size_t channelCountExp >
+class FilterStateVariable2xOVS : public FilterBase {
 public:
-    static constexpr    uint16_t oversamplingRate   = 2;
-    static inline float getFc(const float freq)     { return getFcOSR<oversamplingRate>(freq); };
-    static inline float getFc2PI(const float freq)  { return getFc2PIOSR<oversamplingRate>(freq); };
-    static inline float checkFc(const float freq)   { return checkFcOSR<oversamplingRate>(freq); };
-
-    static constexpr    float    fMin               = 0.0004;   // 20/48000
-    static constexpr    float    fMax               = 0.45;     // 20000/48000
-    static constexpr    float    qMin               = 0.001;   // MUST BE CHECKED
-    static constexpr    float    qMax               = 1.6;      // unstable above 1.6
-
-    static inline float evalFc( const float fc )
+    static constexpr  std::size_t stateCount            = 3;
+    static constexpr  std::size_t coeffCount            = 3; // F,D,Dc
+    static constexpr  std::size_t filterCount           = 1<<filterCountExp;
+    static constexpr  std::size_t filterCountMask       = filterCount-1;
+    static constexpr  std::size_t channelCount          = 1<<channelCountExp;
+    static constexpr  std::size_t channelCountMask      = channelCount-1;
+    static constexpr  std::size_t v4kcount              = (filterCount*coeffCount*channelCount)/4;
+    static constexpr  std::size_t v4zcount              = (filterCount*stateCount*channelCount)/4;
+    static constexpr  std::size_t allFilterCount        = filterCount*channelCount;
+    static constexpr  std::size_t allFilterCountMask    = allFilterCount-1;
+    static constexpr  std::size_t allStateCount         = filterCount*channelCount*stateCount;
+        
+    static constexpr float  fcontrolMin  = 0.0000001;
+    static constexpr float  fcontrolMax  = 0.9999999;
+    static constexpr float  qcontrolMin  = 0.03;
+    static constexpr float  qcontrolMax  = 2.0;
+    
+    // to refine
+    static float D_svf( float Fc, float Dc ) 
     {
-        const float fclim = fc < fMin ? fMin : fc > fMax ? fMax : fc;
-        // good approximation for a 2* oversampled filter
-        return 3.0f * fclim;
-    };
-    static inline float evalQ( const float q )
+        return 2.0f * Dc * ( 1.0 - Fc )  + 0.03f;
+    }
+    
+    FilterStateVariable2xOVS()
     {
-        return q < qMin ? qMin : q > qMax ? qMax : q;
-    };
-
-    enum FilterType {
-        BYPASS,                // get the input: the filter is runnning
-        LOWPASS,
-        HIGHPASS,
-        BANDPASS,
-        NOTCH,
-        PEEK,
-        PEEKPIN
-    };
-
-    struct Channel {
-        float   band1;
-        float   low1;
-        float   high1;
-        float   band2;
-        float   low2;
-        float   high2;
-    };
-
-    struct Param {
-        void setEffective( void )
-        {
-            fEff = f.current();
-            qEff = std::min( q.current(), 2.0f - f.current() );
-        };
-
-        ParamIterLinear f;
-        ParamIterLinear q;
-        // effective multipliers from f and q current to increase stability
-        float           fEff;
-        float           qEff;
-        FilterType      type;
+        clear();
     };
 
     void clear(void)
     {
-        channelA = {0};
-        channelB = {0};
-        param1.f.set( evalFc(fMax) );
-        param1.q.set( qMin );
-        param1.setEffective();
+        for( auto &v : zv ) v = 0;
     };
-
-    FilterSV()
-    { clear(); };
-
-    inline void setType( const FilterType t ) { param1.type=t; };
-
-    // input is fc = f/fs fs =
-    inline void setF( const float fc )
+    
+    // for direct setting
+    inline void set_F_K( float fval, std::size_t index=0 )
     {
-        param1.f.setStep( evalFc( fc ) );
-    };
-    inline void setQ( const float qv )
-    {
-        param1.q.setStep( evalQ( qv ) );
-    };
+        km2[CDF][ index & allFilterCountMask ] = std::max( fcontrolMax, std::min( fcontrolMin, fval ));
+    }
 
-    // this should be called after a parameter change
-    // returns true if there is something to set yet
-    inline bool sweep( void )
+    // for direct setting
+    inline void set_Q_K( float qval, std::size_t index=0 )
     {
-        const bool retf = param1.f.step();
-        const bool retq = param1.q.step();
-        if( retf || retq ) {
-            param1.setEffective();
-            return true;
-        }
-        return false;
-    };
+        km2[CDD][ index & allFilterCountMask ] = km2[CDDCIN][ index & allFilterCountMask ] = std::max( qcontrolMin, std::min( qcontrolMax, qval ));
+    }    
 
-    inline void getA( const float in, float& out )
+    template< std::size_t CH >
+    inline void set_F( int32_t ycent, std::size_t index=0 )
     {
-        doLinA(in);
-        switch( param1.type ) {
-        case BYPASS:
-            out = in;
-            return;
-        case LOWPASS:
-            out = channelA.low1;
-            return;
-        case HIGHPASS:
-            out = ( channelA.high1 + channelA.high2 ) * 0.5f;
-            return;
-        case BANDPASS:
-            out = ( channelA.band1 + channelA.band2 );
-            return;
-        case PEEK:
-            out = channelA.low2 - channelA.high1;
-            return;
-        case NOTCH:
-            out = channelA.low2 + channelA.high2;
-            return;
-        case PEEKPIN:
-            out = ( channelA.low2 - channelA.high1 + in ) * 0.03f;
-            return;
-        }
-    };
+        km3[ CDF ][ index & filterCountMask ][ CH ] = FilterTable2SinPi::getInstance().getFloat( ycent );
+    }
 
-    inline float getA( const float in )
+    template< std::size_t CH >
+    inline void set_Q( float q, std::size_t index=0 )
     {
-        doLinA( in );
-        switch( param1.type ) {
-        case BYPASS:
-            return in;
-        case LOWPASS:
-            return channelA.low1;
-        case HIGHPASS:
-            return ( channelA.high1 + channelA.high2 ) * 0.5f;
-        case BANDPASS:
-            return ( channelA.band1 + channelA.band2 );
-        case PEEK:
-            return channelA.low2 - channelA.high1;
-        case NOTCH:
-            return channelA.low2 + channelA.high2;
-        case PEEKPIN:
-            return ( channelA.low2 - channelA.high1 + in ) * 0.03f;
-        }
-    };
+        km3[ CDDCIN ][ index & filterCountMask ][ CH ] = q;
+        km3[ CDD ][ index & filterCountMask ][ CH ] = D_svf( km3[ CDF ][ index & filterCountMask ][ CH ], q );
+    }
+    
+    inline void set_F( int32_t ycent, std::size_t index=0 )
+    {
+        km2[ CDF ][ index & filterCountMask ] = FilterTable2SinPi::getInstance().getFloat( ycent );
+        km2[ CDD ][ index & filterCountMask ] = D_svf( km2[ CDF ][ index & filterCountMask ], km2[ CDDCIN ][ index & filterCountMask ] );
+        std::cout << " ***          set_F " << km2[ CDF ][ index & filterCountMask ] << std::endl;
+        std::cout << " ***          set_Q " << km2[ CDD ][ index & filterCountMask ] << " QC " << km2[ CDDCIN ][ index & filterCountMask ] << std::endl;
+    }
+    
+    inline void set_Q( float q, std::size_t index=0 )
+    {
+        km2[ CDDCIN ][ index & filterCountMask ] = q;        
+        km2[ CDD ][ index & filterCountMask ] = D_svf( km2[ CDF ][ index & filterCountMask ], q );
+        std::cout << " ***          set_F " << km2[ CDF ][ index & filterCountMask ] << std::endl;
+        std::cout << " ***          set_Q " << km2[ CDD ][ index & filterCountMask ] << " QC " << km2[ CDDCIN ][ index & filterCountMask ] << std::endl;
 
-    inline void getB( const float in, float& out )
-    {
-        doLinB( in );
-        switch( param1.type ) {
-        case BYPASS:
-            out = in;
-            return;
-        case LOWPASS:
-            out = channelB.low1;
-            return;
-        case HIGHPASS:
-            out =  ( channelB.high1 + channelB.high2 ) * 0.5f;
-            return;
-        case BANDPASS:
-            out = ( channelB.band1 + channelB.band2 );
-            return;
-        case PEEK:
-            out = channelB.low2 - channelB.high1;
-            return;
-        case NOTCH:
-            out = channelB.low2 + channelB.high2;
-            return;
-        case PEEKPIN:
-            out = ( channelB.low2 - channelB.high1 + in ) * 0.03f;
-            return;
-        }
-    };
+    }
 
-    inline float getB( const float in )
+    inline void set_F_all( int32_t ycent, int32_t ycentDelta )
     {
-        doLinB( in );
-        switch( param1.type ) {
-        case BYPASS:
-            return in;
-        case LOWPASS:
-            return channelB.low1;
-        case HIGHPASS:
-            return ( channelB.high1 + channelB.high2 ) * 0.5f;
-        case BANDPASS:
-            return ( channelB.band1 + channelB.band2 );
-        case PEEK:
-            return channelB.low2 - channelB.high1;
-        case NOTCH:
-            return channelB.low2 + channelB.high2;
-        case PEEKPIN:
-            return ( channelB.low2 - channelB.high1 + in ) * 0.03f;
-        }
-    };
-
-// stereo
-    inline void getAB( const float inA, const float inB, float& outA, float& outB )
-    {
-        doLinAB( inA, inB );
-        switch( param1.type ) {
-        case BYPASS:
-            outA = inA;
-            outB = inB;
-            return;
-        case LOWPASS:
-            outA = channelA.low1;
-            outB = channelB.low1;
-            return;
-        case HIGHPASS:
-            outA = ( channelA.high1 + channelA.high2 ) * 0.5f;
-            outB = ( channelB.high1 + channelB.high2 ) * 0.5f;
-            return;
-        case BANDPASS:
-            outA = ( channelA.band1 + channelA.band2 );
-            outB = ( channelB.band1 + channelB.band2 );
-            return;
-        case PEEK:
-            outA = channelA.low2 - channelA.high1;
-            outB = channelB.low2 - channelB.high1;
-            return;
-        case NOTCH:
-            outA = channelA.low2 + channelA.high2;
-            outB = channelB.low2 + channelB.high2;
-            return;
-        case PEEKPIN:
-            outA = ( channelA.low2 - channelA.high1 + inA ) * 0.03f;
-            outB = ( channelB.low2 - channelB.high1 + inB ) * 0.03f;
-            return;
-        }
-    };
-
-private:
-    // Beat Frei: Digital Sound Generation – Part 2 chap 3.3 - page 13 - 14
-    inline void doLinA( const float in )
-    {
-        // pass 1
-        channelA.low1   = channelA.low2         + channelA.band2 * param1.fEff;
-        channelA.high1  = in - channelA.low1    - channelA.band2 * param1.qEff;
-        channelA.band1  = channelA.band2        + channelA.high1 * param1.fEff;
-        // pass 2
-        channelA.low2   = channelA.low1         + channelA.band1 * param1.fEff;
-        channelA.high2  = in - channelA.low2    - channelA.band1 * param1.qEff;
-        channelA.band2  = channelA.band1        + channelA.high2 * param1.fEff;
-    };
-    inline void doLinB( const float in )
-    {
-        // pass 1
-        channelB.low1   = channelB.low2         + channelB.band2 * param1.fEff;
-        channelB.high1  = in - channelB.low1    - channelB.band2 * param1.qEff;
-        channelB.band1  = channelB.band2        + channelB.high1 * param1.fEff;
-        // pass 2
-        channelB.low2   = channelB.low1         + channelB.band1 * param1.fEff;
-        channelB.high2  = in - channelB.low2    - channelB.band1 * param1.qEff;
-        channelB.band2  = channelB.band1        + channelB.high2 * param1.fEff;
-    };
-    inline void doLinAB( const float inA, const float inB )
-    {
-        // pass1
-        channelA.low1   = channelA.low2         + channelA.band2 * param1.fEff;
-        channelB.low1   = channelB.low2         + channelB.band2 * param1.fEff;
-        channelA.high1  = inA - channelA.low1   - channelA.band2 * param1.qEff;
-        channelB.high1  = inB - channelB.low1   - channelB.band2 * param1.qEff;
-        channelA.band1  = channelA.band2        + channelA.high1 * param1.fEff;
-        channelB.band1  = channelB.band2        + channelB.high1 * param1.fEff;
-        // pass2
-        channelA.low2   = channelA.low1         + channelA.band1 * param1.fEff;
-        channelB.low2   = channelB.low1         + channelB.band1 * param1.fEff;
-        channelA.high2  = inA - channelA.low2   - channelA.band1 * param1.qEff;
-        channelB.high2  = inB - channelB.low2   - channelB.band1 * param1.qEff;
-        channelA.band2  = channelA.band1        + channelA.high2 * param1.fEff;
-        channelB.band2  = channelB.band1        + channelB.high2 * param1.fEff;
-    };
-    Channel     channelA;
-    Channel     channelB;
-    Param       param1;
-}; // end class FilterSV
-// --------------------------------------------------------------------
-
-template< std::size_t tableSizeX >
-class  FilterSVtableF {
-public:
-    static constexpr std::size_t tableSizeExp = tableSizeX;
-    static constexpr std::size_t tableSize = 1<<tableSizeExp;
-    static constexpr double PI  = 3.141592653589793238462643383279502884197;
-    FilterSVtableF()
-    :   FilterSVtableF( 30.0, 16000.0, 48000.0, 2 ) // default here
-    {};
-    FilterSVtableF( const double minFreq, const double maxFreq, const float samplingFrequency, const int16_t oversamplingRate )
-    {
-        const double mult   = PI / samplingFrequency / oversamplingRate;
-        const double dfreq  = std::pow( 2.0f, std::log2( maxFreq / minFreq ) / tableSize ) ;
-        double freq = minFreq;
-        for( int i = tableSize-1; i >= 0 ; --i ) {
-            f[ i ] =  2.0f * std::sin( mult * freq );
-            freq *= dfreq;
-        }
-    };
-    float get( const uint64_t index ) { return index < tableSize ? f[ index ] : f[ tableSize - 1 ]; };
-
-private:
-    float           f[ tableSize ];
-};
-// --------------------------------------------------------------------
-
-template< std::size_t tableSizeX >
-class  FilterSVtableQ {
-public:
-    static constexpr std::size_t tableSizeExp = tableSizeX;
-    static constexpr std::size_t tableSize = 1<<tableSizeExp;
-    FilterSVtableQ()
-    :   FilterSVtableQ( 0.001, 1.6 )
-    {};
-    FilterSVtableQ( const double minQ, const double maxQ  )
-    {
-        const double dq = std::pow( 2.0f, std::log2( maxQ / minQ ) / tableSize );
-        double qval = minQ;
-        for( int i = tableSize-1; i >= 0 ; --i ) {
-            q[ i ] = qval;
-            qval *= dq;
+        for( auto fi=0u; fi < allFilterCount; ++fi ) {
+            km2[ CDF ][ fi ] = FilterTable2SinPi::getInstance().getFloat( ycent );
+            ycent += ycentDelta;
         }
     }
-    float get( const uint64_t index ) { return index < tableSize ? q[ index ] : q[ tableSize - 1 ]; };
 
-private:
-    float   q[tableSize];
-};
-#endif
+    inline void set_Q_all( float q )
+    {
+        const float qval = std::max( qcontrolMin, std::min( qcontrolMax,  2.0f - 2.0f * q ));
+        for( auto fi=0u; fi < allFilterCount; ++fi ) {
+            km2[ CDDCIN ][ fi ] = qval;
+            km2[ CDD ][ fi ] = D_svf( km2[ CDF ][ fi ], km2[ CDDCIN ][ fi ]);
+        }        
+    }
+    
+    template< std::size_t FL >
+    inline float get1x1LP()
+    {
+        return zm2[ LOW ][ FL ];
+    }
+
+    template< std::size_t FL >
+    inline float get1x1BP1()
+    {
+        return zm2[ BND ][ FL ] * 2.0f;
+    }
+
+
+    template< std::size_t FL >
+    inline float get1x1HP()
+    {
+        return zm2[ HGH ][ FL ];
+    }
+    
+    template< std::size_t FL >
+    inline float get1x1PK()
+    {
+        return zm2[ BND ][ FL ] - zm2[ HGH ][ FL ];
+    }
+
+    template< std::size_t FL >
+    inline float get1x1NT()
+    {
+        return zm2[ BND ][ FL ] + zm2[ HGH ][ FL ];
+    }
+
+    template< std::size_t FL >
+    inline void get1x1LP( float& y0 )
+    {
+        y0 = zm2[ LOW ][ FL ];
+    }
+
+    template< std::size_t FL >
+    inline void get1x1BP1( float& y0 )
+    {
+        y0 = zm2[ BND ][ FL ];
+    }
+
+    template< std::size_t FL >
+    inline void get1x1HP( float& y0 )
+    {
+        y0 = zm2[ HGH ][ FL ];
+    }
+    
+    template< std::size_t FL >
+    inline void get1x1PK( float& y0 )
+    {
+        y0 = zm2[ BND ][ FL ] - zm2[ HGH ][ FL ];
+    }
+
+    template< std::size_t FL >
+    inline void get1x1NT( float& y0 )
+    {
+        y0 = zm2[ BND ][ FL ] + zm2[ HGH ][ FL ];
+    }
+
+    template< std::size_t FL >
+    inline void set1x1( const float x0 )    
+    {
+        for( auto i=0u; i<2; ++i ) {
+            zm2[ LOW ][ FL ] +=     zm2[ BND ][ FL ] * km2[ CDF ][ FL ];
+            zm2[ HGH ][ FL ] = x0 - zm2[ BND ][ FL ] * km2[ CDD ][ FL ] - zm2[ LOW ][ FL ];
+            zm2[ BND ][ FL ] +=     zm2[ HGH ][ FL ] * km2[ CDF ][ FL ];            
+        }
+    }
+    
+private:    
+    union alignas(cacheLineSize) {
+        struct {
+            union {
+                v4sf    kv4[ v4kcount ];
+                float   kv[  coeffCount * allFilterCount ];
+                float   km2[ coeffCount ][ allFilterCount ];
+                float   km3[ coeffCount ][ filterCount ][ channelCount ];
+            };
+            union {
+                v4sf    zv4[ v4zcount ];
+                float   zv[  stateCount * allFilterCount ];
+                float   zm2[ stateCount][ allFilterCount ];
+                float   zm3[ stateCount][ filterCount ][ channelCount ];                
+            };
+        };
+    };    
+}; // end FilterStateVariable
+      
 // --------------------------------------------------------------------
 } // end namespace filter

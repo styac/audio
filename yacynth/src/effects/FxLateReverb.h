@@ -97,8 +97,8 @@ public:
     static constexpr std::size_t combCount      = 8;
 
     static constexpr float householderFeedback  = -2.0f;     // combCount;
-    static constexpr float lowpassLowLimit      = kOnePoleLowPass( 18000.0 );
-    static constexpr float lowpassHighLimit     = kOnePoleLowPass( 30.0 );
+    static constexpr float lowpassLowLimit      = f2FilterOnePole_F( 18000.0 );
+    static constexpr float lowpassHighLimit     = f2FilterOnePole_F( 30.0 );
     static constexpr float feedbackLimit        = 0.6f;
     static constexpr float outputLimit          = 0.8f;
     static constexpr float crossFeedbackLimit   = 0.8f;

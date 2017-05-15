@@ -218,14 +218,11 @@ namespace TagEffectFxFilterModeLevel_03 {
         Nop,
         Clear,                      // clear all
         GetFeatures,
-        SetMode_01_ap4x,
-        SetMode_02_ap4x,
-        SetMode_03_ap4x,
-        SetMode_04_ap4x,
-        SetMode_05_ap4x,
-        SetMode_06_ap4x,
-        SetMode_07_ap4x,
-        SetMode_08_ap4x,
+        SetMode_2ch_x4ap_phaser_mode01,
+        SetMode_SVF01_2ch_mode01,
+        SetMode_4p_2ch,
+        
+        
     };
 } // end namespace
 

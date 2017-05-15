@@ -53,15 +53,38 @@ struct alignas(16) V4vf {
         v[3] = v3;
     }
     union  {
-        float   v[4];
-        float   v2[2][2];
+        float   v[ 4 ];
+        float   v2[ 2 ][ 2 ];
         v4sf    v4;
     };
 };
 
+template< std::size_t N >
+struct alignas(16) V4Nvf {
+    inline V4Nvf() = default;
+
+    union  {
+        float   v[ 4 * N ];
+        float   vn2[ 2 * N ][ 2 ];
+        float   v2n[ 2 ][ 2 * N ];
+        v4sf    v4[ N ];
+    };
+};
+
+template< std::size_t M, std::size_t N >
+struct alignas(16) V4MNvf {
+    inline V4MNvf() = default;
+
+    union  {
+        float   v[ 4 * N * M ];
+        float   v3mn2[ M ][ N * 2 ][ 2 ];
+        float   v3m2n[ M * 2 ][ N ][ 2 ];
+        v4sf    v4mn[ M ][ N ];
+        v4sf    v4[ M * N ];
+    };
+};
 
 // new V4 support
-
 template< std::size_t v4Exp>
 struct V4size {
     static constexpr std::size_t varraySizeExp  = v4Exp;

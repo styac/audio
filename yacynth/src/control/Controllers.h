@@ -37,14 +37,6 @@
 #include    <array>
 #include    <atomic>
 #include    <cstring>
-//
-//
-// http://stackoverflow.com/questions/109710/likely-unlikely-macros-in-the-linux-kernel-how-do-they-work-whats-their
-// likely unlikely
-//
-
-
-#define USE_OBSOLATE
 
 using namespace tables;
 
@@ -102,6 +94,15 @@ public:
         CC_MODULATOR_FREQ1,
         CC_MODULATOR_INVOL,
         CC_MODULATOR_MIXVOL,
+
+        CC_PHASER_LFO_FREQ_CTRL,
+        CC_PHASER_LFO_PHASEDIFF_CTRL,
+        CC_PHASER_BANDWIDTH_CTRL,
+        CC_PHASER_FEEDBACK_CTRL,
+        CC_PHASER_WETDRY_CTRL,
+        CC_PHASER_SLOPE_CTRL,
+        CC_PHASER_NOTCHDISTANCE_CTRL,
+
         CC_FILTER_FREQ0,
         CC_FILTER_Q0,
         // ------------- mirror to filtered range begin
@@ -267,7 +268,7 @@ k 9 f 14.9358  -- 20.6
         value.v[ ind & V4size::arraySizeMask ] = ( vH << 7 ) + vL;
     }
 
-    inline uint32_t get( uint16_t ind ) const
+    inline int32_t getValueI32( uint16_t ind ) const
     {
         return value.v[ ind & arraySizeMask ];
     }
@@ -278,11 +279,11 @@ k 9 f 14.9358  -- 20.6
         return instance;
     }
 
-    static float getExpValue( uint8_t v )
+    static float getExpValueFloat( uint8_t v )
     {
         return expFuncTable[ v & midiStepMask ];
     }
-    static uint32_t getPhaseValue( uint8_t v )
+    static uint32_t getPhaseValueU32( uint8_t v )
     {
         return phaseFuncTable[ v & midiStepMask ];
     }
@@ -513,167 +514,254 @@ struct ControllerIndex {
     {
         InnerController::getInstance().set( index, v );
     }
+
+    inline float getExpValueFloat_127() const
+    {
+        return InnerController::getInstance().getExpValueFloat( 127 - InnerController::getInstance().getValueI32( index ));
+    }
+    
     inline float getExpValueFloat() const
     {
-        return InnerController::getInstance().getExpValue( InnerController::getInstance().get( index ));
+        return InnerController::getInstance().getExpValueFloat( InnerController::getInstance().getValueI32( index ));
     }
     inline uint32_t getPhaseValueU32() const
     {
-        return InnerController::getInstance().getPhaseValue(InnerController::getInstance().get( index ));
+        return InnerController::getInstance().getPhaseValueU32(InnerController::getInstance().getValueI32( index ));
     }
 
-    inline int32_t getLfoSawI16() const
+    inline int16_t getLfoSawI16() const
     {
-        return(int32_t(InnerController::getInstance().get( index ))>>16);
+        return(int32_t(InnerController::getInstance().getValueI32( index ))>>16);
     }
 
-    inline int32_t getLfoSinI16() const
+    inline int16_t getLfoSinI16() const
     {
-        return tables::waveSinTable[ uint16_t(InnerController::getInstance().get( index )>>16) ];
+        return tables::waveSinTable[ uint16_t(InnerController::getInstance().getValueI32( index )>>16) ];
+    }
+
+    inline float getLfoSinFloat() const
+    {
+        return tables::sinTable[ uint16_t(InnerController::getInstance().getValueI32( index )>>16) ];
     }
 
     inline int32_t getLfoSinI32() const
     {
-        return tables::waveSinTable[ uint16_t(InnerController::getInstance().get( index )>>16) ] << 16;
+        return tables::waveSinTable[ uint16_t(InnerController::getInstance().getValueI32( index )>>16) ] << 16;
     }
 
     inline int32_t getLfoSinU32() const
     {
-        return ( int32_t(tables::waveSinTable[ uint16_t(InnerController::getInstance().get( index )>>16) ]) << 15 ) + 0x3FFF0000;
+        return ( int32_t(tables::waveSinTable[ uint16_t(InnerController::getInstance().getValueI32( index )>>16) ]) << 15 ) + 0x3FFF0000;
     }
 
     inline int32_t getLfoTriangleI16() const
     {
-        const int32_t tmp = (int32_t(InnerController::getInstance().get( index ))>>15);
+        const int32_t tmp = (int32_t(InnerController::getInstance().getValueI32( index ))>>15);
         return ((tmp>>16) ^ tmp ) - 0x7FFF;
     }
 
-    // not tested
     inline int32_t getLfoTriangleU16() const
     {
-        const int32_t tmp = (int32_t(InnerController::getInstance().get( index ))>>15);
+        const int32_t tmp = (int32_t(InnerController::getInstance().getValueI32( index ))>>15);
         return ((tmp>>16) ^ tmp );
     }
     
-    // not tested
     inline int32_t getLfoTriangleI32() const
     {
-        const int32_t tmp = (int32_t(InnerController::getInstance().get( index ))>>1);
+        const int32_t tmp = (int32_t(InnerController::getInstance().getValueI32( index ))>>1);
         return ((tmp>>30) ^ tmp ) - 0x7FFFFFFF;
     }
 
-    // not tested
     inline int32_t getLfoTriangleU32() const
     {
-        const int32_t tmp = (int32_t(InnerController::getInstance().get( index ))>>1);
+        const int32_t tmp = (int32_t(InnerController::getInstance().getValueI32( index ))>>1);
         return ((tmp>>30) ^ tmp );
     }
 };
 
+
 // store the value and check the diff
 struct ControllerCache {
+    ControllerCache()
+    :   value(0) // irreal value to enforce an update
+    {}
+    
+    int32_t     value;
+    
+    // will be needed for parameter update
+    //  in other thread to make a recalculation the control
+    //  values : probably value must be atomic
+    
+    void reset()
+    {
+        
+    }
+    
     inline bool update( const ControllerIndex ind )
     {
         const auto tmp = value;
-        value = InnerController::getInstance().get( ind.index );
+        value = InnerController::getInstance().getValueI32( ind.index );
         return tmp != value;
     }
-
-    inline void updateLfoSaw( const ControllerIndex ind )
+    
+    inline float getExpValueFloat(void) const
     {
-        value = (int32_t(InnerController::getInstance().get( ind.index ))>>16);
+        return InnerController::getInstance().getExpValueFloat( value );
     }
 
-    inline void updateLfoSin( const ControllerIndex ind )
+    inline float getExpValueFloat_127(void) const
     {
-        value = tables::waveSinTable[ uint16_t(InnerController::getInstance().get( ind.index )>>16) ];
+        return InnerController::getInstance().getExpValueFloat( 127 - value );
     }
 
-    inline void updateLfoTriangle( const ControllerIndex ind )
+    inline uint32_t getPhaseValueU32(void) const
     {
-        const int32_t tmp = (int32_t(InnerController::getInstance().get( ind.index ))>>15);
-        value = ((tmp>>16) ^ tmp ) - 0x7FFF;
+        return InnerController::getInstance().getPhaseValueU32( value );
+    }
+    
+    inline int32_t getValueI32(void) const
+    {
+        return value;
     }
 
-    inline float getExpValue(void) const
+    inline int16_t getLfoSawI16() const
     {
-        return InnerController::getInstance().getExpValue( value );
+        return(int32_t(value)>>16);
     }
 
-    inline uint32_t getPhaseValue(void) const
+    inline int16_t getLfoSinI16() const
     {
-        return InnerController::getInstance().getPhaseValue( value );
+        return tables::waveSinTable[ uint16_t(value>>16) ];
     }
-    inline auto getValue(void) const
+
+    inline float getLfoSinFloat() const
     {
-        return value & 0x7FFFF;
+        return tables::sinTable[ uint16_t(value>>16) ];
     }
-    inline void trigger(void)
+
+    inline int16_t getLfoTriangleI16() const
     {
-        value &= 0x8000; // trigger a change
+        const int32_t tmp = value >> 15;
+        return ((tmp>>16) ^ tmp ) - 0x7FFF;
     }
-    // cache is not used for oscillator -- normally midi is max 14 bit
-//    int32_t     value;
-    int16_t     value;
+
+    inline uint16_t getLfoTriangleU16() const
+    {
+        const int16_t tmp = value >> 15;
+        return ((tmp>>16) ^ tmp );
+    }
+
+    inline int32_t getLfoSinI32() const
+    {
+        return tables::waveSinTable[ uint16_t(value>>16) ] << 16;
+    }
+
+    inline int32_t getLfoSinU32() const
+    {
+        return ( int32_t(tables::waveSinTable[ uint16_t(value>>16) ]) << 15 ) + 0x3FFF0000;
+    }
+    
+    inline int32_t getLfoTriangleI32() const
+    {
+        const int32_t tmp = value>>1;
+        return ((tmp>>30) ^ tmp ) - 0x7FFFFFFF;
+    }
+
+    inline int32_t getLfoTriangleU32() const
+    {
+        const int32_t tmp = value>>1;
+        return ((tmp>>30) ^ tmp );
+    }    
 };
 
 // always adds only a fraction of the change to the value
 // compare this with filtered controller
 template< int32_t lim >
-struct ControllerCacheDelta : public ControllerCache {
+struct ControllerCacheRate : public ControllerCache {
     static_assert( lim > 2 && lim < 30 ,"value out of limits");
     inline bool updateDelta( const ControllerIndex ind )
     {
-        const auto delta = InnerController::getInstance().get( ind.index ) - value;
+        const int32_t delta = InnerController::getInstance().getValueI32( ind.index ) - value;
         value += saturate<int32_t,lim>(delta);
-        return delta==0;
+        return delta != 0;
     }
 };
 
-/*
- * const auto cval = param.pmode_01.s1.update( controlledval );
- * const auto a0   = param.pmode_01.s1.get( controlledval, 0 );
- * const auto a1   = param.pmode_01.s1.get( controlledval, 1 );
- */
+
+// special for pitchbend
+struct ControllerPitchBend {
+    int32_t     range;
+    static constexpr  int16_t   middleValueExp      = 13;        
+    static constexpr  int16_t   middleValue         = 1<<middleValueExp;        
+    static constexpr  float     octaveResolution    = 1<<24;        
+    static constexpr  float     pitch2Semitone      = octaveResolution / 6.0;
+    
+    // val = 1.0 -> +,- 1 semitone
+    // scaling must be checked with MIDI RPN settings
+    inline void setRange( float val = 1.0f )
+    {
+        if( val < 0.01f )
+            val = 0.01f;
+        if( val > 12.0f )
+            val = 12.0f;
+        range = int32_t(pitch2Semitone * val);
+    }
+        
+    inline int32_t getPitchYcent( int16_t controllerValue )
+    {
+        const int64_t offs = controllerValue - middleValue;
+        return ( range * offs ) >> middleValueExp;
+    }
+};
 
 template< uint8_t acount >
 struct ControllerMapLinear {
-    static constexpr uint8_t offsetCount = acount;
-    static constexpr int32_t maxMult  = 1<<24;   // min input 7 bit
-    static constexpr int32_t maxOffs  = 1<<30;
+    int32_t     slope;
+    uint32_t    shift;
+    int32_t     y0[acount];
+
+    static constexpr uint8_t    offsetCount = acount;
+    static constexpr int32_t    maxMult     = 1<<24;   // min input 7 bit
+    static constexpr int32_t    maxOffs     = 1<<29;    
+    static constexpr uint32_t   maxShift    = 48;    
+
     inline int32_t getScaled( int32_t val ) const
     {
-        return mult * val;
+        return (int64_t(slope) * val) >> shift;
     }
+    
     inline int32_t getOffseted( int32_t val ) const
     {
-        static_assert( offsetCount>0,"not usable" );
+        static_assert( acount>0,"not usable" );
         return y0[0] + val;
     }
     // MUST ind < offsetCount
     inline int32_t getOffseted( int32_t val, uint16_t ind ) const
     {
-        static_assert( offsetCount>0,"not usable" );
+        static_assert( acount>0,"not usable" );
         return y0[ind] + val;
     }
     bool check()
     {
-        const int32_t abm = std::abs(mult);
+        const int32_t abm = std::abs(slope);
         if( abm == 0 || abm > maxMult ) {
-            std::cout << "  ControllerMapLinear err mult " << mult << std::endl;
+//            std::cout << "  ControllerMapLinear err mult " << mult << std::endl;
             return false;
         }
+        if( shift > maxShift ) {
+//            std::cout << "  ControllerMapLinear err shift " << mult << std::endl;
+            return false;
+        }
+        
         for( auto &y : y0 ) {
             const int32_t aby = std::abs(y);
             if( aby > maxOffs ) {
-                std::cout << "  ControllerMapLinear err offs " << aby << std::endl;
+//                std::cout << "  ControllerMapLinear err offs " << aby << std::endl;
                 return false;
             }
         }
         return true;
     }
-    int32_t     mult;
-    int32_t     y0[offsetCount];
 };
 
 //
@@ -707,163 +795,6 @@ private:
     T lastValue;
     T currValue;
 };
-
-// OBSOLATE !!
-
-#ifdef USE_OBSOLATE
-
-template< uint8_t fcount >
-struct ControlledValue {
-    // new concept -- value external
-    int32_t     value;          // updated value from the InnerController
-    int32_t     y0[fcount];     // y(0) for linear mapping
-    int16_t     slope[fcount];  // multiplier for linear mapping
-    uint16_t    index;          // index in InnerController
-
-
-    // value == signed 16 bit
-    inline bool updateLfoSaw(void)
-    {
-        value = (int32_t(InnerController::getInstance().get( index ))>>16);
-        return true;
-    }
-    inline int16_t updateLfoSawNew(void)
-    {
-        return (int32_t(InnerController::getInstance().get( index ))>>16);
-    }
-    // value == signed 16 bit
-    inline bool updateLfoSin(void)
-    {
-        value = tables::waveSinTable[ uint16_t(InnerController::getInstance().get( index )>>16) ];
-        return true;
-    }
-
-    inline int16_t updateLfoSinNew(void)
-    {
-        return tables::waveSinTable[ uint16_t(InnerController::getInstance().get( index )>>16) ];
-
-    }
-    // value == signed 16 bit
-    inline bool updateLfoTriangle(void)
-    {
-        const int32_t tmp = (int32_t(InnerController::getInstance().get( index ))>>15);
-        value = ((tmp>>16) ^ tmp ) - 0x7FFF;
-        return true;
-    }
-
-    inline int16_t updateLfoTriangleNew(void)
-    {
-        const int32_t tmp = (int32_t(InnerController::getInstance().get( index ))>>15);
-        return ((tmp>>16) ^ tmp ) - 0x7FFF;
-    }
-
-    inline bool updateDiff(void)
-    {
-        const auto tmp = value;
-        value = InnerController::getInstance().get( index );
-        return tmp != value;
-    }
-
-    // new concept
-    inline bool update( int16_t& val )
-    {
-        const auto tmp = val;
-        val = InnerController::getInstance().get( index );
-        return tmp != val;
-    }
-    inline void setShift(uint8_t shv) const
-    {
-        if( shv > 24 )
-            shv = 24;
-        InnerController::getInstance().setShift(index,shv);
-    }
-
-    // to InnerController !
-    inline void set( uint32_t v  )
-    {
-        value = v;
-        InnerController::getInstance().set( index, v );
-    }
-
-    inline int32_t getValue(void) const
-    {
-        return value;
-    }
-    inline float getExpValue(void) const
-    {
-
-        return InnerController::getInstance().getExpValue(value);
-    }
-    inline uint32_t getPhaseValue(void) const
-    {
-        return InnerController::getInstance().getPhaseValue(value);
-    }
-
-    // ycent -- max 8 octave
-    // shift == 0
-    inline void setYcent8Parameter( int32_t y0p, int16_t slopep )
-    {
-        static_assert(fcount>0,"not usable");
-                            // 0.01:9ce2e7f
-        constexpr int32_t minY =  0x8000000;
-                          // 19990:1ebacfd9
-        constexpr int32_t maxY = 0x1EF00000;
-
-        InnerController::getInstance().setShift(index,5);
-        slope[0] = slopep;
-        if( y0p <= minY ) {
-            y0[0] = minY;
-            return;
-        }
-        if( y0p >= maxY ) {
-            y0[0] = maxY;
-            return;
-        }
-        y0[0] = y0p;
-    }
-
-    inline void setYcent8Parameter( int32_t y0p, int16_t slopep, uint8_t index )
-    {
-                            // 0.01:9ce2e7f
-        static_assert(fcount>0,"not usable");
-        constexpr int32_t minY =  0x8000000;
-                          // 19990:1ebacfd9
-        constexpr int32_t maxY = 0x1EF00000;
-        if(index >= fcount)
-            return;
-
-        InnerController::getInstance().setShift(index,5);
-        slope[index] = slopep;
-        if( y0p <= minY ) {
-            y0[index] = minY;
-            return;
-        }
-        if( y0p >= maxY ) {
-            y0[index] = maxY;
-            return;
-        }
-        y0[index] = y0p;
-    }
-    // 7 + 5 == 12 --
-    // 12 * 15 == 27 --
-    // 27-24 == 3 --
-    // 2^3 == 8
-    inline int32_t getYcent8Value(void) const
-    {
-        static_assert(fcount>0,"not usable");
-        return y0[0] + slope[0] * int16_t(value);
-    }
-
-    inline int32_t getYcent8Value(uint8_t index) const
-    {
-        static_assert(fcount>0,"not usable");
-        if(index >= fcount)
-            return 0;
-        return y0[index] + slope[index] * int16_t(value);
-    }
-};
-
-#endif
 
 // --------------------------------------------------------------------
 } // end namespace yacynth

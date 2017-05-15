@@ -27,7 +27,7 @@
 
 #include    "yacynth_globals.h"
 #include    "v4.h"
-#include    "Filter.h"
+//#include    "Filter.h"
 #include    "Ebuffer.h"
 //#include    "Echo.h"
 //#include    "Comb.h"

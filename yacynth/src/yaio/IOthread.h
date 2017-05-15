@@ -31,10 +31,9 @@
 #include    "../message/Midi.h"
 #include    "../control/Controllers.h"
 #include    "../router/SimpleMidiRouter.h"
-#include    "../effects/Panmix.h"
+#include    "../utils/GaloisNoiser.h"
 #include    "../effects/FxMixer.h"
 #include    "../effects/FxOscillatorMixer.h"
-
 
 #include    <cstddef>
 #include    <cstdint>
@@ -44,6 +43,8 @@
 #include    <cassert>
 #include    <iterator>
 #include    <string>
+
+using namespace noiser;
 
 namespace yacynth {
 

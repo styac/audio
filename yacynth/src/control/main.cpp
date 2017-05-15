@@ -158,7 +158,7 @@ void setupEffects(Sysman  * sysman)
     constexpr int   EffectInstance_FxFilter             = EffectInstance_Nil + 9;
     FxEcho          * fxecho  = new FxEcho();
     constexpr int   EffectInstance_FxEcho               = EffectInstance_Nil + 10;
-    FxLateReverb        * fxrevb  = new FxLateReverb();
+    FxLateReverb    * fxrevb  = new FxLateReverb();
     constexpr int   EffectInstance_FxLateReverb         = EffectInstance_Nil + 11;
     FxEarlyReflection  * fxearlyref  = new FxEarlyReflection();
     constexpr int   EffectInstance_FxEarlyReflection    = EffectInstance_Nil + 12;
@@ -174,7 +174,9 @@ void setupEffects(Sysman  * sysman)
 
     fxosc->setProcMode(10);
 
+
     fxfilt->setProcMode(2);
+
     fxnoise->setProcMode(2);
     fxrevb->setProcMode(1);
     fxearlyref->setProcMode(2);
@@ -232,7 +234,17 @@ void setupEffects(Sysman  * sysman)
 // ------------------------------------------------------------
 
     std::cout << "\n---- Fill runner\n" << std::endl;
+
 #if 1
+    // filter  test
+    EffectRunnerFill effectFill[] = {
+        EffectInstance_FxOutNoise,
+//        EffectInstance_FxOutOscillator,
+        EffectInstance_FxFilter
+    };    // osc + reverb
+#endif
+
+#if 0
     // flanger  test
     EffectRunnerFill effectFill[] = {
 //        EffectInstance_FxOutOscillator,
@@ -320,12 +332,26 @@ void setupEffects(Sysman  * sysman)
 
 // connect
     std::cout << "\n---- Connect effects\n" << std::endl;
+    
+    
 #if 1
+    // flanger test
+    EffectRunnerSetConnections  effectRunnerSetConnections[] = {
+        
+        { EffectInstance_FxOutNoise, 2, 0 },    // noise osc out to filter 0
+//        { EffectInstance_FxOutOscillator, 2, 0 },    // audio osc out to reverb 0
+        //{ EffectInstance_OscillatorMixer, 2, 0 },     // audio osc out to filter 0
+        { EffectInstance_FxFilter, 0, 0 }           // filter to output 0
+    };
+#endif
+
+    
+#if 0
     // flanger test
     EffectRunnerSetConnections  effectRunnerSetConnections[] = {
 //        { EffectInstance_FxOutOscillator, 2, 0 },    // audio osc out to reverb 0
         { EffectInstance_OscillatorMixer, 1, 0 },     // audio osc out to reverb 0
-        { EffectInstance_FxFlanger, 0, 0 }           // chorus to output 0
+        { EffectInstance_FxFlanger, 0, 0 }           // reverb to output 0
     };
 #endif
 
@@ -438,7 +464,14 @@ void setupEffects(Sysman  * sysman)
         { 0, 0x31,  MidiController::CM_RANGE,   InnerController::CC_MAINVOLUME,             110  },// volume - start with low
         { 0, 0x2D,  MidiController::CM_RANGE,   InnerController::CC_MODULATOR_INVOL,        99  },// modulator IN volume
         { 0, 0x2C,  MidiController::CM_RANGE,   InnerController::CC_MODULATOR_MIXVOL,       99  },// modulator MIX volume
+
+        // filter test
+        { 0, 0x4B,  MidiController::CM_RANGE,   InnerController::CC_FILTER_FREQ0,       12  },// modulator MIX volume
+        { 0, 0x4C,  MidiController::CM_RANGE,   InnerController::CC_FILTER_Q0,          12  },// modulator MIX volume
+
         { 0, 0,     MidiController::CM_DISABLE, InnerController::CC_SINK,  0 }    //
+        
+       
     };
 
     msgBuffer.clear();
@@ -569,7 +602,11 @@ void setupEffects(Sysman  * sysman)
     std::cout << "\n---- Outoscillator control\n" << std::endl;
     FxOutOscillatorParam fxOutOscillatorParam = {
         // 1x offset + 1xslope
-        1<<(27-7), int32_t(freq2ycent(0.1)),
+        .freqMapper = { 
+        .slope = 1<<(27-7), 
+        .shift = 0,
+        .y0 = { int32_t(freq2ycent(0.1)) },
+        },
         InnerController::CC_MODULATOR_FREQ0,
         // 4 index
         { InnerController::CC_MODULATOR_PHASEDIFF0,
@@ -1122,13 +1159,15 @@ void setupEffects(Sysman  * sysman)
         exit(-1);
     }
 
+#if 0    
     for( auto i=100.f; i<5000.0f; i += 200.0f  ) {
         std::cout
             << "---- low pass i:" << i
-            << " k:" << kOnePoleLowPass( i )
+            << " k:" << f2FilterOnePole_F( i )
             << std::endl;
 
     }
+#endif
 // ------------------------------------------------------------
     std::cout << "\n---- Echo \n" << std::endl;
 
@@ -1368,7 +1407,169 @@ void setupEffects(Sysman  * sysman)
     }
 
 // ------------------------------------------------------------
+    std::cout << "\n---- Filter ap - phaser \n" << std::endl;
 
+    FxFilterParam::Mode_2ch_x4ap_phaser_mode01 mode_2ch_x4ap_phaser_mode01 = {
+
+        // TODO
+        .feedbackGainIndex          = { InnerController::CC_PHASER_FEEDBACK_CTRL },
+        .wetDryGainIndex            = { InnerController::CC_PHASER_WETDRY_CTRL },
+                
+        .bandWidhthIndex            = { InnerController::CC_PHASER_BANDWIDTH_CTRL },
+        // 2xLFO control
+        .deltaPhaseControlIndex     = { InnerController::CC_PHASER_LFO_FREQ_CTRL },
+        .phaseDiff00ControlIndex    = { InnerController::CC_PHASER_LFO_PHASEDIFF_CTRL },
+        // LFO delta phase
+        .deltaPhaseIndex            = { InnerController::CC_LFO_MASTER_DELTA_PHASE_BEGIN },
+        .phaseDiff00Index           = { InnerController::CC_LFO_SLAVE_DELTA_PHASE_BEGIN },
+        // LFO phase
+        .oscMasterIndex             = { InnerController::CC_LFO_MASTER_PHASE_BEGIN },
+        .oscSlave00Index            = { InnerController::CC_LFO_SLAVE_PHASE_BEGIN },
+        
+        .oscFreqMapper = { 
+            .slope = 1<<(27-7), 
+            .shift = 0,
+            .y0 = { 
+                int32_t(freq2ycent(0.1))
+            }
+         },
+        
+        .bandwidthMapper = { // ???
+            .slope = 1<<20, 
+            .shift = 0,
+            .y0 = { 
+                int32_t(freq2ycent(100))
+            }
+         },
+            
+        .notchMapper = { 
+            .slope = 1<<9, 
+            .shift = 0,
+            .y0 = { 
+                
+                int32_t(freq2ycent(200.0)),
+                int32_t(freq2ycent(200.0)),
+                int32_t(freq2ycent(200.0)),
+                int32_t(freq2ycent(200.0)),
+
+                int32_t(freq2ycent(200.0)),
+                int32_t(freq2ycent(200.0)),
+                int32_t(freq2ycent(200.0)),
+                int32_t(freq2ycent(200.0))                
+#if 0
+                int32_t(freq2ycent(300.0)),
+                int32_t(freq2ycent(600.0)),
+                int32_t(freq2ycent(1200.0)),
+                int32_t(freq2ycent(2400.0)),
+
+                int32_t(freq2ycent(200.0)),
+                int32_t(freq2ycent(400.0)),
+                int32_t(freq2ycent(800.0)),
+                int32_t(freq2ycent(1600.0))                
+#endif
+            }
+         },
+                                
+    };
+
+    mode_2ch_x4ap_phaser_mode01.deltaPhaseIndex.setInnerValue( freq2deltaPhaseControlLfo(0.5) ); // 1Hz
+    mode_2ch_x4ap_phaser_mode01.phaseDiff00Index.setInnerValue( 0x40000000 ); // cos
+    mode_2ch_x4ap_phaser_mode01.bandWidhthIndex.setInnerValue( 0 ); // cos
+
+    msgBuffer.clear();
+    msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
+                    ,   uint8_t( TagEffectCollector::EffectInstance )
+                    ,   uint8_t( TagEffectType::FxFilter )
+                    ,   uint8_t( TagEffectFxFilterMode::SetMode_2ch_x4ap_phaser_mode01 )
+                    );
+
+    msgBuffer.setPar( EffectInstance_FxFilter );
+    msgBuffer.getTargetData( mode_2ch_x4ap_phaser_mode01 );
+
+    sysman->evalParameterMessage(msgBuffer);
+
+    if( msgBuffer.messageType == 0 ) {
+        std::cout << "---- Filter ap - phaser ok" << std::endl;
+    } else {
+        std::cout << "---- Filter ap - phaser error " <<uint16_t(msgBuffer.messageType) << std::endl;
+        exit(-1);
+    }
+
+    // ------------------------------------------------------------
+//  3 e0 0000
+//  2 d0 0000    
+// 00 00 0000    
+    
+// ------------------------------------------------------------
+    std::cout << "\n---- Filter SVF \n" << std::endl;
+
+    FxFilterParam::Mode_SVF01_2ch mode_SVF01_2ch = {
+        .fControlIndex = { InnerController::CC_FILTER_FREQ0 },
+        .qControlIndex = { InnerController::CC_FILTER_Q0 },
+        .fMapper = { 
+            .slope = 1 << (27-6), 
+            .shift = 0,
+            .y0 = { 0x12000000 } // 2x oversamplng 1 octave lower
+        },
+                                
+    };
+
+    msgBuffer.clear();
+    msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
+                    ,   uint8_t( TagEffectCollector::EffectInstance )
+                    ,   uint8_t( TagEffectType::FxFilter )
+                    ,   uint8_t( TagEffectFxFilterMode::SetMode_SVF01_2ch_mode01 )
+                    );
+
+    msgBuffer.setPar( EffectInstance_FxFilter );
+    msgBuffer.getTargetData( mode_SVF01_2ch );
+
+    sysman->evalParameterMessage(msgBuffer);
+
+    if( msgBuffer.messageType == 0 ) {
+        std::cout << "---- Filter SVF ok" << std::endl;
+    } else {
+        std::cout << "---- Filter SVF error " <<uint16_t(msgBuffer.messageType) << std::endl;
+        exit(-1);
+    }
+
+    // ------------------------------------------------------------
+    std::cout << "\n---- Filter 4p \n" << std::endl;
+
+    /*     
+    staring at 40 Hz - octave 22
+            .y0 = { 0x16000000 } 
+     
+     */
+    FxFilterParam::Mode_4p_2ch mode_4p_2ch = {
+        .fControlIndex = { InnerController::CC_FILTER_FREQ0 },
+        .qControlIndex = { InnerController::CC_FILTER_Q0 },
+        .fMapper = { 
+            .slope = 1 << 20, 
+            .shift = 0,
+            .y0 = { 0x16000000 } 
+        },
+                                
+    };
+
+    msgBuffer.clear();
+    msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
+                    ,   uint8_t( TagEffectCollector::EffectInstance )
+                    ,   uint8_t( TagEffectType::FxFilter )
+                    ,   uint8_t( TagEffectFxFilterMode::SetMode_4p_2ch )
+                    );
+
+    msgBuffer.setPar( EffectInstance_FxFilter );
+    msgBuffer.getTargetData( mode_4p_2ch );
+
+    sysman->evalParameterMessage(msgBuffer);
+
+    if( msgBuffer.messageType == 0 ) {
+        std::cout << "---- Filter 4p ok" << std::endl;
+    } else {
+        std::cout << "---- Filter 4p error " <<uint16_t(msgBuffer.messageType) << std::endl;
+        exit(-1);
+    }
 
 // ------------------------------------------------------------
 }
@@ -1400,7 +1601,6 @@ void teststuff(void)
         << "\n refA440ycent: "              << refA440ycent
         << "\n refA440ycentDouble: "        << uint64_t(refA440ycentDouble*10)
         << "\n refA440ycentDouble: "        << refA440ycentDouble
-        << "\n Filter4Pole: "               << sizeof(Filter4PoleOld<3>)
         << "\n wchar_t: "                   << sizeof(wchar_t)
         << "\n\n"
         << std::endl;
@@ -1417,6 +1617,19 @@ void teststuff(void)
     }
     exit(0);
 #endif
+    
+#if 0
+    // 13 d0 0000
+    for( int32_t ycent = 0x01000000; ycent < 0x1F000000; ycent += 0x00100000 ) {
+        std::cout << std::hex
+            << "ycent=" << ycent                
+            << " f=" <<  FilterTable2SinPi::getInstance().getFloat( ycent )
+            << std::endl;
+    }
+    exit(0);
+#endif
+    
+   
 }
 
 // --------------------------------------------------------------------
