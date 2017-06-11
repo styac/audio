@@ -25,32 +25,10 @@
  * Created on June 23, 2016, 6:14 PM
  */
 
-#include    "FxBase.h"
-#include    "protocol.h"
+#include    "FxModulatorParam.h"
+#include    "../effects/FxBase.h"
 
 namespace yacynth {
-using namespace TagEffectTypeLevel_02;
-
-class FxModulatorParam {
-public:
-    // mandatory fields
-    static constexpr char const * const name    = "Modulator";
-    static constexpr TagEffectType  type        = TagEffectType::FxModulator;
-    static constexpr std::size_t maxMode        = 6; // 0 is always bypass
-    static constexpr std::size_t inputCount     = 2; // 0 : base signal; 1 : modulation
-    static constexpr char const * const modeName[maxMode+1] = 
-    {   "copy"
-    ,   "processModulation"
-    ,   "processRing"
-    ,   "processModulationMix"
-    ,   "processRingVolColtrol"        
-    };
-    
-    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
-    ControllerIndex inMultIndex;
-    ControllerIndex mixMultIndex;        
-};
-
 class FxModulator : public Fx<FxModulatorParam>  {
 public:
     using MyType = FxModulator;
@@ -65,9 +43,9 @@ public:
         fillSprocessv<5>(sprocess_05);
         fillSprocessv<6>(sprocess_06);
     }
-    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override; 
-    virtual void clearTransient() override;    
-    
+    virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override;
+    virtual void clearTransient() override;
+
 
     // go up to Fx ??
     // might change -> set sprocessTransient
@@ -138,7 +116,7 @@ private:
             out().vchannel[1][si] = inp<0>().vchannel[1][si] * inp<1>().vchannel[1][si] * mixMult + inp<0>().vchannel[1][si] * inMult;
         }
     }
-    
+
     inline void processModulation(void)
     {
         mixMultIn.updateDelta( param.mixMultIndex );
@@ -154,20 +132,20 @@ private:
         inMultIn.updateDelta(param.inMultIndex);
         const float inMult = inMultIn.getExpValueFloat();
         for( auto si=0u; si < vsectionSize; ++si ) {
-            out().vchannel[0][si] = inp<0>().vchannel[0][si] * inp<1>().vchannel[0][si] * inMult; 
-            out().vchannel[1][si] = inp<0>().vchannel[1][si] * inp<1>().vchannel[1][si] * inMult; 
-        }            
+            out().vchannel[0][si] = inp<0>().vchannel[0][si] * inp<1>().vchannel[0][si] * inMult;
+            out().vchannel[1][si] = inp<0>().vchannel[1][si] * inp<1>().vchannel[1][si] * inMult;
+        }
     }
 
     inline void processRing(void)
     {
         for( auto si=0u; si < vsectionSize; ++si ) {
-            out().vchannel[0][si] = inp<0>().vchannel[0][si] * inp<1>().vchannel[0][si]; 
-            out().vchannel[1][si] = inp<0>().vchannel[1][si] * inp<1>().vchannel[1][si]; 
-        }            
+            out().vchannel[0][si] = inp<0>().vchannel[0][si] * inp<1>().vchannel[0][si];
+            out().vchannel[1][si] = inp<0>().vchannel[1][si] * inp<1>().vchannel[1][si];
+        }
     }
 
-    
+
     inline void processModulationMono(void)
     {
         mixMultIn.updateDelta( param.mixMultIndex );
@@ -180,17 +158,17 @@ private:
     inline void processRingMono(void)
     {
         for( auto si=0u; si < vsectionSize; ++si ) {
-            out().vchannel[0][si] = inp<0>().vchannel[0][si] * inp<1>().vchannel[0][si]; 
-        }            
+            out().vchannel[0][si] = inp<0>().vchannel[0][si] * inp<1>().vchannel[0][si];
+        }
     }
 #if 0
-    // 2x oversampling 
+    // 2x oversampling
     // https://christianfloisand.wordpress.com/tag/resampling/
     inline void processRingMono2xOvS(void)
     {
         for( auto si=0u; si < vsectionSize; ++si ) {
-            out().vchannel[0][si] = inp<0>().vchannel[0][si] * inp<1>().vchannel[0][si]; 
-        }            
+            out().vchannel[0][si] = inp<0>().vchannel[0][si] * inp<1>().vchannel[0][si];
+        }
     }
 #endif
     ControllerCacheRate<10> inMultIn;      // TODO test by hearing if limit is hearable

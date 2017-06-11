@@ -50,23 +50,25 @@ InnerController::InnerController()
     value.v[InnerController::CC_PITCHBEND] = 0x2000;
 }
 
-bool InnerController::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool InnerController::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     const uint8_t tag = message.getTag(tagIndex);
     switch( TagInnerController( tag ) ) {
     case TagInnerController::Clear:
         TAG_DEBUG(TagInnerController::Clear, tagIndex, paramIndex, "InnerController" );
         clear();
+        message.setStatusSetOk();
         return true;
 
     case TagInnerController::ClearController: {
             TAG_DEBUG(TagInnerController::ClearController, tagIndex, paramIndex, "InnerController" );
             const uint16_t controller = message.params[paramIndex];
             if( controller >= maxIndex ) {
-                message.setStatus( Yaxp::MessageT::illegalTargetIndex );
+                message.setStatus( yaxp::MessageT::illegalTargetIndex );
                 return false;
             }
             value.v[controller] = 0;
+            message.setStatusSetOk();
             return true;
         }
 
@@ -74,18 +76,19 @@ bool InnerController::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8
             TAG_DEBUG(TagInnerController::SetController, tagIndex, paramIndex, "InnerController" );
             const uint16_t countParam = message.params[paramIndex];
             if( countParam * sizeof(InnerControllerSetting) != message.length ) {
-                message.setStatus( Yaxp::MessageT::illegalDataLength );
+                message.setStatus( yaxp::MessageT::illegalDataLength );
                 return false;
             }
-            InnerControllerSetting *data = static_cast<InnerControllerSetting *>((void *)(message.data));            
+            InnerControllerSetting *data = static_cast<InnerControllerSetting *>((void *)(message.data));
             for( uint16_t ind = 0; ind < countParam; ++ind, ++data ) {
                 set( data->index, data->value );
             }
+            message.setStatusSetOk();
             return true;
         }
     }
 
-    message.setStatus( Yaxp::MessageT::illegalTag, tag );
+    message.setStatus( yaxp::MessageT::illegalTag );
     return false;
 }
 
@@ -122,7 +125,7 @@ MidiController::MidiController()
 
 // needs 3 param:
 
-bool MidiController::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool MidiController::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     const uint8_t tag = message.getTag(tagIndex);
     if( !message.checkParamIndex(paramIndex) )
@@ -138,7 +141,7 @@ bool MidiController::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_
     case  TagMidiController::ClearChannelVector:
         TAG_DEBUG(TagMidiController::ClearChannelVector, tagIndex, paramIndex, "MidiController" );
         if( channel >= getChannelCount() ) {
-            message.setStatus( Yaxp::MessageT::illegalParam );
+            message.setStatus( yaxp::MessageT::illegalParam );
             return false;
         }
         clearChannel( channel );
@@ -147,11 +150,11 @@ bool MidiController::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_
     case  TagMidiController::SetChannelVector:
         TAG_DEBUG(TagMidiController::SetChannelVector, tagIndex, paramIndex, "MidiController" );
         if( channel >= getChannelCount() ) {
-            message.setStatus( Yaxp::MessageT::illegalParam );
+            message.setStatus( yaxp::MessageT::illegalParam );
             return false;
         }
         if( message.length != sizeof(cdt[channel]) ) {
-            message.setStatus( Yaxp::MessageT::illegalDataLength );
+            message.setStatus( yaxp::MessageT::illegalDataLength );
             return false;
         }
         std::memcpy( &cdt[channel][0], message.data, sizeof(cdt[channel]) );
@@ -161,19 +164,20 @@ bool MidiController::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_
         TAG_DEBUG(TagMidiController::SetController, tagIndex, paramIndex, "MidiController" );
             const uint16_t countParam = message.params[paramIndex];
             if( countParam * sizeof(MidiSetting) != message.length ) {
-                message.setStatus( Yaxp::MessageT::illegalDataLength );
+                message.setStatus( yaxp::MessageT::illegalDataLength );
                 return false;
             }
-            MidiSetting *data = static_cast<MidiSetting *>((void *)(message.data));            
+            MidiSetting *data = static_cast<MidiSetting *>((void *)(message.data));
             for( uint16_t ind = 0; ind < countParam; ++ind, ++data ) {
                 set( data->channel, data->midiCC, data->innerIndex, CMode(data->midiMode) );
                 InnerController::getInstance().set( data->innerIndex, data->initValue );
             }
-            return true;            
+            message.setStatusSetOk();
+            return true;
         }
         return false;
     }
-    message.setStatus( Yaxp::MessageT::illegalTag, tag );
+    message.setStatus( yaxp::MessageT::illegalTag );
     return false;
 }
 

@@ -28,48 +28,51 @@ namespace yacynth {
 using namespace TagEffectFxMixerModeLevel_03;
 
 
-bool FxMixerParam::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool FxMixerParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     uint16_t index = 0;
-    const uint8_t tag       = message.getTag(tagIndex);    
+    const uint8_t tag       = message.getTag(tagIndex);
     if( !message.checkParamIndex(paramIndex) ) {
-        message.setStatus( Yaxp::MessageT::illegalParamIndex, tag );            
-        return false;  
-    }                         
+        message.setStatus( yaxp::MessageT::illegalParamIndex );
+        return false;
+    }
     const uint16_t channel  = message.params[paramIndex];
-    if(channel >= inputCount) { 
-        message.setStatus( Yaxp::MessageT::illegalTargetIndex, tag );                
+    if(channel >= inputCount) {
+        message.setStatus( yaxp::MessageT::illegalTargetIndex);
         return false;
     }
     switch( TagEffectFxMixerMode( tag ) ) {
     case TagEffectFxMixerMode::Clear :
         TAG_DEBUG(TagEffectFxMixerMode::Clear, tagIndex, paramIndex, "FxMixerParam" );
         clear();
+        message.setStatusSetOk();
         return true;
-        
+
     case TagEffectFxMixerMode::SetVolumeControllerIndex :
-        TAG_DEBUG(TagEffectFxMixerMode::SetVolumeControllerIndex, tagIndex, paramIndex, "FxMixerParam" );        
+        TAG_DEBUG(TagEffectFxMixerMode::SetVolumeControllerIndex, tagIndex, paramIndex, "FxMixerParam" );
         if( message.setTargetData( index ) ) {
             gainIndex[channel].setIndex(index);
-            return true;            
-        }        
-        message.setStatus( Yaxp::MessageT::illegalDataLength, tag );            
+            message.setStatusSetOk();
+            return true;
+        }
+        message.setStatus( yaxp::MessageT::illegalDataLength );
         return false;
-        
-    case TagEffectFxMixerMode::SetVolumeRange : 
+
+    case TagEffectFxMixerMode::SetVolumeRange :
         TAG_DEBUG(TagEffectFxMixerMode::SetVolumeRange, tagIndex, paramIndex, "FxMixerParam" );
         if( message.setTargetData( gainRange[channel] ) ) {
             std::cout <<  "--- channel " << channel <<  " volume " << gainRange[channel] << std::endl;
-            return true;            
-        }        
-        message.setStatus( Yaxp::MessageT::illegalDataLength, tag );            
+            message.setStatusSetOk();
+            return true;
+        }
+        message.setStatus( yaxp::MessageT::illegalDataLength );
         return false;
-     
+
     } // end switch
     TAG_DEBUG(TagEffectFxMixerMode::Nop, tagIndex, paramIndex, "FxMixerParam" );
-    message.setStatus( Yaxp::MessageT::illegalTag, tag );    
+    message.setStatus( yaxp::MessageT::illegalTag );
     return false;
-    
+
 } // end FxMixerParam::parameter
 
 bool FxMixer::connect( const FxBase * v, uint16_t ind )
@@ -106,14 +109,14 @@ bool FxMixer::setProcMode( uint16_t ind )
     return true;
 }
 
-bool FxMixer::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool FxMixer::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     // 1st tag is tag effect type
-    const uint8_t tagType = message.getTag(tagIndex);    
+    const uint8_t tagType = message.getTag(tagIndex);
     if( uint8_t(param.type) != tagType ) {
-        message.setStatus( Yaxp::MessageT::illegalTagEffectType, uint8_t(param.type) );
-        TAG_DEBUG(Yaxp::MessageT::illegalTagEffectType, uint8_t(param.type), tagType, "FxMixer" );
-        return false;        
+        message.setStatus( yaxp::MessageT::illegalTagEffectType );
+        TAG_DEBUG(yaxp::MessageT::illegalTagEffectType, uint8_t(param.type), tagType, "FxMixer" );
+        return false;
     }
     // 2nd tag is tag operation
     const uint8_t tag = message.getTag(++tagIndex);
@@ -121,7 +124,7 @@ bool FxMixer::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t param
         clearTransient(); // this must be called to cleanup
     }
     // forward to param
-    return param.parameter( message, tagIndex, paramIndex );    
+    return param.parameter( message, tagIndex, paramIndex );
 }
 
     // 00 is always clear for output or bypass for in-out

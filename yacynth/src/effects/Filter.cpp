@@ -22,7 +22,7 @@
  *
  * Created on February 18, 2016, 10:53 PM
  */
-
+#if 0
 #include    "Filter.h"
 #include    "Ebuffer.h"
 #include    "../utils/Limiters.h"
@@ -95,7 +95,7 @@ void ControlledFilter::process( const EIObuffer& __restrict inp, EIObuffer& __re
 #endif
 //    if( ctrlQ.update() ) {
         const float q = 0 ; //ctrlQ.getNorm(2);  // max value == 4
-    
+
     std::cout << "q " << q << std::endl;
 
         for( auto i=0; i<filterControl.activeFilterCount; ++i ) {
@@ -135,6 +135,6 @@ void ControlledFilter::process( const EIObuffer& __restrict inp, EIObuffer& __re
 #endif
 } // end namespace yacynth
 
-
+#endif
 
 

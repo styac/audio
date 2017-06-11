@@ -32,7 +32,7 @@
 namespace yacynth {
 using namespace TagRouterLevel_01;
 
-bool SimpleMidiRouter::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool SimpleMidiRouter::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     const uint8_t tag = message.getTag(tagIndex);
 //    switch(  ( message.getTag(tagIndex) ) ) {
@@ -46,7 +46,7 @@ bool SimpleMidiRouter::parameter( Yaxp::Message& message, uint8_t tagIndex, uint
         return true;
     }
             
-    message.setStatus( Yaxp::MessageT::illegalTag, tag );
+    message.setStatus( yaxp::MessageT::illegalTag );
     return false;
     
 }
@@ -65,10 +65,12 @@ Yamsgrt SimpleMidiRouter::translate( const RouteIn& in )
     out.store = 0;
     switch( in.op ) {
     case MIDI_NOTE_OFF:
+        
         out.setVoice.opcode = YAMOP_CHNGVOICE_NOTE;
         out.setVoice.oscNr      = in.note_cc_val;
         out.setVoice.velocity   = 0;    // ?
         out.setVoice.pitch      = 0;    // OFF
+
         break;
     case MIDI_NOTE_ON:
         if( 0 == in.velocity_val ) {

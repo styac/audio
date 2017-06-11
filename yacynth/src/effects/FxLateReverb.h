@@ -73,95 +73,16 @@ http://linux-audio.4202.n7.nabble.com/Favourite-Linux-reverbs-td97375.html
 
 #endif
 
-#include    "../effects/FxBase.h"
+#include    "../effects/FxLateReverbParam.h"
 #include    "../utils/Fastsincos.h"
 #include    "../utils/FilterComb.h"
-#include    "../effects/DelayTap.h"
+#include    "../effects/FxBase.h"
+
 
 using namespace tables;
 using namespace filter;
 
 namespace yacynth {
-using namespace TagEffectFxLateReverbModeLevel_03;
-
-class FxLateReverbParam {
-public:
-    // mandatory fields
-    static constexpr char const * const name    = "FxLateReverb";
-    static constexpr TagEffectType  type        = TagEffectType::FxLateReverb;
-    static constexpr std::size_t maxMode        = 3;    // 0 is always exist> 0,1,2
-    static constexpr std::size_t inputCount     = 1;
-    static constexpr std::size_t allpassLngExp  = 11;   // much more then needed - will be not used
-    static constexpr std::size_t combLngExp     = 11;   // much more then needed
-    static constexpr std::size_t allpassCount   = 4;
-    static constexpr std::size_t combCount      = 8;
-
-    static constexpr float householderFeedback  = -2.0f;     // combCount;
-    static constexpr float lowpassLowLimit      = f2FilterOnePole_F( 18000.0 );
-    static constexpr float lowpassHighLimit     = f2FilterOnePole_F( 30.0 );
-    static constexpr float feedbackLimit        = 0.6f;
-    static constexpr float outputLimit          = 0.8f;
-    static constexpr float crossFeedbackLimit   = 0.8f;
-
-    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
-
-    // control feedback - decay
-    // control low pass - tone
-    // control early reflection - other effect
-    // control mixing dry - wet - mixer
-
-    struct Mode01 {
-        bool check()
-        {
-            for( uint16_t ci = 0; ci <combCount; ++ci ) {
-                // check tapFeedback
-                if(( tapFeedback.coeffLowPass.v[ci] > lowpassHighLimit ) || ( tapFeedback.coeffLowPass.v[ci] < lowpassLowLimit )) {
-                    std::cout << "\n---- check 2"  << std::endl;
-                    return false;
-                }
-                // feedback -- householder actually 0.5?
-                if( std::abs( tapFeedback.coeff.v[ci] ) >= feedbackLimit * ( 1.0f - tapFeedback.coeffLowPass.v[ci] )) {
-                    std::cout << "\n---- check 1" << std::endl;
-                    return false;
-                }
-                if(( tapFeedback.coeffHighPass.v[ci] > lowpassHighLimit ) || ( tapFeedback.coeffHighPass.v[ci] < lowpassLowLimit )) {
-                    std::cout << "\n---- check 3" << std::endl;
-                    return false;
-                }
-
-                // check output
-                if(( tapOutput.coeffLowPass.v[ci] > lowpassHighLimit ) || ( tapOutput.coeffLowPass.v[ci] < lowpassLowLimit ))  {
-                    std::cout << "\n---- check 4" << std::endl;
-                    return false;
-                }
-                // 0.8f -- summ of 4 combs must be less then 1.0
-                if( std::abs( tapOutput.coeff.v[ci] ) >= outputLimit * ( 1.0f - tapOutput.coeffLowPass.v[ci] ))  {
-                    std::cout << "\n---- check 5" << std::endl;
-                    return false;
-                }
-                if( tapOutput.delayIndex[ci] >= (1<<( combLngExp+EbufferPar::sectionSizeExp ))) {
-                    std::cout << "\n---- check 6" << std::endl;
-                    return false;
-                }
-
-                // check internal
-                if( std::abs( tapFeedbackInternal.coeff.v[ci] ) >= crossFeedbackLimit )  {
-                    std::cout << "\n---- check 7" << std::endl;
-                    return false;
-                }
-                if( tapFeedbackInternal.delayIndex[ci]  >= (1<<( combLngExp+EbufferPar::sectionSizeExp ))) { // 3 is practical const
-                    std::cout << "\n---- check 8" << std::endl;
-                    return false;
-                }
-            }
-            return true;
-        }
-        MonoDelayBandpassTapArray<combCount> tapFeedback;
-        MonoDelayLowpassTapArray<combCount>  tapFeedbackInternal;
-        MonoDelayLowpassTapArray<combCount>  tapOutput;
-    } mode01;
-};
-
 class FxLateReverb : public Fx<FxLateReverbParam>  {
 public:
     typedef EDelayLineArray<FxLateReverbParam::combCount>  CombDelay;
@@ -177,7 +98,7 @@ public:
         fillSprocessv<3>(sprocess_03);
     }
 
-    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
+    virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
     // go up to Fx ??
     // might change -> set sprocessTransient

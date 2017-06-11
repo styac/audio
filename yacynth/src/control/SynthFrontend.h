@@ -60,6 +60,10 @@ public:
         );
     bool            initialize( void );
     bool            run( void );
+    void            stop()
+    {
+        runFe = false;
+    }
     static  void    exec( void * data );
 
 private:
@@ -73,7 +77,8 @@ private:
     OscillatorOutVector&    outVector;
     YaIoInQueueVector&      queuein;
     Statistics              statistics;
-    uint32_t                cycleNoise;    
+    uint32_t                cycleNoise;
+    bool                    runFe;
 
 };
 

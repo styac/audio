@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-/* 
+/*
  * File:   Server.h
  * Author: Istvan Simon -- stevens37 at gmail dot com
  *
@@ -26,36 +26,55 @@
  */
 #include    "../../include/protocol.h"
 #include    "../control/Sysman.h"
-
 #include    <iostream>
-#include    <boost/array.hpp>
-#include    <boost/asio.hpp>
-#include    <boost/bind.hpp>
-
-using namespace boost::asio;
+#include    "spdlog/spdlog.h"
 
 namespace yacynth {
 
 class   Server {
 public:
+    static constexpr size_t seedLength = 32;
+    static constexpr size_t randLength = 32;
+    static constexpr size_t authLength = 32;
+
     explicit Server(
-        const std::string&  address, 
-        const uint16_t      port,
-        Sysman&             sysmanP );
-    
+        Sysman&             sysmanP,
+        const uint16_t      port
+    );
+
     Server(const Server&) = delete;
     Server& operator=(const Server&) = delete;
+    ~Server();
 
+    // set the seed block
+    void setAuthSeed( const uint8_t * src, size_t lng );
     bool run( void );
-    
+
 private:
-    void doAwaitStop(void);
-    io_service              ioservice;
-    ip::tcp::endpoint       endpoint;
-    ip::tcp::acceptor       acceptor;
-    signal_set              signals;
-    ip::tcp::socket         socketAccept;
+    bool doRecv();
+    bool doSend();
+    bool doPeek();
+    bool doListen();
+    bool doAccept();
+    bool authenticate();
+    void execute();
+    void shut();
+    bool recvAll( char *p, uint32_t size );
+    bool fillRandom( uint8_t * randBuff );
+    bool checkAuth( const uint8_t * randBuff, const uint8_t * respBuff, size_t respLng );
+
     Sysman&                 sysman;
+    std::shared_ptr<spdlog::logger> logger;
+    int                     socketListen;
+    int                     socketAccept;
+    int                     errnoNet;
+    uint8_t                 seedAuth[ seedLength ];
+    yaxp::Message           message;
+    uint16_t                cliendId;
+    uint8_t                 lastSequenceNumber;
+    bool                    connected;
+    bool                    authenticated;
+    bool                    stopServer;
 };
 
 } // end namespace yacynth

@@ -25,82 +25,10 @@
  * Created on April 17, 2017, 11:22 AM
  */
 
+#include    "../effects/FxEarlyReflectionParam.h"
 #include    "../effects/FxBase.h"
 
 namespace yacynth {
-using namespace TagEffectFxEarlyReflectionModeLevel_03;
-
-class FxEarlyReflectionParam {
-public:
-    // mandatory fields
-    static constexpr char const * const name        = "FxEarlyReflection";
-    static constexpr TagEffectType  type            = TagEffectType::FxEarlyReflection;
-    static constexpr std::size_t maxMode            = 4; // 0 is always exist> 0,1,2
-    static constexpr std::size_t inputCount         = 1;
-    static constexpr std::size_t slaveCount         = 1; // 0-base signal 1-modulation
-    static constexpr char const * const slavename   = " ^EarlyReflectionDelayedOutput";
-    // optional
-    static constexpr std::size_t channelCount       = 2;
-    static constexpr std::size_t tapCount           = 1<<4;
-    static constexpr std::size_t tapCountMask       = tapCount-1;
-    static constexpr std::size_t coeffSetCount      = 1<<4;
-    static constexpr std::size_t coeffSetCountMask  = coeffSetCount-1;
-
-    static constexpr std::size_t delayLngExp        = 9; // ca: 600 msec - 512*1.3
-    static constexpr std::size_t delayLng           = 1<<(delayLngExp+EbufferPar::sectionSizeExp);
-    static constexpr std::size_t delayOffsMaxLng    = delayLng - 1;
-    static constexpr std::size_t delayOffsMinLng    = EbufferPar::sectionSize * 2;
-
-    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
-
-    // no Tap... type is used because of the modulation experiment
-    
-    struct Mode01 {
-        // should return error code not bool
-        bool check()
-        {
-            for( auto &v0 : delayLateReverb ) {
-                if(( v0 > delayOffsMaxLng ) || ( v0 < delayOffsMinLng )) {
-                    return false;
-                }
-            }
-            for( auto &v0 : delaysEarlyreflection ) {
-                for( auto &v1 : v0 ) {
-                    if( ( v1 > delayOffsMaxLng ) || ( v1 < delayOffsMinLng )) {
-                        return false;
-                    }
-                }
-            }
-            for( auto &v0 : coeffsEarlyreflection ) {
-                for( auto &v1 : v0 ) {
-                    for( auto &v2 : v1 ) {
-                        if(( v2 > 1.0f ) || ( v2 < -1.0f )) {
-                            return false;
-                        }
-                    }
-                }
-            }
-            for( auto &v0 : modulatorPeriod ) {
-                constexpr std::size_t maxPeriod = 2048 / coeffSetCount; // 2.5 sec if 1 period / set
-                constexpr std::size_t minPeriod = 3;    // 3 period ca 4 msec * 16 - 64 msec - 10-15 Hz
-                if(( v0 > maxPeriod ) || ( v0 < minPeriod )) { // irreal
-                    return false;
-                }
-            }
-            return true;
-        }
-        // left-right delay for late reverb
-        // need a controller later !
-        uint32_t    delayLateReverb[channelCount];
-        // left-right delay for early reflections
-        uint32_t    delaysEarlyreflection[tapCount][channelCount];
-        // left-right for early reflections
-        // coeffSetCount - rotating with low frequency modulation -simple case uses 0
-        // there should be 1 period - deviance about 10%
-        float       coeffsEarlyreflection[coeffSetCount][tapCount][channelCount];
-        uint16_t    modulatorPeriod[tapCount];
-    } mode01;
-};
 
 class FxEarlyReflection : public Fx<FxEarlyReflectionParam>  {
 public:
@@ -121,7 +49,7 @@ public:
         //std::cout << "\n---- delayLine bufferSize " << std::dec << delayLine.bufferSize << std::endl;
     }
 
-    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
+    virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
     // go up to Fx ??
     // might change -> set sprocessTransient

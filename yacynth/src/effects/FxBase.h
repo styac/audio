@@ -19,7 +19,7 @@
  */
 
 /*
- * File:   EffectBase.h
+ * File:   FxBase.h
  * Author: Istvan Simon
  *
  * Created on April 6, 2016, 11:22 PM
@@ -58,8 +58,8 @@ class FxCollector;
 
 class FxCollector {
 public:
- 
-    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
+
+    bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
     static FxCollector& getInstance(void)
     {
@@ -120,7 +120,7 @@ public:
     FxBase( const char * name,
             uint16_t maxM = 0,
             uint16_t iC = 0,
-            TagEffectType type = TagEffectType::Nop )
+            TagEffectType type = TagEffectType::FxNop )
     :   EIObuffer()
     ,   sprocessp(sprocessNop)
     ,   sprocesspSave(sprocessNop)
@@ -149,10 +149,10 @@ public:
     static inline uint16_t getMaxId(void) { return count; };
 
     virtual bool connect( const FxBase * v, uint16_t ind );
-    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
+    virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
     virtual void clearTransient();
     virtual bool setProcMode( uint16_t ind ); // might be non virtual
-    
+
     inline  void exec(void)
     {
         sprocessp(this);
@@ -193,8 +193,8 @@ protected:
     uint64_t            spentTime;  // nanosec of spent time
     uint64_t            maxTime;    // max cycle time
     uint64_t            minTime;    // min cycle time
-    uint64_t            entryTime;  // tmp to store current entry time  
-#endif    
+    uint64_t            entryTime;  // tmp to store current entry time
+#endif
 
     static uint16_t     count;      // static counter to make unique id
     static void sprocessNop( void * ) { return; };
@@ -224,7 +224,7 @@ public:
         masterId = mid;
     }
 
-    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override;
+    virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override;
     virtual void clearTransient() override;
 };
 
@@ -275,7 +275,7 @@ public:
         SLAVE,
     };
 
-    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
+    bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
 
     // parameter format:
@@ -468,7 +468,7 @@ protected:
                 << " input " << ind
                 << " from " << v->name()
                 << std::endl;
-            
+
         }
 #endif
         if( ind >= Tparam::inputCount )

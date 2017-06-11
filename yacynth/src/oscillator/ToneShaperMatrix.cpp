@@ -54,13 +54,14 @@ void ToneShaperMatrix::clear(void)
 
 // --------------------------------------------------------------------
 
-bool ToneShaperMatrix::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool ToneShaperMatrix::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     const uint8_t tag = message.getTag(tagIndex);
     switch( TagToneShaper( tag ) ) {
     case  TagToneShaper::Clear :
         TAG_DEBUG(TagToneShaper::Clear, tagIndex, paramIndex, "ToneShaperMatrix" );
         clear();
+        message.setStatusSetOk();
         return true;
 
     case  TagToneShaper::SetOvertoneCount :
@@ -68,11 +69,17 @@ bool ToneShaperMatrix::parameter( Yaxp::Message& message, uint8_t tagIndex, uint
         {
             const uint16_t vectorIndex = message.getParam(paramIndex);
             const uint16_t overtoneCount = message.getParam(++paramIndex);
+            if( vectorIndex >= settingVectorSize ) {
+                message.setStatus( yaxp::MessageT::illegalTargetIndex );
+                return false;
+            }
             if( overtoneCount > overtoneCountOscDef ) {
+                message.setStatus( yaxp::MessageT::illegalParam );
                 return false;
             }
             toneShapers[vectorIndex].oscillatorCountUsed = overtoneCount;
         }
+        message.setStatusSetOk();
         return true;
 
     case  TagToneShaper::SetOvertone :
@@ -81,47 +88,124 @@ bool ToneShaperMatrix::parameter( Yaxp::Message& message, uint8_t tagIndex, uint
             const uint16_t vectorIndex      = message.getParam(paramIndex);
             const uint16_t overtoneIndex    = message.getParam(++paramIndex);
             if( overtoneIndex > overtoneCountOscDef ) {
-                message.setStatus( Yaxp::MessageT::illegalTargetIndex, 1 );
+                message.setStatus( yaxp::MessageT::illegalTargetIndex );
                 return false;
             }
             if( vectorIndex > settingVectorSize-1 ) {
-                message.setStatus( Yaxp::MessageT::illegalTargetIndex, 2 );
+                message.setStatus( yaxp::MessageT::illegalTargetIndex );
                 return false;
             }
             if( !message.setTargetData(toneShapers[vectorIndex].toneShaperVec[overtoneIndex] ) ) {
-                message.setStatus( Yaxp::MessageT::illegalDataLength );
-                return false;                
-            }                
+                message.setStatus( yaxp::MessageT::illegalDataLength );
+                return false;
+            }
             if( toneShapers[vectorIndex].toneShaperVec[overtoneIndex].check() ) {
+                message.setStatusSetOk();
                 return true;
             }
-            message.setStatus( Yaxp::MessageT::illegalData );
-            return false;            
+            message.setStatus( yaxp::MessageT::illegalData );
+            return false;
         }
-        message.setStatus( Yaxp::MessageT::illegalDataLength );
+        message.setStatus( yaxp::MessageT::illegalDataLength );
         return false;
 
     case  TagToneShaper::GetOvertone :
         TAG_DEBUG(TagToneShaper::SetOvertoneCount, tagIndex, paramIndex, "ToneShaperMatrix" );
-        if( message.length >= sizeof(ToneShaper) ) {
+        if( message.size >= sizeof(ToneShaper) ) {
             const uint16_t vectorIndex      = message.getParam(paramIndex);
             const uint16_t overtoneIndex    = message.getParam(++paramIndex);
             if( overtoneIndex > overtoneCountOscDef ) {
-                message.setStatus( Yaxp::MessageT::illegalTargetIndex, 1 );
+                message.setStatus( yaxp::MessageT::illegalTargetIndex );
                 return false;
             }
             if( vectorIndex > settingVectorSize-1 ) {
-                message.setStatus( Yaxp::MessageT::illegalTargetIndex, 2 );
+                message.setStatus( yaxp::MessageT::illegalTargetIndex );
                 return false;
             }
             message.getTargetData(toneShapers[vectorIndex].toneShaperVec[overtoneIndex] );
-            return true;            
+            message.setStatusGetOk();
+            return true;
         }
-        message.setStatus( Yaxp::MessageT::illegalDataLength );
+        message.setStatus( yaxp::MessageT::illegalDataLength );
         return false;
-    }    
-    message.setStatus( Yaxp::MessageT::illegalTag, tag );
-    return false;    
+        
+    // array of int32_t * pitchCount
+    case  TagToneShaper::SetPitchVector :
+        TAG_DEBUG(TagToneShaper::SetOvertoneCount, tagIndex, paramIndex, "ToneShaperMatrix" );
+        {
+            const uint16_t vectorIndex = message.getParam(paramIndex);
+            const uint16_t pitchCount = message.getParam(++paramIndex);
+            if( vectorIndex >= settingVectorSize ) {
+                message.setStatus( yaxp::MessageT::illegalTargetIndex );
+                return false;
+            }
+            if( pitchCount > overtoneCountOscDef ) {
+                message.setStatus( yaxp::MessageT::illegalParam );
+                return false;
+            }
+            if( message.length != sizeof(int32_t) * pitchCount ) {
+                message.setStatus( yaxp::MessageT::illegalParam );
+                return false;
+            }
+            int32_t *pitch = (int32_t * )(&message.data[0]);
+            for( auto vi=0u; vi < pitchCount; ++vi, ++pitch ) {
+                toneShapers[vectorIndex].toneShaperVec[ vi ].pitch = *pitch;             
+            }
+        }
+        message.setStatusSetOk();
+        return true;        
+        
+        
+#if 0    
+    case  TagToneShaper::SetOvertoneVector :
+        TAG_DEBUG(TagToneShaper::SetOvertoneCount, tagIndex, paramIndex, "ToneShaperMatrix" );
+        if( message.length == sizeof(ToneShaper) ) {
+            const uint16_t vectorIndex      = message.getParam(paramIndex);
+            const uint16_t overtoneCount    = message.getParam(++paramIndex);
+            if( vectorIndex >= settingVectorSize ) {
+                message.setStatus( yaxp::MessageT::illegalTargetIndex );
+                return false;
+            }
+            auto &dst = toneShapers[vectorIndex].toneShaperVec;
+            
+            for( auto vi=0u; vi<overtoneCount; ++vi ) {
+                dst[ vi ] = message
+            }
+            if( !message.setTargetData( dst, overtoneCount ) ) {
+                message.setStatus( yaxp::MessageT::illegalDataLength );
+                return false;
+            }
+            toneShapers[vectorIndex].oscillatorCountUsed = overtoneCount;
+            message.setStatusSetOk();
+            return false;
+        }
+        message.setStatus( yaxp::MessageT::illegalDataLength );
+        return false;
+
+    case  TagToneShaper::GetOvertoneVector :
+        TAG_DEBUG(TagToneShaper::SetOvertoneCount, tagIndex, paramIndex, "ToneShaperMatrix" );
+        if( message.size >= sizeof(ToneShaper) ) {
+            const uint16_t vectorIndex      = message.getParam(paramIndex);
+            const uint16_t overtoneIndex    = message.getParam(++paramIndex);
+            if( overtoneIndex > overtoneCountOscDef ) {
+                message.setStatus( yaxp::MessageT::illegalTargetIndex );
+                return false;
+            }
+            if( vectorIndex > settingVectorSize-1 ) {
+                message.setStatus( yaxp::MessageT::illegalTargetIndex );
+                return false;
+            }
+            message.getTargetData(toneShapers[vectorIndex].toneShaperVec[overtoneIndex] );
+            message.setStatusGetOk();
+            return true;
+        }
+        message.setStatus( yaxp::MessageT::illegalDataLength );
+        return false;
+#endif
+        
+    }  
+    message.setStatus( yaxp::MessageT::illegalTag );
+    return false;
 }
 
 } // end namespace yacynth

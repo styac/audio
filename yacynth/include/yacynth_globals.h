@@ -54,14 +54,14 @@ constexpr   uint16_t    lfoCount                    = 16;
 //
 constexpr   uint16_t    settingVectorSize           = 16;
 
-//
+//  down count !
 // point 0  : delay (with 0 - or very lazy curve )
 // point 15 : sustain - can be decay for plucked instruments
 //
 constexpr   uint16_t    envelopeVectorSize          = 1<<8;
 constexpr   uint16_t    transientKnotCount          = 1<<4;     // 16 point
 constexpr   uint16_t    envelopeKnotRelease         = 0x7F;     // new> own var for release
-constexpr   uint16_t    envelopeKnotUp              = transientKnotCount-1;
+// constexpr   uint16_t    envelopeKnotUp              = transientKnotCount-1;
 constexpr   uint16_t    envelopeKnotSteady          = -1;
 
 constexpr   uint16_t    sytemOutChannel             = 2;    // mono = mono/2 stereo
@@ -97,13 +97,13 @@ constexpr inline uint64_t freq2deltaPhase( double freq )
 
 constexpr inline uint64_t freq2deltaPhaseControlLfo( double freq )
     { return freq2deltaPhase(freq) << effectFrameSizeExp; };
-        
+
 constexpr inline double freq2deltaPhaseDouble( double freq )
     { return deltaPhaseScalerBase * freq; };
 
 constexpr inline double freq2deltaPhaseControlLfoDouble( double freq )
     { return freq2deltaPhaseDouble( freq ) * effectFrameSize; };
-    
+
 constexpr inline uint32_t deltaPhase2ycent( double delta )
     { return uint32_t( std::lround( std::log2( delta ) * ycentNorm) ); };
 
@@ -144,7 +144,7 @@ constexpr uint32_t  refMinLfoycent      =   freq2ycentLfoDef(refLfoFreq / (1<<re
 //====================================================
 // amplitude normalisations ( >> N )
 constexpr int normAmplitudeOscillatorExp    = 32;
-constexpr int normAmplitudePanmixExp        = 36; // looks optimal
+// constexpr int normAmplitudePanmixExp        = 36; // looks optimal
 
 
 //====================================================

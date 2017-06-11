@@ -124,14 +124,16 @@ public:
 
     inline MidiController&  getMidiController(void) { return midiController; }
 
-    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
+    virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
 
+    void  sendToneControl();
     
 protected:
     MidiController  midiController;
     std::array< std::array<uint32_t, tuningTableSize>, tuningTableCount> pitch;
     Yamsgrt     out;
     tuned_t     tuned;
+    int16_t     toneBank;
     int8_t      transposition;
     bool        monoPhone;
 };

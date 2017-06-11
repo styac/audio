@@ -28,27 +28,29 @@
 
 namespace yacynth {
 
-bool FxLateReverbParam::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool FxLateReverbParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     const uint8_t tag = message.getTag(tagIndex);
     switch( TagEffectFxLateReverbMode( tag ) ) {
     case TagEffectFxLateReverbMode::Clear :
         TAG_DEBUG(TagEffectFxLateReverbMode::Clear, tagIndex, paramIndex, "TagEffectFxLateReverbMode" );
+        message.setStatusSetOk();
         return true;
 
     case TagEffectFxLateReverbMode::SetParametersMode01 :
         TAG_DEBUG(TagEffectFxLateReverbMode::SetParametersMode01, tagIndex, paramIndex, "TagEffectFxLateReverbMode" );
         if( !message.checkTargetData(mode01) ) {
-            message.setStatus( Yaxp::MessageT::illegalData, tag );
+            message.setStatus( yaxp::MessageT::illegalData);
             return false;
         }
         if( !message.setTargetData(mode01) ) {
-            message.setStatus( Yaxp::MessageT::illegalDataLength,uint8_t(TagEffectFxLateReverbMode::SetParametersMode01));
+            message.setStatus( yaxp::MessageT::illegalDataLength );
             return false;
         }
+        message.setStatusSetOk();
         return true;
     }
-    message.setStatus( Yaxp::MessageT::illegalTag, tag );
+    message.setStatus( yaxp::MessageT::illegalTag );
     return false;
 }
 
@@ -57,13 +59,13 @@ void FxLateReverb::clearTransient()
     EIObuffer::clear();
 }
 
-bool FxLateReverb::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool FxLateReverb::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     // 1st tag is tag effect type
     const uint8_t tagType = message.getTag(tagIndex);
     if( uint8_t(param.type) != tagType ) {
-        message.setStatus( Yaxp::MessageT::illegalTagEffectType, uint8_t(param.type) );
-        TAG_DEBUG(Yaxp::MessageT::illegalTagEffectType, uint8_t(param.type), tagType, "FxLateReverb" );
+        message.setStatus( yaxp::MessageT::illegalTagEffectType );
+        TAG_DEBUG(yaxp::MessageT::illegalTagEffectType, uint8_t(param.type), tagType, "FxLateReverb" );
         return false;
     }
     // 2nd tag is tag operation

@@ -122,7 +122,7 @@ void signal_handler(int sig)
 
 void setupEffects(Sysman  * sysman)
 {
-    Yaxp::Message msgBuffer;
+    yaxp::Message msgBuffer;
 
 
 /*
@@ -184,7 +184,9 @@ void setupEffects(Sysman  * sysman)
     fxchorus->setProcMode(1);
     fxFlanger->setProcMode(3);
 
-
+// ------------------------------------------------------------
+    std::cout << "\n---- REMOTE LOAD \n" << std::endl;
+    return; // for the remote setup
 // ------------------------------------------------------------
 
     std::cout << "\n---- Collector get list\n" << std::endl;
@@ -195,9 +197,9 @@ void setupEffects(Sysman  * sysman)
             ,uint8_t(TagEffectCollector::GetEffectList )
             );
 
-    sysman->evalParameterMessage(msgBuffer);
+    sysman->evalMessage(msgBuffer);
 
-    if( msgBuffer.messageType == 0 ) {
+    if( msgBuffer.messageType == yaxp::MessageT::responseGetOK  ) {
 
         EffectListEntry *data = static_cast<EffectListEntry *>((void *)(msgBuffer.data));
         for( uint16_t ind = 0; ind < msgBuffer.length / sizeof(EffectListEntry); ++ind, ++data ) {
@@ -222,9 +224,9 @@ void setupEffects(Sysman  * sysman)
                     ,   uint8_t( TagEffectCollector::SetProcessingMode )
                     );
     msgBuffer.setPar( 1,3 ); // endmixer - mode 3 - 3 channel with 1 contreoller
-    sysman->evalParameterMessage(msgBuffer);
+    sysman->evalMessage(msgBuffer);
 
-    if( msgBuffer.messageType == 0 ) {
+    if( msgBuffer.messageType == yaxp::MessageT::responseSetOK  ) {
         std::cout << "---- set mode : mixer ok" << std::endl;
     } else {
         std::cout << "---- set mode : mixer error " <<uint16_t(msgBuffer.messageType) << std::endl;
@@ -235,7 +237,7 @@ void setupEffects(Sysman  * sysman)
 
     std::cout << "\n---- Fill runner\n" << std::endl;
 
-#if 1
+#if 0
     // filter  test
     EffectRunnerFill effectFill[] = {
         EffectInstance_FxOutNoise,
@@ -244,7 +246,7 @@ void setupEffects(Sysman  * sysman)
     };    // osc + reverb
 #endif
 
-#if 0
+#if 1
     // flanger  test
     EffectRunnerFill effectFill[] = {
 //        EffectInstance_FxOutOscillator,
@@ -294,8 +296,8 @@ void setupEffects(Sysman  * sysman)
                     );
     msgBuffer.setPar(cArrayElementCount(effectFill));
     msgBuffer.getTargetData(effectFill);
-    sysman->evalParameterMessage(msgBuffer);
-    if( msgBuffer.messageType == 0 ) {
+    sysman->evalMessage(msgBuffer);
+    if( msgBuffer.messageType == yaxp::MessageT::responseSetOK ) {
         std::cout << "---- fill ok" << std::endl;
     } else {
         std::cout << "---- error " <<uint16_t(msgBuffer.messageType) << std::endl;
@@ -308,8 +310,8 @@ void setupEffects(Sysman  * sysman)
     msgBuffer.setTags(  uint8_t( TagMain::EffectRunner )
                     ,   uint8_t( TagEffectRunner::GetEffectList )
                     );
-    sysman->evalParameterMessage(msgBuffer);
-    if( msgBuffer.messageType == 0 ) {
+    sysman->evalMessage(msgBuffer);
+    if( msgBuffer.messageType == yaxp::MessageT::responseGetOK ) {
         EffectListEntry *data = static_cast<EffectListEntry *>((void *)(msgBuffer.data));
         for( uint16_t ind = 0; ind < msgBuffer.length / sizeof(EffectListEntry); ++ind, ++data ) {
             std::cout
@@ -332,12 +334,12 @@ void setupEffects(Sysman  * sysman)
 
 // connect
     std::cout << "\n---- Connect effects\n" << std::endl;
-    
-    
-#if 1
+
+
+#if 0
     // flanger test
     EffectRunnerSetConnections  effectRunnerSetConnections[] = {
-        
+
         { EffectInstance_FxOutNoise, 2, 0 },    // noise osc out to filter 0
 //        { EffectInstance_FxOutOscillator, 2, 0 },    // audio osc out to reverb 0
         //{ EffectInstance_OscillatorMixer, 2, 0 },     // audio osc out to filter 0
@@ -345,8 +347,8 @@ void setupEffects(Sysman  * sysman)
     };
 #endif
 
-    
-#if 0
+
+#if 1
     // flanger test
     EffectRunnerSetConnections  effectRunnerSetConnections[] = {
 //        { EffectInstance_FxOutOscillator, 2, 0 },    // audio osc out to reverb 0
@@ -414,9 +416,9 @@ void setupEffects(Sysman  * sysman)
                     );
     msgBuffer.setPar(cArrayElementCount(effectRunnerSetConnections));
     msgBuffer.getTargetData(effectRunnerSetConnections);
-    sysman->evalParameterMessage(msgBuffer);
+    sysman->evalMessage(msgBuffer);
 
-    if( msgBuffer.messageType == 0 ) {
+    if( msgBuffer.messageType == yaxp::MessageT::responseSetOK ) {
         std::cout << "---- Connect ok" << std::endl;
     } else {
         std::cout << "---- Connect error " <<uint16_t(msgBuffer.messageType) << std::endl;
@@ -432,9 +434,9 @@ void setupEffects(Sysman  * sysman)
     msgBuffer.setTags( uint8_t( TagMain::EffectRunner )
             ,uint8_t(TagEffectRunner::GetEffectList )
             );
-    sysman->evalParameterMessage(msgBuffer);
+    sysman->evalMessage(msgBuffer);
 
-    if( msgBuffer.messageType == 0 ) {
+    if( msgBuffer.messageType == yaxp::MessageT::responseGetOK ) {
 
         EffectListEntry *data = static_cast<EffectListEntry *>((void *)(msgBuffer.data));
         for( uint16_t ind = 0; ind < msgBuffer.length / sizeof(EffectListEntry); ++ind, ++data ) {
@@ -470,8 +472,8 @@ void setupEffects(Sysman  * sysman)
         { 0, 0x4C,  MidiController::CM_RANGE,   InnerController::CC_FILTER_Q0,          12  },// modulator MIX volume
 
         { 0, 0,     MidiController::CM_DISABLE, InnerController::CC_SINK,  0 }    //
-        
-       
+
+
     };
 
     msgBuffer.clear();
@@ -480,9 +482,9 @@ void setupEffects(Sysman  * sysman)
                     );
     msgBuffer.setPar(cArrayElementCount(midiSetting));
     msgBuffer.getTargetData(midiSetting);
-    sysman->evalParameterMessage(msgBuffer);
+    sysman->evalMessage(msgBuffer);
 
-    if( msgBuffer.messageType == 0 ) {
+    if( msgBuffer.messageType == yaxp::MessageT::responseSetOK ) {
         std::cout << "---- MidiSetting ok" << std::endl;
     } else {
         std::cout << "---- MidiSetting error " <<uint16_t(msgBuffer.messageType) << std::endl;
@@ -510,9 +512,9 @@ void setupEffects(Sysman  * sysman)
                     );
     msgBuffer.setPar(cArrayElementCount(innerControllerSetting));
     msgBuffer.getTargetData(innerControllerSetting);
-    sysman->evalParameterMessage(msgBuffer);
+    sysman->evalMessage(msgBuffer);
 
-    if( msgBuffer.messageType == 0 ) {
+    if( msgBuffer.messageType == yaxp::MessageT::responseSetOK ) {
         std::cout << "---- InnerControllerSetting ok" << std::endl;
     } else {
         std::cout << "---- InnerControllerSetting error " <<uint16_t(msgBuffer.messageType) << std::endl;
@@ -532,8 +534,8 @@ void setupEffects(Sysman  * sysman)
                     ,   0  );// channel
     uint16_t cindex0 = InnerController::CC_MAINVOLUME;
     msgBuffer.getTargetData( cindex0 );
-    sysman->evalParameterMessage(msgBuffer);
-    if( msgBuffer.messageType == 0 ) {
+    sysman->evalMessage(msgBuffer);
+    if( msgBuffer.messageType == yaxp::MessageT::responseSetOK ) {
         std::cout << "---- Volume control index0 ok" << std::endl;
     } else {
         std::cout << "---- Volume control index0 error " <<uint16_t(msgBuffer.messageType) << std::endl;
@@ -553,8 +555,8 @@ void setupEffects(Sysman  * sysman)
                     ,   0 ); // channel
 
     msgBuffer.getTargetData( range0 );
-    sysman->evalParameterMessage(msgBuffer);
-    if( msgBuffer.messageType == 0 ) {
+    sysman->evalMessage(msgBuffer);
+    if( msgBuffer.messageType == yaxp::MessageT::responseSetOK ) {
         std::cout << "---- Volume control range0 ok" << std::endl;
     } else {
         std::cout << "---- Volume control range0 error " <<uint16_t(msgBuffer.messageType) << std::endl;
@@ -571,8 +573,8 @@ void setupEffects(Sysman  * sysman)
                     ,   1 ); // channel
 
     msgBuffer.getTargetData( range1 );
-    sysman->evalParameterMessage(msgBuffer);
-    if( msgBuffer.messageType == 0 ) {
+    sysman->evalMessage(msgBuffer);
+    if( msgBuffer.messageType == yaxp::MessageT::responseSetOK ) {
         std::cout << "---- Volume control range1 ok" << std::endl;
     } else {
         std::cout << "---- Volume control range1 error " <<uint16_t(msgBuffer.messageType) << std::endl;
@@ -590,8 +592,8 @@ void setupEffects(Sysman  * sysman)
                     ,   2 ); // channel
 
     msgBuffer.getTargetData( range2 );
-    sysman->evalParameterMessage(msgBuffer);
-    if( msgBuffer.messageType == 0 ) {
+    sysman->evalMessage(msgBuffer);
+    if( msgBuffer.messageType == yaxp::MessageT::responseSetOK ) {
         std::cout << "---- Volume control range2 ok" << std::endl;
     } else {
         std::cout << "---- Volume control range2 error " <<uint16_t(msgBuffer.messageType) << std::endl;
@@ -602,8 +604,8 @@ void setupEffects(Sysman  * sysman)
     std::cout << "\n---- Outoscillator control\n" << std::endl;
     FxOutOscillatorParam fxOutOscillatorParam = {
         // 1x offset + 1xslope
-        .freqMapper = { 
-        .slope = 1<<(27-7), 
+        .freqMapper = {
+        .slope = 1<<(27-7),
         .shift = 0,
         .y0 = { int32_t(freq2ycent(0.1)) },
         },
@@ -626,9 +628,9 @@ void setupEffects(Sysman  * sysman)
                      );
 
     msgBuffer.getTargetData(fxOutOscillatorParam);
-    sysman->evalParameterMessage(msgBuffer);
+    sysman->evalMessage(msgBuffer);
 
-    if( msgBuffer.messageType == 0 ) {
+    if( msgBuffer.messageType == yaxp::MessageT::responseSetOK ) {
         std::cout << "---- Outoscillator control ok" << std::endl;
     } else {
         std::cout << "---- Outoscillator control error " <<uint16_t(msgBuffer.messageType) << std::endl;
@@ -654,9 +656,9 @@ void setupEffects(Sysman  * sysman)
                      );
 
     msgBuffer.getTargetData(fxModulatorParam);
-    sysman->evalParameterMessage(msgBuffer);
+    sysman->evalMessage(msgBuffer);
 
-    if( msgBuffer.messageType == 0 ) {
+    if( msgBuffer.messageType == yaxp::MessageT::responseSetOK ) {
         std::cout << "---- Modulator control ok" << std::endl;
     } else {
         std::cout << "---- Modulator control error " <<uint16_t(msgBuffer.messageType) << std::endl;
@@ -685,9 +687,9 @@ void setupEffects(Sysman  * sysman)
                      );
 
     msgBuffer.getTargetData(fxOutNoiseParam);
-    sysman->evalParameterMessage(msgBuffer);
+    sysman->evalMessage(msgBuffer);
 
-    if( msgBuffer.messageType == 0 ) {
+    if( msgBuffer.messageType == yaxp::MessageT::responseSetOK ) {
         std::cout << "---- Noise generator ok" << std::endl;
     } else {
         std::cout << "---- Noise generator error " <<uint16_t(msgBuffer.messageType) << std::endl;
@@ -810,9 +812,9 @@ void setupEffects(Sysman  * sysman)
     msgBuffer.setPar(   EffectInstance_FxLateReverb );
 
     msgBuffer.getTargetData(mode01_Housholder);
-    sysman->evalParameterMessage(msgBuffer);
+    sysman->evalMessage(msgBuffer);
 
-    if( msgBuffer.messageType == 0 ) {
+    if( msgBuffer.messageType == yaxp::MessageT::responseSetOK ) {
         std::cout << "---- Reverb ok" << std::endl;
     } else {
         std::cout << "---- Reverb error " <<uint16_t(msgBuffer.messageType) << std::endl;
@@ -1132,9 +1134,9 @@ void setupEffects(Sysman  * sysman)
     msgBuffer.setPar( EffectInstance_FxEarlyReflection );
 
     msgBuffer.getTargetData( fxEarlyReflection_mode01 );
-    sysman->evalParameterMessage(msgBuffer);
+    sysman->evalMessage(msgBuffer);
 
-    if( msgBuffer.messageType == 0 ) {
+    if( msgBuffer.messageType == yaxp::MessageT::responseSetOK ) {
         std::cout << "---- Early Reflection ok" << std::endl;
     } else {
         std::cout << "---- Early Reflection error " <<uint16_t(msgBuffer.messageType) << std::endl;
@@ -1150,16 +1152,16 @@ void setupEffects(Sysman  * sysman)
                     );
     msgBuffer.setPar( 0, 12 ); // number of overtones of vector 0
 
-    sysman->evalParameterMessage(msgBuffer);
+    sysman->evalMessage(msgBuffer);
 
-    if( msgBuffer.messageType == 0 ) {
+    if( msgBuffer.messageType == yaxp::MessageT::responseSetOK ) {
         std::cout << "---- SetOvertoneCOunt ok" << std::endl;
     } else {
         std::cout << "---- SetOvertoneCOunt error " <<uint16_t(msgBuffer.messageType) << std::endl;
         exit(-1);
     }
 
-#if 0    
+#if 0
     for( auto i=100.f; i<5000.0f; i += 200.0f  ) {
         std::cout
             << "---- low pass i:" << i
@@ -1312,9 +1314,9 @@ void setupEffects(Sysman  * sysman)
 
     msgBuffer.getTargetData( fxEchoParam );
 
-    sysman->evalParameterMessage(msgBuffer);
+    sysman->evalMessage(msgBuffer);
 
-    if( msgBuffer.messageType == 0 ) {
+    if( msgBuffer.messageType == yaxp::MessageT::responseSetOK ) {
         std::cout << "---- Echo ok" << std::endl;
     } else {
         std::cout << "---- Echo error " <<uint16_t(msgBuffer.messageType) << std::endl;
@@ -1354,9 +1356,9 @@ void setupEffects(Sysman  * sysman)
 
     msgBuffer.getTargetData( chorusParam );
 
-    sysman->evalParameterMessage(msgBuffer);
+    sysman->evalMessage(msgBuffer);
 
-    if( msgBuffer.messageType == 0 ) {
+    if( msgBuffer.messageType == yaxp::MessageT::responseSetOK ) {
         std::cout << "---- Chorus ok" << std::endl;
     } else {
         std::cout << "---- Chorus error " <<uint16_t(msgBuffer.messageType) << std::endl;
@@ -1397,9 +1399,9 @@ void setupEffects(Sysman  * sysman)
 
     msgBuffer.getTargetData( flangerParam );
 
-    sysman->evalParameterMessage(msgBuffer);
+    sysman->evalMessage(msgBuffer);
 
-    if( msgBuffer.messageType == 0 ) {
+    if( msgBuffer.messageType == yaxp::MessageT::responseSetOK ) {
         std::cout << "---- Flanger ok" << std::endl;
     } else {
         std::cout << "---- Flanger error " <<uint16_t(msgBuffer.messageType) << std::endl;
@@ -1414,7 +1416,7 @@ void setupEffects(Sysman  * sysman)
         // TODO
         .feedbackGainIndex          = { InnerController::CC_PHASER_FEEDBACK_CTRL },
         .wetDryGainIndex            = { InnerController::CC_PHASER_WETDRY_CTRL },
-                
+
         .bandWidhthIndex            = { InnerController::CC_PHASER_BANDWIDTH_CTRL },
         // 2xLFO control
         .deltaPhaseControlIndex     = { InnerController::CC_PHASER_LFO_FREQ_CTRL },
@@ -1425,28 +1427,28 @@ void setupEffects(Sysman  * sysman)
         // LFO phase
         .oscMasterIndex             = { InnerController::CC_LFO_MASTER_PHASE_BEGIN },
         .oscSlave00Index            = { InnerController::CC_LFO_SLAVE_PHASE_BEGIN },
-        
-        .oscFreqMapper = { 
-            .slope = 1<<(27-7), 
+
+        .oscFreqMapper = {
+            .slope = 1<<(27-7),
             .shift = 0,
-            .y0 = { 
+            .y0 = {
                 int32_t(freq2ycent(0.1))
             }
          },
-        
+
         .bandwidthMapper = { // ???
-            .slope = 1<<20, 
+            .slope = 1<<20,
             .shift = 0,
-            .y0 = { 
+            .y0 = {
                 int32_t(freq2ycent(100))
             }
          },
-            
-        .notchMapper = { 
-            .slope = 1<<9, 
+
+        .notchMapper = {
+            .slope = 1<<9,
             .shift = 0,
-            .y0 = { 
-                
+            .y0 = {
+
                 int32_t(freq2ycent(200.0)),
                 int32_t(freq2ycent(200.0)),
                 int32_t(freq2ycent(200.0)),
@@ -1455,7 +1457,7 @@ void setupEffects(Sysman  * sysman)
                 int32_t(freq2ycent(200.0)),
                 int32_t(freq2ycent(200.0)),
                 int32_t(freq2ycent(200.0)),
-                int32_t(freq2ycent(200.0))                
+                int32_t(freq2ycent(200.0))
 #if 0
                 int32_t(freq2ycent(300.0)),
                 int32_t(freq2ycent(600.0)),
@@ -1465,11 +1467,11 @@ void setupEffects(Sysman  * sysman)
                 int32_t(freq2ycent(200.0)),
                 int32_t(freq2ycent(400.0)),
                 int32_t(freq2ycent(800.0)),
-                int32_t(freq2ycent(1600.0))                
+                int32_t(freq2ycent(1600.0))
 #endif
             }
          },
-                                
+
     };
 
     mode_2ch_x4ap_phaser_mode01.deltaPhaseIndex.setInnerValue( freq2deltaPhaseControlLfo(0.5) ); // 1Hz
@@ -1486,9 +1488,9 @@ void setupEffects(Sysman  * sysman)
     msgBuffer.setPar( EffectInstance_FxFilter );
     msgBuffer.getTargetData( mode_2ch_x4ap_phaser_mode01 );
 
-    sysman->evalParameterMessage(msgBuffer);
+    sysman->evalMessage(msgBuffer);
 
-    if( msgBuffer.messageType == 0 ) {
+    if( msgBuffer.messageType == yaxp::MessageT::responseSetOK ) {
         std::cout << "---- Filter ap - phaser ok" << std::endl;
     } else {
         std::cout << "---- Filter ap - phaser error " <<uint16_t(msgBuffer.messageType) << std::endl;
@@ -1497,21 +1499,21 @@ void setupEffects(Sysman  * sysman)
 
     // ------------------------------------------------------------
 //  3 e0 0000
-//  2 d0 0000    
-// 00 00 0000    
-    
+//  2 d0 0000
+// 00 00 0000
+
 // ------------------------------------------------------------
     std::cout << "\n---- Filter SVF \n" << std::endl;
 
     FxFilterParam::Mode_SVF01_2ch mode_SVF01_2ch = {
         .fControlIndex = { InnerController::CC_FILTER_FREQ0 },
         .qControlIndex = { InnerController::CC_FILTER_Q0 },
-        .fMapper = { 
-            .slope = 1 << (27-6), 
+        .fMapper = {
+            .slope = 1 << (27-6),
             .shift = 0,
             .y0 = { 0x12000000 } // 2x oversamplng 1 octave lower
         },
-                                
+
     };
 
     msgBuffer.clear();
@@ -1524,9 +1526,9 @@ void setupEffects(Sysman  * sysman)
     msgBuffer.setPar( EffectInstance_FxFilter );
     msgBuffer.getTargetData( mode_SVF01_2ch );
 
-    sysman->evalParameterMessage(msgBuffer);
+    sysman->evalMessage(msgBuffer);
 
-    if( msgBuffer.messageType == 0 ) {
+    if( msgBuffer.messageType == yaxp::MessageT::responseSetOK ) {
         std::cout << "---- Filter SVF ok" << std::endl;
     } else {
         std::cout << "---- Filter SVF error " <<uint16_t(msgBuffer.messageType) << std::endl;
@@ -1536,20 +1538,20 @@ void setupEffects(Sysman  * sysman)
     // ------------------------------------------------------------
     std::cout << "\n---- Filter 4p \n" << std::endl;
 
-    /*     
+    /*
     staring at 40 Hz - octave 22
-            .y0 = { 0x16000000 } 
-     
+            .y0 = { 0x16000000 }
+
      */
     FxFilterParam::Mode_4p_2ch mode_4p_2ch = {
         .fControlIndex = { InnerController::CC_FILTER_FREQ0 },
         .qControlIndex = { InnerController::CC_FILTER_Q0 },
-        .fMapper = { 
-            .slope = 1 << 20, 
+        .fMapper = {
+            .slope = 1 << 20,
             .shift = 0,
-            .y0 = { 0x16000000 } 
+            .y0 = { 0x16000000 }
         },
-                                
+
     };
 
     msgBuffer.clear();
@@ -1562,9 +1564,9 @@ void setupEffects(Sysman  * sysman)
     msgBuffer.setPar( EffectInstance_FxFilter );
     msgBuffer.getTargetData( mode_4p_2ch );
 
-    sysman->evalParameterMessage(msgBuffer);
+    sysman->evalMessage(msgBuffer);
 
-    if( msgBuffer.messageType == 0 ) {
+    if( msgBuffer.messageType == yaxp::MessageT::responseSetOK ) {
         std::cout << "---- Filter 4p ok" << std::endl;
     } else {
         std::cout << "---- Filter 4p error " <<uint16_t(msgBuffer.messageType) << std::endl;
@@ -1585,10 +1587,9 @@ void teststuff(void)
         << "\nOscillatorArray size: "       << sizeof(OscillatorArray)
         << "\nToneShaperMatrix size: "      << sizeof(ToneShaperMatrix)
         << "\nToneShaperVector size: "      << sizeof(ToneShaperVector)
-        << "\nToneShaper size: "            << sizeof(ToneShaper)
         << "\nInnerController size: "       << sizeof(InnerController)
         << "\nMidiRangeController size: "   << sizeof(MidiController)
-        << "\nYax::Header size: "           << sizeof(Yaxp::Header)
+        << "\nYax::Header size: "           << sizeof(yaxp::Header)
         << "\n--------------------"
         << "\nsize: v4sf "                  << sizeof(v4sf)
         << std::hex
@@ -1601,7 +1602,12 @@ void teststuff(void)
         << "\n refA440ycent: "              << refA440ycent
         << "\n refA440ycentDouble: "        << uint64_t(refA440ycentDouble*10)
         << "\n refA440ycentDouble: "        << refA440ycentDouble
-        << "\n wchar_t: "                   << sizeof(wchar_t)
+        << "\n Header: "                  << sizeof(yaxp::Header)
+        << "\nToneShaper size:          " << sizeof(ToneShaper)
+        << "\nAmplitudeSustain size:    " << sizeof(AmplitudeSustain)
+        << "\nAmplitudeTransient size:  " << sizeof(AmplitudeTransient)
+        << "\nInterpolatedu32 size:     " << sizeof(InterpolatedAmplitudeU32)
+        << "\nInterpolatedu16 size:     " << sizeof(InterpolatedDecreaseU16)
         << "\n\n"
         << std::endl;
 #if 0
@@ -1617,19 +1623,19 @@ void teststuff(void)
     }
     exit(0);
 #endif
-    
+
 #if 0
     // 13 d0 0000
     for( int32_t ycent = 0x01000000; ycent < 0x1F000000; ycent += 0x00100000 ) {
         std::cout << std::hex
-            << "ycent=" << ycent                
+            << "ycent=" << ycent
             << " f=" <<  FilterTable2SinPi::getInstance().getFloat( ycent )
             << std::endl;
     }
     exit(0);
 #endif
-    
-   
+
+
 }
 
 // --------------------------------------------------------------------
@@ -1637,8 +1643,7 @@ void teststuff(void)
 // --------------------------------------------------------------------
 int main( int argc, char** argv )
 {
-    uint16_t            port( 7373 );         // from param
-    std::string         host( "127.0.0.1" );    // allowed from
+    uint16_t            port( yaxp::defaultPort ); // from param
     struct sigaction sigact;
     memset (&sigact, '\0', sizeof(sigact));
     static_assert( 8 == sizeof(Yamsgrt), "sizeof(Yamsgrt) must be 8" );
@@ -1646,6 +1651,9 @@ int main( int argc, char** argv )
     if( ! initialize() ) {
         exit(-1);
     }
+
+    const char *homedir = getenv("HOME");
+
     teststuff();
     //  singletons first
     // random generators
@@ -1676,7 +1684,15 @@ int main( int argc, char** argv )
     SynthFrontend       *synthFe    = new SynthFrontend( queuein, oscOutVec, oscArray );
 
     Sysman              *sysman     = new Sysman( *oscArray, *iOThread );
-    Server              uiServer( host, port, *sysman );
+    Server              uiServer( *sysman, port );
+
+    //
+    // authentication
+    // const char * const confDir  = ".yacynth";
+    // const char * const seedFile = ".yaxp.seed";
+    // open $HOME/.yacynth/.yaxp.seed
+    // read and uiServer.setAuthSeed( );
+    //
 
     std::cout << std::hex
         << "queuein: " << (void *)&queuein
@@ -1719,7 +1735,7 @@ int main( int argc, char** argv )
         std::cout << "\n\n save ToneShaper[0]\n\n" << std::endl;
         ToneShaperMatrix& ts = oscArray->getToneShaperMatrix();
 
-        Yaxp::Message yms;
+        yaxp::Message yms;
 
         yms.setTags(
             uint8_t(TagMainLevel_00::TagMain::ToneShaper),
@@ -1762,18 +1778,23 @@ int main( int argc, char** argv )
     //   synthFe->run();
        //exit(0);
 
-       jack.unmute();
+        jack.unmute();
 
         //-------------------------
         // start ui server -- cmd processor thread
-       uiServer.run();  // command processor
-       jack.mute();
-       synthFrontendThread.join();
-       jack.shutdown();
+        uiServer.run();  // command processor
+        std::cout << "\n\n============END==============\n\n" << std::endl;
+        jack.mute();
+        synthFe->stop();
+        synthFrontendThread.join();
+        jack.shutdown();
     } catch (...) {
-       jack.shutdown();
-       return -1;
+        jack.mute();
+        synthFe->stop();
+        jack.shutdown();
+        return -1;
     }
+//    synthFrontendThread.join();
 //-----------------------------------------------------------
     return 0;
 };

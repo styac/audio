@@ -58,6 +58,7 @@ SynthFrontend::SynthFrontend (
 :   queuein( queueinP )
 ,   outVector(outVectorP )
 ,   oscArray( oscArrayP )
+,   runFe(true)
 {
 } // end SynthFrontend::SynthFrontend
 
@@ -86,7 +87,7 @@ bool SynthFrontend::evalMEssage( void )
                 GaloisShifterSingle<seedThreadOscillator_noise>::getInstance().reset();
                 GaloisShifterSingle<seedThreadOscillator_random>::getInstance().reset();
             }
-            
+
             break;
         case YAMOP_CHNGVOICE_NOTE:
             oscArray->voiceChange(  msg.setVoice.oscNr, msg.setVoice.pitch, msg.setVoice.velocity );
@@ -119,11 +120,11 @@ bool SynthFrontend::run( void )
 {
 //    GaloisShifterSingle& gs1         = GaloisShifterSingle::getInstance();
 //    GaloisShifterSingle& gs2         = GaloisShifterSingle::getInstance();
-//    std::cout 
+//    std::cout
 //        << "gs1 " << static_cast< void *>( &(gs1 ) )
  //       << " gs2 " << static_cast< void *>( &(gs2 ) )
  //       << std::endl;
-    
+
     statistics.startTimer();
     statistics.stopTimer();
 
@@ -144,7 +145,7 @@ bool SynthFrontend::run( void )
 #endif
      std::cout << "SynthFrontend::run " << std::endl;
 
-    while( 1 ) {
+    while( runFe ) {
         statistics.startTimer();
         if( ! evalMEssage() ) {
             return false;
@@ -154,9 +155,9 @@ bool SynthFrontend::run( void )
 
         if( 10000 <= statistics.countDisplay ) {
            std::cout << std::dec
-               << "--- osc " << statistics.cycleDeltaSumm 
-               << " over " << statistics.countOverSumm 
-               << " max " << statistics.cycleDeltaMax 
+               << "--- osc " << statistics.cycleDeltaSumm
+               << " over " << statistics.countOverSumm
+               << " max " << statistics.cycleDeltaMax
                << std::endl;
            statistics.countDisplay  = 0;
            statistics.cycleDeltaSumm = 0;
@@ -176,7 +177,7 @@ bool SynthFrontend::run( void )
 void SynthFrontend::exec( void * data )
 {
     SynthFrontend * thp = static_cast<SynthFrontend *> (data);
-     std::cout << "SynthFrontend::exec " << std::endl;
+    std::cout << "SynthFrontend::exec " << std::endl;
     const bool res = thp->run();
 
 } // end  SynthFrontend::exec

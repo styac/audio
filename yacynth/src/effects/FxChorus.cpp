@@ -28,32 +28,34 @@
 namespace yacynth {
 using namespace TagEffectFxChorusModeLevel_03;
 
-bool FxChorusParam::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool FxChorusParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     const uint8_t tag = message.getTag(tagIndex);
     switch( TagEffectFxChorusMode( tag ) ) {
     case TagEffectFxChorusMode::Clear :
         TAG_DEBUG(TagEffectFxChorusMode::Clear, tagIndex, paramIndex, "TagEffectFxChorusMode" );
+        message.setStatusSetOk();
         return true;
 
     case TagEffectFxChorusMode::SetParametersMode01 :
         TAG_DEBUG(TagEffectFxChorusMode::SetParametersMode01, tagIndex, paramIndex, "TagEffectFxChorusMode" );
         if( !message.checkTargetData(mode01) ) {
-            message.setStatus( Yaxp::MessageT::illegalData, 0);
+            message.setStatus( yaxp::MessageT::illegalData );
             return false;
         }
 
         if( !message.setTargetData(mode01) ) {
-            message.setStatus( Yaxp::MessageT::illegalDataLength, 0);
+            message.setStatus( yaxp::MessageT::illegalDataLength );
             return false;
         }
-        // test data
+        // test data -- to controller
         mode01.deltaPhaseIndex.setInnerValue( 0x8000000 );
         mode01.phaseDiffIndex.setInnerValue( 0x40000000 ); // cos
         // --------------
+        message.setStatusSetOk();
         return true;
     }
-    message.setStatus( Yaxp::MessageT::illegalTag, tag );
+    message.setStatus( yaxp::MessageT::illegalTag );
     return false;
 }
 
@@ -62,13 +64,13 @@ void FxChorus::clearTransient()
     EIObuffer::clear();
 }
 
-bool FxChorus::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool FxChorus::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     // 1st tag is tag effect type
     const uint8_t tagType = message.getTag(tagIndex);
     if( uint8_t(param.type) != tagType ) {
-        message.setStatus( Yaxp::MessageT::illegalTagEffectType, uint8_t(param.type) );
-        TAG_DEBUG(Yaxp::MessageT::illegalTagEffectType, uint8_t(param.type), tagType, "FxChorus" );
+        message.setStatus( yaxp::MessageT::illegalTagEffectType );
+        TAG_DEBUG(yaxp::MessageT::illegalTagEffectType, uint8_t(param.type), tagType, "FxChorus" );
         return false;
     }
 

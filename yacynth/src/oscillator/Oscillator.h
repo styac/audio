@@ -78,19 +78,22 @@ struct OscillatorInChange {
 
 // --------------------------------------------------------------------
 
+// this must be retested - optimized
 struct SustainModulator {
     inline void reset(void)
     {
         period      = 0;
     }
-    inline int64_t decay ( const int64_t in, const AmplitudeSustain& env )
+    inline int64_t decay ( const int64_t in, const AmplitudeSustain& env, int16_t pitchDepDx )
     {
-        return env.decayCoeff.get() ? -(( ( env.decayCoeff.get() * in ) >> 28 ) + 1 ) : 0 ;
+        // no pitchDepDx if base=0 then no decay
+        // TODO test it 
+        return env.decayCoeff.get() ? -(( ( env.decayCoeff.get(pitchDepDx) * in ) >> 28 ) + 1 ) : 0 ;
     }
-    inline int64_t mod( const int64_t in, const AmplitudeSustain& env  )
+    inline int64_t mod( const int64_t in, const AmplitudeSustain& env, int16_t pitchDepDx  )
     {
         if( 0 == env.sustainModDepth ) {
-            return decay( in, env );
+            return decay( in, env, pitchDepDx );
         }
         if( 0 >= --phase ) {
             //
@@ -121,7 +124,7 @@ struct SustainModulator {
                 // depth = sustainModDepth  / 256
                 amplDelta   = (( in * env.sustainModDepth ) / phaseDelta )
                                     >> ( oscillatorOutSampleCountExp + 8 );
-                amplDecay   = decay( in, env );
+                amplDecay   = decay( in, env, pitchDepDx );
                 phase = phaseDelta;
             } else {
                 phase       = phaseDelta;
@@ -148,6 +151,7 @@ struct alignas(int64_t) OscillatorState { // or cacheLineSize ?
     int64_t             envelopeTargetValueVelocity;    // ok - must be signed to handle underflows
     uint32_t            phase;
     int32_t             tickFrame;  // int16_t ???
+    int32_t             amplitudeDetunePitch;
     uint16_t            envelopMultiplierExpChecked; // int8_t ???
     int8_t              envelopePhase;
     int8_t              rfu1;
@@ -157,7 +161,8 @@ struct alignas(int64_t) OscillatorState { // or cacheLineSize ?
 class alignas(16) Oscillator {
 public:
       // 30 Hz -- freq2ycent 155b2c3e
-    static constexpr int32_t minPitchDep = 0x155b2c3e;  // j 30 freq2ycent 155b2c3e
+//  static constexpr int32_t minPitchDep = 0x155b2c3e;  // j 30 freq2ycent 155b2c3e
+    static constexpr int32_t minPitchDep = 0x16000000;  // j 30 freq2ycent 155b2c3e
 
     enum OscType {
         OSC_SIN     = 0,
@@ -246,9 +251,9 @@ private:
   j 31 freq2ycent 15674878
   j 32 freq2ycent 15730242
  */
-        constexpr uint8_t   prExp = 11;
-        constexpr uint32_t  maxPd = 0x0FFFF;
-        const int32_t dp = basePitch - minPitchDep;
+        constexpr uint8_t   prExp = 12;
+        constexpr int32_t   maxPd = 0x7FF0U;
+        const int32_t dp =  basePitch - minPitchDep;
         if( dp <= 0 ) {
             pitchDepDx  = 0;
             return;
@@ -268,7 +273,7 @@ private:
     uint16_t                        delay;
     uint16_t                        toneShaperSelect;
     uint16_t                        oscillatorCountUsed;
-    uint16_t                        pitchDepDx;
+    int16_t                         pitchDepDx;
     voice_state_t                   voiceState;
     static NoiseFrame<FrameInt<oscillatorOutSampleCountExp>>
                                     whiteNoiseFrame;

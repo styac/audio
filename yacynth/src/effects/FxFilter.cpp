@@ -28,49 +28,52 @@
 namespace yacynth {
 using namespace TagEffectFxFilterModeLevel_03;
 
-bool FxFilterParam::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool FxFilterParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     const uint8_t tag = message.getTag(tagIndex);
     switch( TagEffectFxFilterMode( tag ) ) {
     case TagEffectFxFilterMode::SetMode_2ch_x4ap_phaser_mode01 :
         TAG_DEBUG(TagEffectFxFilterMode::SetMode_2ch_x4ap_phaser_mode01, tagIndex, paramIndex, "FxFilterParam - SetMode_2ch_x4ap_phaser_mode01" );
         if( ! message.checkTargetData(mode_2ch_x4ap_phaser_mode01) ) {
-            message.setStatus( Yaxp::MessageT::illegalData, tag );
+            message.setStatus( yaxp::MessageT::illegalData);
             return false;
         }
         if( message.setTargetData(mode_2ch_x4ap_phaser_mode01) ) {
+            message.setStatusSetOk();      
             return true;
         }
-        message.setStatus( Yaxp::MessageT::illegalDataLength, tag );
+        message.setStatus( yaxp::MessageT::illegalDataLength );
         return false;
         
     case TagEffectFxFilterMode::SetMode_SVF01_2ch_mode01 :
         TAG_DEBUG(TagEffectFxFilterMode::SetMode_SVF01_2ch_mode01, tagIndex, paramIndex, "FxFilterParam - SetMode_SVF01_2ch_mode01" );
         if( ! message.checkTargetData(mode_SVF01_2ch) ) {
-            message.setStatus( Yaxp::MessageT::illegalData, tag );
+            message.setStatus( yaxp::MessageT::illegalData);
             return false;
         }
         if( message.setTargetData(mode_SVF01_2ch) ) {
+            message.setStatusSetOk();      
             return true;
         }
-        message.setStatus( Yaxp::MessageT::illegalDataLength, tag );
+        message.setStatus( yaxp::MessageT::illegalDataLength );
         return false;
         
     case TagEffectFxFilterMode::SetMode_4p_2ch :
         TAG_DEBUG(TagEffectFxFilterMode::SetMode_4p_2ch, tagIndex, paramIndex, "FxFilterParam - SetMode_4p_2ch" );
         if( ! message.checkTargetData(mode_SVF01_2ch) ) {
-            message.setStatus( Yaxp::MessageT::illegalData, tag );
+            message.setStatus( yaxp::MessageT::illegalData);
             return false;
         }
         if( message.setTargetData(mode_4p_2ch) ) {
+            message.setStatusSetOk();      
             return true;
         }
-        message.setStatus( Yaxp::MessageT::illegalDataLength, tag );
+        message.setStatus( yaxp::MessageT::illegalDataLength );
         return false;
     // more modes
     }
             
-    message.setStatus( Yaxp::MessageT::illegalTag, tag );
+    message.setStatus( yaxp::MessageT::illegalTag );
     return false;    
 }
 
@@ -79,13 +82,13 @@ void FxFilter::clearTransient()
     EIObuffer::clear();
 }
 
-bool FxFilter::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool FxFilter::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     // 1st tag is tag effect type
     const uint8_t tagType = message.getTag(tagIndex);    
     if( uint8_t(param.type) != tagType ) {
-        message.setStatus( Yaxp::MessageT::illegalTagEffectType, uint8_t(param.type) );
-        TAG_DEBUG(Yaxp::MessageT::illegalTagEffectType, uint8_t(param.type), tagType, "FxFilter" );
+        message.setStatus( yaxp::MessageT::illegalTagEffectType );
+        TAG_DEBUG(yaxp::MessageT::illegalTagEffectType, uint8_t(param.type), tagType, "FxFilter" );
         return false;        
     }
     // 2nd tag is tag operation

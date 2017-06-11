@@ -25,39 +25,16 @@
  * Created on March 15, 2016, 6:23 PM
  */
 
-#include    "FxBase.h"
+#include    "FxMixerParam.h"
 #include    "Ebuffer.h"
 #include    "yacynth_globals.h"
-#include    "protocol.h"
-
+//#include    "protocol.h"
+#include    "../effects/FxBase.h"
 
 #include    <array>
 #include    <iostream>
 
 namespace yacynth {
-using namespace TagEffectTypeLevel_02;
-// --------------------------------------------------------------------
-
-class FxMixerParam {
-public:
-    static constexpr char const * const name    = "Mixer4";
-    static constexpr TagEffectType  type        = TagEffectType::FxMixer;
-    static constexpr std::size_t maxMode        = 4;
-    static constexpr std::size_t inputCount     = 4;
-
-    inline void clear()
-    {
-        for( auto &p : gainIndex ) {
-            p.setIndex( InnerController::CC_NULL );
-        }
-    }
-    
-    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
-        
-    ControllerIndex     gainIndex[inputCount];
-     // range : n * -6 dB step
-    float   gainRange[ inputCount ] = {0.5f, 0.5f, 0.5f, 0.5f };
-};
 
 class FxMixer : public Fx<FxMixerParam>  {
 public:
@@ -101,8 +78,8 @@ public:
 
     virtual bool connect( const FxBase * v, uint16_t ind ) override;
 
-    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override; 
-    
+    virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override;
+
     virtual void clearTransient() override;
 
 private:
@@ -165,23 +142,23 @@ private:
     // TODO check ControllerCacheDelta usage vs fadeV4
     inline void mix_01(void)
     {
-        if( gainCache[0].update( param.gainIndex[0] )) {            
+        if( gainCache[0].update( param.gainIndex[0] )) {
             out().fadeV4( inp<0>(), gain[0], ( gainCache[ 0 ].getExpValueFloat() * param.gainRange[ 0 ] - gain[ 0 ] ) );
         } else {
             out().mult( inp<0>(), gain[0] );
         }
     }
-    
+
     // use master controller only = 0
     inline void mix_02(void)
     {
-        if( gainCache[0].update( param.gainIndex[0] )) {  
+        if( gainCache[0].update( param.gainIndex[0] )) {
             float cval0 = gainCache[ 0 ].getExpValueFloat();
-            out().fadeV4( inp<0>(), inp<1>(), 
-                    gain[0], gain[1], 
-                    ( cval0 * param.gainRange[ 0 ] - gain[ 0 ] ), 
+            out().fadeV4( inp<0>(), inp<1>(),
+                    gain[0], gain[1],
+                    ( cval0 * param.gainRange[ 0 ] - gain[ 0 ] ),
                     ( cval0 * param.gainRange[ 1 ] - gain[ 1 ] ) ); // controller 0 !!
-                    
+
         } else {
             out().mult( inp<0>(), inp<1>(), gain[0], gain[1] );
         }
@@ -190,11 +167,11 @@ private:
     // use master controller only = 0
     inline void mix_03(void)
     {
-        if( gainCache[0].update( param.gainIndex[0] )) {            
+        if( gainCache[0].update( param.gainIndex[0] )) {
             float cval0 = gainCache[ 0 ].getExpValueFloat();
-            out().fadeV4( inp<0>(), inp<1>(), inp<2>(), 
-                    gain[0], gain[1], gain[2], 
-                    ( cval0 * param.gainRange[ 0 ] - gain[ 0 ] ), 
+            out().fadeV4( inp<0>(), inp<1>(), inp<2>(),
+                    gain[0], gain[1], gain[2],
+                    ( cval0 * param.gainRange[ 0 ] - gain[ 0 ] ),
                     ( cval0 * param.gainRange[ 1 ] - gain[ 1 ] ), // controller 0 !!
                     ( cval0 * param.gainRange[ 2 ] - gain[ 2 ] ) ); // controller 0 !!
         } else {
@@ -206,10 +183,10 @@ private:
     inline void mix_04(void)
     {
         if( gainCache[0].update( param.gainIndex[0] )) {
-            float cval0 = gainCache[ 0 ].getExpValueFloat();            
-            out().fadeV4( inp<0>(), inp<1>(), inp<2>(), inp<3>(), 
-                    gain[0], gain[1], gain[2], gain[3], 
-                    ( cval0 * param.gainRange[ 0 ] - gain[ 0 ] ), 
+            float cval0 = gainCache[ 0 ].getExpValueFloat();
+            out().fadeV4( inp<0>(), inp<1>(), inp<2>(), inp<3>(),
+                    gain[0], gain[1], gain[2], gain[3],
+                    ( cval0 * param.gainRange[ 0 ] - gain[ 0 ] ),
                     ( cval0 * param.gainRange[ 1 ] - gain[ 1 ] ), // controller 0 !!
                     ( cval0 * param.gainRange[ 2 ] - gain[ 2 ] ), // controller 0 !!
                     ( cval0 * param.gainRange[ 3 ] - gain[ 3 ] ) ); // controller 0 !!
@@ -220,9 +197,9 @@ private:
 
     // TODO - set by output and use this to output
     // float * outchannel[2];
-    
+
     float   gain[ FxMixerParam::inputCount ];
-    
+
     ControllerCache gainCache[FxMixerParam::inputCount];
 };
 

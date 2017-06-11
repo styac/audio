@@ -18,17 +18,18 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-/* 
+/*
  * File:   FxFilterParam.h
  * Author: Istvan Simon -- stevens37 at gmail dot com
  *
  * Created on May 10, 2017, 8:49 PM
  */
 
-#include    "FxBase.h"
+#include    "Tags.h"
 #include    "protocol.h"
-
-//using namespace filter;
+#include    "yacynth_globals.h"
+#include    "v4.h"
+#include    "control/Controllers.h"
 
 namespace yacynth {
 using namespace TagEffectCollectorLevel_01;
@@ -41,7 +42,7 @@ using namespace TagEffectTypeLevel_02;
 // cache
 // mapper
 // function
-// 
+//
 
 // modes:
 //
@@ -65,7 +66,7 @@ public:
     // mandatory fields
     static constexpr char const * const name    = "Filter";
     static constexpr TagEffectType  type        = TagEffectType::FxFilter;
-    static constexpr std::size_t maxMode        = 9; // 0 is always exist> 0,1,2
+    static constexpr std::size_t maxMode        = 9;
     static constexpr std::size_t inputCount     = 1;
 
     static constexpr uint8_t  filterCount       = 8;
@@ -73,14 +74,15 @@ public:
     static constexpr uint8_t  channelCountExp   = 3;
     static constexpr uint8_t  channelCount      = 1<<channelCountExp;
     static constexpr uint8_t  channelCountMask  = channelCount-1;
-    static constexpr uint8_t  filterSampleCount = EIObuffer::sectionSize;
 
-    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
-    
+    bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
+
     // -----------------------------------------------------------
     // state variable mode
     //
     struct Mode_SVF01_2ch {
+//    static constexpr uint8_t subtype         = uint8_t(TagEffectFxEarlyReflectionMode::SetParametersMode01);
+
         bool check()
         {
             return true;
@@ -89,23 +91,24 @@ public:
         // manual control
         ControllerIndex         fControlIndex;
         ControllerIndex         qControlIndex;
-        ControllerMapLinear<1>  fMapper;   
-        
+        ControllerMapLinear<1>  fMapper;
+
         // oscillator freq and phase diff
         ControllerIndex deltaPhaseIndex;    // to set the freq
         ControllerIndex phaseDiff00Index;   // to set the phase diff A-B
 
         // oscillator phase values
         ControllerIndex oscMasterIndex;     // master oscillator
-        ControllerIndex oscSlave00Index;    // slave osc 
+        ControllerIndex oscSlave00Index;    // slave osc
 
     } mode_SVF01_2ch;
-    
-    
+
+
     // -----------------------------------------------------------
     // 4 pole mode
     //
     struct Mode_4p_2ch {
+//    static constexpr uint8_t subtype         = uint8_t(TagEffectFxEarlyReflectionMode::SetParametersMode01);
         bool check()
         {
             return true;
@@ -114,34 +117,35 @@ public:
         // manual control
         ControllerIndex         fControlIndex;
         ControllerIndex         qControlIndex;
-        ControllerMapLinear<1>  fMapper;   
-        
+        ControllerMapLinear<1>  fMapper;
+
         // oscillator freq and phase diff
         ControllerIndex deltaPhaseIndex;    // to set the freq
         ControllerIndex phaseDiff00Index;   // to set the phase diff A-B
 
         // oscillator phase values
         ControllerIndex oscMasterIndex;     // master oscillator
-        ControllerIndex oscSlave00Index;    // slave osc 
+        ControllerIndex oscSlave00Index;    // slave osc
 
     } mode_4p_2ch;
-    
+
     // -----------------------------------------------------------
     // allpass mode
     //
     struct Mode_2ch_x4ap_phaser_mode01 {
-        
+//    static constexpr uint8_t subtype         = uint8_t(TagEffectFxEarlyReflectionMode::SetParametersMode01);
+
         bool check()
         {
             return true;
         }
 
-        
+
         ControllerIndex feedbackGainIndex;  // to set the feedback gain
         ControllerIndex wetDryGainIndex;       // to set the wet/dry gain -- which ???
-        
+
         ControllerIndex bandWidhthIndex;    // to set the bandwith of the filters (K1) - here all the same
-        // LFO 
+        // LFO
         ControllerIndex deltaPhaseControlIndex;    // to set the freq - phase ch0
         ControllerIndex phaseDiff00ControlIndex;   // to set the phase diff ch1 to ch0
 
@@ -150,18 +154,18 @@ public:
         ControllerIndex phaseDiff00Index;   // to set the phase diff ch1 to ch0
         // oscillator phase values
         ControllerIndex oscMasterIndex;     // master oscillator
-        ControllerIndex oscSlave00Index;    // slave osc 
-        
+        ControllerIndex oscSlave00Index;    // slave osc
+
         ControllerMapLinear<1>  oscFreqMapper;      // modulator frequency
         ControllerMapLinear<1>  bandwidthMapper;    // bandwith control to ycent (allpass K1)
         ControllerMapLinear<8>  notchMapper;        // 1 slope + 8 offset or 8 slope + 8 offset?
-        
+
         // ControllerMapLinear<1>  notchMapper[8]; // 1 slope + 8 offset or 8 slope + 8 offset?
-        
+
     } mode_2ch_x4ap_phaser_mode01;
-    
+
     // -----------------------------------------------------------
-    
+
 };
 
 } // end namespace yacynth

@@ -57,10 +57,10 @@ void FxBase::clearTransient()
     EIObuffer::clear();
 }
 
-bool FxBase::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool FxBase::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     TAG_DEBUG( TagEffectCollector::Nop, tagIndex, paramIndex,"FxBase/FxNil" );
-    message.setStatus( Yaxp::MessageT::noParameter, message.getTag(tagIndex) ); // nothing to do here
+    message.setStatus( yaxp::MessageT::noParameter ); // nothing to do here
     return false;
 }
 
@@ -74,12 +74,13 @@ bool FxBase::setProcMode( uint16_t ind )
 
 // chop the 1st parameter as index in FxCollector
 
-bool FxCollector::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool FxCollector::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     const uint8_t tag = message.getTag(tagIndex);
     switch( TagEffectCollector( tag ) ) {
     case TagEffectCollector::Clear :
         TAG_DEBUG(TagEffectCollector::Clear, tagIndex, paramIndex, "FxCollector" );
+        message.setStatusSetOk();
         return true;
 
     case TagEffectCollector::SetProcessingMode :
@@ -88,7 +89,7 @@ bool FxCollector::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t p
         if( message.checkParamIndex(paramIndex) && message.checkParamIndex(paramIndex+1) ) {
             const uint8_t effectInd = message.getParam(paramIndex);
             if( count() <= effectInd ) {
-                message.setStatus( Yaxp::MessageT::illegalParam );
+                message.setStatus( yaxp::MessageT::illegalParam );
                 return false;
             }
             std::cout
@@ -96,9 +97,10 @@ bool FxCollector::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t p
                     << " mode " << message.getParam(paramIndex+1)
                     <<  std::endl;
             if( get(effectInd)->setProcMode(message.getParam(paramIndex+1)) ) {
+                message.setStatusSetOk();
                 return true;
             }
-            message.setStatus( Yaxp::MessageT::illegalProcMode );
+            message.setStatus( yaxp::MessageT::illegalProcMode );
             return false;
         }
         return false;
@@ -106,11 +108,11 @@ bool FxCollector::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t p
     case TagEffectCollector::GetEffectList : {
             TAG_DEBUG(TagEffectCollector::GetEffectList, tagIndex, paramIndex, "FxCollector" );
             const uint16_t listLength = count() * sizeof(EffectListEntry);
-            if( listLength > message.length ) {
-                message.setStatus( Yaxp::MessageT::illegalDataLength, tag );
+            if( listLength > message.size ) {
+                message.setStatus( yaxp::MessageT::illegalDataLength );
                 return false;
             }
-
+            message.params[0] = count();
             EffectListEntry *data = static_cast<EffectListEntry *>((void *)(message.data));
             for( uint16_t ind = 0; ind < count(); ++ind, ++data ) {
                 data->fxIndex       = ind;
@@ -122,7 +124,7 @@ bool FxCollector::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t p
                 std::memset( data->name,'\0',data->nameLength);
                 std::strncpy( data->name,nodes[ind]->name().data() ,data->nameLength-1);
             }
-            message.setLength(listLength);
+            message.setStatusGetOk(listLength);
         }
         return true;
 
@@ -132,23 +134,24 @@ bool FxCollector::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t p
                 return false;
             const uint8_t effectInd = message.getParam(paramIndex);
             if( count() <= effectInd ) {
-                message.setStatus( Yaxp::MessageT::illegalParam );
+                message.setStatus( yaxp::MessageT::illegalParam );
                 return false;
             }
             return get(effectInd)->parameter( message, ++tagIndex, ++paramIndex ); // tag will be dispatched in the effect
         }
     }
-    message.setStatus( Yaxp::MessageT::illegalTag, tag );
+    message.setStatus( yaxp::MessageT::illegalTag );
     return false;
 }
 
-bool FxRunner::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool FxRunner::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     const uint8_t tag = message.getTag(tagIndex);
     switch( TagEffectRunner(tag) ) {
         case TagEffectRunner::Clear : {
             TAG_DEBUG(TagEffectRunner::Clear, tagIndex, paramIndex, "FxRunner" );
             clear();
+            message.setStatusSetOk();
             return true;
         }
         case TagEffectRunner::Fill : {
@@ -157,11 +160,11 @@ bool FxRunner::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t para
                 return false;
             const uint16_t countParam = message.getParam(paramIndex);
             if( countParam >= FxRunner::nodeCount ) {
-                message.setStatus( Yaxp::MessageT::illegalTargetIndex ); // TODO more specific
+                message.setStatus( yaxp::MessageT::illegalTargetIndex ); // TODO more specific
                 return false;
             }
             if( countParam*sizeof(EffectRunnerFill) != message.length ) {
-                message.setStatus( Yaxp::MessageT::illegalDataLength ); // TODO more specific
+                message.setStatus( yaxp::MessageT::illegalDataLength ); // TODO more specific
                 return false;
             }
             clear();
@@ -172,11 +175,12 @@ bool FxRunner::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t para
                 if( RET::OK != ret ) {
 //                    std::cout << "len " << uint16_t(message.data[ind])  << std::endl;
                     TAG_DEBUG( TagEffectRunner::Fill, tagIndex, paramIndex, "FxRunner -- TagEffectRunner::Fill  param data" );
-                    message.setStatus( Yaxp::MessageT::targetRetCode, uint8_t(ret) );
+                    message.setStatus( yaxp::MessageT::targetRetCode );
                     return false;
                 }
             }
             std::cout << "---- fill end" << std::endl;
+            message.setStatusSetOk();
             return true;
         }
         case TagEffectRunner::SetConnections : {
@@ -186,7 +190,7 @@ bool FxRunner::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t para
             const uint16_t countParam = message.getParam(paramIndex);
             if( countParam*sizeof(EffectRunnerSetConnections) != message.length ) {
                 std::cout << "message.length " << message.length << std::endl;
-                message.setStatus( Yaxp::MessageT::illegalDataLength ); // TODO more specific
+                message.setStatus( yaxp::MessageT::illegalDataLength ); // TODO more specific
                 return false;
             }
 
@@ -197,21 +201,21 @@ bool FxRunner::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t para
                 FxRunner::RET ret = connect( data->fxIdOfFxCollector, data->fxIdOfFxRunner, data->inputIdOfFxRunner );
                 if( RET::OK != ret  ) {
                     TAG_DEBUG( TagEffectRunner::Fill, tagIndex, paramIndex, "FxRunner connect error" );
-                    message.setStatus( Yaxp::MessageT::targetRetCode, uint8_t(ret)  );
+                    message.setStatus( yaxp::MessageT::targetRetCode );
                     return false;
                 }
             }
-
+            message.setStatusSetOk();
             return true;
         }
     case TagEffectRunner::GetEffectList : {
             TAG_DEBUG(TagEffectRunner::GetEffectList, tagIndex, paramIndex, "FxRunner" );
             const uint16_t listLength = count() * sizeof(EffectListEntry);
-            if( listLength > message.length ) {
-                message.setStatus( Yaxp::MessageT::illegalDataLength, tag );
+            if( listLength > message.size ) {
+                message.setStatus( yaxp::MessageT::illegalDataLength );
                 return false;
             }
-
+            message.params[0] = count();
             EffectListEntry *data = static_cast<EffectListEntry *>((void *)(message.data));
             for( uint16_t ind = 0; ind < count(); ++ind, ++data ) {
                 data->fxIndex       = ind;
@@ -223,12 +227,12 @@ bool FxRunner::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t para
                 std::memset( data->name,'\0',data->nameLength);
                 std::strncpy( data->name,nodes[ind].thp->name().data() ,data->nameLength-1);
             }
-            message.setLength(listLength);
+            message.setStatusGetOk(listLength);
         }
         return true;
     }
     TAG_DEBUG( TagEffectRunner::Nop, tagIndex, paramIndex, "FxRunner -- illegal tag" );
-    message.setStatus( Yaxp::MessageT::illegalTag, tag );
+    message.setStatus( yaxp::MessageT::illegalTag );
     return false;
 }
 

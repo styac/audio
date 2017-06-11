@@ -36,6 +36,7 @@ OscillatorArray::OscillatorArray()
 ,   minVoice(0)
 ,   maxVoice(voiceCount)
 ,   commonFMPitch(0)
+,   toneBank(0)
 {
     pitchBendIndex.setIndex( InnerController::CC_PITCHBEND );
     pitchBendIndex.setInnerValue( pitchBendRange.middleValue );
@@ -84,7 +85,7 @@ void OscillatorArray::voiceUp(  uint16_t oscNr,  uint32_t pitch,  uint16_t veloc
     std::cout << "voiceUp oscNr: " << oscNr << " pitch: " << oscillatorParamChange.pitch << std::endl;
 
     oscillatorParamChange.velocity = velocity;
-    oscillatorParamChange.toneShaperSelect = 0;
+    oscillatorParamChange.toneShaperSelect = toneBank;
     array[ oscNr ].voiceUp( oscillatorParamChange );
 } // OscillatorArray::voiceUp
 // --------------------------------------------------------

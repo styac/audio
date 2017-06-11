@@ -56,18 +56,18 @@ ToneShaper::ToneShaper()
     sustain.sustainModType      = 1;
 #else
     // allpass test
-    tickFrameRelease.set(100);
+    tickFrameRelease.lowBase =100;
     curveSpeedRelease   = 2;
     
-    transient[ 2 ].tickFrame.set(2);
+    transient[ 2 ].tickFrame.lowBase = 2;
     transient[ 2 ].curveSpeed       = 2;
-    transient[ 2 ].targetValue.set(65534 * (1L<<16)); // NEW uin32
+    transient[ 2 ].targetValue.lowBase = 65534 ; // NEW uin32
 
-    transient[ 1 ].tickFrame.set(30);
+    transient[ 1 ].tickFrame.lowBase = 30;
     transient[ 1 ].curveSpeed       = 1;
-    transient[ 1 ].targetValue.set(60000 * (1L<<16)); // NEW uin32
+    transient[ 1 ].targetValue.lowBase = 60000 ; // NEW uin32
 
-    sustain.decayCoeff.set( 0 );
+    sustain.decayCoeff.lowBase = 0;
     sustain.sustainModDepth     = 0;      // 100 / 256
 //    sustain.sustainModDepth     = 170;      // 100 / 256
     sustain.sustainModPeriod    = 300;

@@ -31,28 +31,30 @@ using namespace TagEffectFxOutOscillatorModeLevel_03;
 
 const char slavename[]  = " slave";
 
-bool FxOutOscillatorParam::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool FxOutOscillatorParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     const uint8_t tag = message.getTag(tagIndex);
     switch( TagEffectFxOutOscillatorMode( tag ) ) {
     case TagEffectFxOutOscillatorMode::Clear :
         TAG_DEBUG(TagEffectFxOutOscillatorMode::Clear, tagIndex, paramIndex, "TagEffectFxOutOscillatorMode" );
+        message.setStatusSetOk();
         return true;
 
     case TagEffectFxOutOscillatorMode::SetParameters :
         TAG_DEBUG(TagEffectFxOutOscillatorMode::SetParameters, tagIndex, paramIndex, "TagEffectFxOutOscillatorMode" );
         if( !message.setTargetData(*this) ) {
-            message.setStatus( Yaxp::MessageT::illegalDataLength, 0);
+            message.setStatus( yaxp::MessageT::illegalDataLength );
             return false;
         }
         if( !freqMapper.check() ) {
-            message.setStatus( Yaxp::MessageT::dataCheckError, 0);
+            message.setStatus( yaxp::MessageT::dataCheckError );
             return false;
         }
+        message.setStatusSetOk();
         return true;
     }
 
-    message.setStatus( Yaxp::MessageT::illegalTag, tag );
+    message.setStatus( yaxp::MessageT::illegalTag );
     return false;
 
 }
@@ -62,13 +64,13 @@ void FxOutOscillator::clearTransient()
     EIObuffer::clear();
 }
 
-bool FxOutOscillator::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool FxOutOscillator::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     // 1st tag is tag effect type
     const uint8_t tagType = message.getTag(tagIndex);
     if( uint8_t(param.type) != tagType ) {
-        message.setStatus( Yaxp::MessageT::illegalTagEffectType, uint8_t(param.type) );
-        TAG_DEBUG(Yaxp::MessageT::illegalTagEffectType, uint8_t(param.type), tagType, "FxOutOscillator" );
+        message.setStatus( yaxp::MessageT::illegalTagEffectType );
+        TAG_DEBUG(yaxp::MessageT::illegalTagEffectType, uint8_t(param.type), tagType, "FxOutOscillator" );
         return false;
     }
     // 2nd tag is tag operation
@@ -217,18 +219,13 @@ void FxOutOscillator::sprocess_13( void * thp )
     static_cast< MyType * >(thp)->processTestSine20000();
 }
 
-
-
-
-
 template<>
-bool FxSlave<FxOutOscillatorParam>::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool FxSlave<FxOutOscillatorParam>::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     // 1st tag is tag effect type
     const uint8_t tagType = message.getTag(tagIndex);
     if( uint8_t(TagEffectType::FxSlave) != tagType ) {
-        message.setStatus( Yaxp::MessageT::illegalTagEffectType, uint8_t(TagEffectType::FxSlave) );
-        TAG_DEBUG(Yaxp::MessageT::illegalTagEffectType, uint8_t(TagEffectType::FxSlave), tagType, "FxSlave - FxOutOscillatorParam" );
+        message.setStatus( yaxp::MessageT::illegalTagEffectType );
         return false;
     }
     // 2nd tag is tag operation

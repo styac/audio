@@ -41,6 +41,7 @@ using namespace TagRouterLevel_01;
 AbstractRouter::AbstractRouter()
 :   transposition(0)
 ,   monoPhone(false)
+,   toneBank(0)
 {
     out.store = 0;
     fillEqualTempered(0);
@@ -237,16 +238,28 @@ void AbstractRouter::setCustomTuning( tuned_t custune )
     tuned = custune;
 } // end AbstractRouter::setCustomTune
 
-bool AbstractRouter::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool AbstractRouter::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     const uint8_t tag = message.getTag(tagIndex);
     switch( TagRouter( tag ) ) {
     case TagRouter::Clear :
         return true;
+    case TagRouter::SetToneBank :
+        toneBank = message.getParam(paramIndex);
+        // TODO: send tonebank ymsg message
+        // this will also work with midi control message
+        // not yet implemented in oscillator
+        sendToneControl();
+        return true;        
     }
-            
-    message.setStatus( Yaxp::MessageT::illegalTag, tag );
-    return false;    
+
+    message.setStatus( yaxp::MessageT::illegalTag );
+    return false;
+}
+
+void  AbstractRouter::sendToneControl()
+{
+    
 }
 
 } // end namespace yacynth

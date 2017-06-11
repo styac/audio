@@ -34,10 +34,6 @@
 #include    "../yaio/IOthread.h"
 #include    "Tags.h"
 
-#include    <boost/array.hpp>
-#include    <boost/asio.hpp>
-#include    <boost/utility/string_ref.hpp>
-
 #include    <cstdlib>
 #include    <iostream>
 #include    <fstream>
@@ -46,8 +42,6 @@
 #include    <unistd.h>
 #include    <map>
 #include    <list>
-
-using namespace boost::asio;
 
 namespace yacynth {
 
@@ -58,21 +52,15 @@ public:
         IOThread&           iOThreadP );
 
     Sysman() = delete;
-    Sysman(const Sysman&) = delete;
+    Sysman( const Sysman&) = delete;
     Sysman& operator=(const Sysman&) = delete;
-    bool eval( ip::tcp::socket&   socketAccept );
-    
-    // for testing 
-    void testParameter();
-    bool evalParameterMessage( Yaxp::Message& msg );
-    
+    bool evalMessage( yaxp::Message& msg );
+
 private:
-    
-    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );     
+    bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
     OscillatorArray&            oscillatorArray;
     ToneShaperMatrix&           toneShaperMatrix;
     IOThread&                   iOThread;
-    boost::asio::streambuf      inStreambuf;
 };
 
 } // end namespace yacynth

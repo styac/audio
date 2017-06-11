@@ -26,31 +26,14 @@
  */
 
 
-#include    "protocol.h"
-#include    "FxBase.h"
+#include    "FxOutNoiseParam.h"
 #include    "../oscillator/NoiseFrame.h"
 #include    "../utils/GaloisNoiser.h"
+#include    "../effects/FxBase.h"
 
 using namespace noiser;
 
 namespace yacynth {
-using namespace TagEffectTypeLevel_02;
-
-class FxOutNoiseParam {
-public:
-    // mandatory fields
-    static constexpr char const * const name    = "NoiseSource";
-    static constexpr TagEffectType  type        = TagEffectType::FxOutNoise;
-    static constexpr std::size_t maxMode        = 10; // 0 is always exist> 0,1,2
-    static constexpr std::size_t inputCount     = 0;
-    
-    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
-
-    // optional fields
-    uint8_t redPole;
-    uint8_t purplePole;
-    uint8_t blueZero;
-};
 
 class FxOutNoise : public NoiseFrame<Fx<FxOutNoiseParam>>  {
 public:
@@ -70,10 +53,10 @@ public:
         fillSprocessv<9>(sprocess_09);
         fillSprocessv<10>(sprocess_10);
     }
-    
-    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override; 
-    
-    virtual void clearTransient() override;    
+
+    virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override;
+
+    virtual void clearTransient() override;
 
 
     // go up to Fx ??

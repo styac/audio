@@ -38,7 +38,6 @@ IOThread:: IOThread(
 :   queueIn(in)
 ,   queueOut(out)
 ,   midiRouter(router)
-//,   panMixer()
 ,   cycleNoise(0)
 ,   fxEndMixer()
 ,   fxOscillatorMixer()
@@ -128,11 +127,11 @@ void IOThread::audioOutCB( void *data, uint32_t nframes, float *outp1, float *ou
         thp.fxOscillatorMixer.process( thp.queueOut.out[ri] ); // this has a special interface
         thp.queueOut.readOk();
         thp.fxRunner.run();
-        
+
         // TODO > in 1 step - mix direct to the output
         // dump should call exec() ?
         // or dump set the pointers and a use special endMixer type
-        
+
         thp.fxEndMixer.exec();  // must be the last
         thp.fxEndMixer.dump( outp1, outp2 ); // get the result
         outp1 += thp.fxEndMixer.sectionSize;

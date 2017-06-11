@@ -24,6 +24,7 @@
  *
  * Created on April 4, 2016, 11:52 AM
  */
+#define TONESHAPER_CTOR
 
 #include    "ToneShaper.h"
 #include    "Tags.h"
@@ -41,7 +42,7 @@ public:
     void dump(  YsifOutStream& ser );
     void clear( void );
 
-    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
+    bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
     std::array< ToneShaperVector,  settingVectorSize>   toneShapers;
 };
 

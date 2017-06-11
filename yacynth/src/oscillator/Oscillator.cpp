@@ -51,7 +51,11 @@ void Oscillator::initialize( void )
 bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, Statistics& stat )
 {
     // under this amplitude value the signal will not be generated
-    constexpr uint64_t hearingThreshold = 1L<<23;
+    constexpr uint64_t  hearingThreshold = 1L<<23;
+    
+    // 25 bit * 7 bit = 32 -> result 21
+    // TODO this must be set to a resonable value with experiments - 15 bit multiplier
+    constexpr uint8_t   detuneRange = 11; // must be tested
 
     bool        isEnd       = false;
     switch( voiceState ) {
@@ -69,28 +73,30 @@ bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, 
         oscillatorCountUsed = tsvec.oscillatorCountUsed;
 //        oscillatorCountUsed = 10;
 
-        if( out.overtoneCount < oscillatorCountUsed ) {
+        if( out.overtoneCount < oscillatorCountUsed ) {  // TODO what is this
             out.overtoneCount = oscillatorCountUsed;
         }
         //oscillatorCountUsed = 13;
         for( auto oscindex = 0; oscindex < oscillatorCountUsed; ++oscindex ) {
-            const auto& toneshaper      = tsvec.toneShaperVec[ oscindex ];
+            const auto& toneshaper  = tsvec.toneShaperVec[ oscindex ];
+            auto& stateOsc          = state[ oscindex ];
+            
             // high osc only sine
-//            const auto& oscillatorType  = ( oscindex & 0x80 ) ? OSC_SIN : toneshaper.oscillatorType;
+            // obsolate   const auto& oscillatorType  = ( oscindex & 0x80 ) ? OSC_SIN : toneshaper.oscillatorType;
             const auto oscillatorType  = toneshaper.oscillatorType;
 
             // TODOs
             // go to fastexp !
             // -> refactor transient detune !!!
-            const uint32_t deltaPhase   = ycent2deltafi( basePitch + toneshaper.pitch, in.pitchDelta );
+            const uint32_t deltaPhase   = ycent2deltafi( basePitch + toneshaper.pitch, in.pitchDelta + stateOsc.amplitudeDetunePitch );
             if( 0 == deltaPhase )
-                continue;
+                continue; // too high sound
             int64_t deltaAddAcc = 0;
             bool changeEnvPhase = false;
-            auto& stateOsc      = state[ oscindex ];
-            // should be mapped 256 ovetones -> 16x2 output channels
-            auto& outLayer      = out.layer[ oscindex ];
+            // TODO > should be mapped 256 ovetones -> 16x2 output channels
+            auto& outLayer      = out.layer[ oscindex ]; // this should go to osc down
             // TODO: envelopeKnotRelease = +128 ??
+            // this should be before ycent2deltafi() ?
             if( 0 > stateOsc.envelopePhase ) {
                 if( VOICE_RELEASE == voiceState ) {
                     continue; // next oscillator -- if all is end then voice down
@@ -99,13 +105,14 @@ bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, 
                 goto L_sustain;
             }
 
-            if( envelopeKnotRelease == stateOsc.envelopePhase ) { // release
+            // check voiceState  = VOICE_RELEASE ?
+            if( envelopeKnotRelease == stateOsc.envelopePhase ) { // release 7F
                 stateOsc.envelopeTargetValueVelocity = 0 ;
                 // at least 1 for release
                 // normal release: input stateOsc.tickFrame == 0
                 // fast release  : input stateOsc.tickFrame > 0 -- legato - envelopMultiplierExpChecked fix
                 if( 0 == stateOsc.tickFrame ) { // if fastRelease then stateOsc.tickFrame == 1
-                    stateOsc.tickFrame = toneshaper.tickFrameRelease.get();  // TODO interpolate
+                    stateOsc.tickFrame = toneshaper.tickFrameRelease.get(pitchDepDx);  // TODO interpolate
                     stateOsc.envelopMultiplierExpChecked = oscillatorOutSampleCountExp - toneshaper.curveSpeedRelease;
                 } else {
                     stateOsc.envelopMultiplierExpChecked = oscillatorOutSampleCountExp + 1;
@@ -114,7 +121,7 @@ bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, 
             } else {
                 while( 0 == stateOsc.tickFrame ) {
                     changeEnvPhase = true;
-                    stateOsc.tickFrame = toneshaper.transient[stateOsc.envelopePhase].tickFrame.get(); // TODO interpolate
+                    stateOsc.tickFrame = toneshaper.transient[stateOsc.envelopePhase].tickFrame.get(pitchDepDx); // TODO interpolate
                     if( 0 < stateOsc.tickFrame )
                         break;
                     if( 0 > --stateOsc.envelopePhase ) {
@@ -126,8 +133,9 @@ bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, 
                     // TODO:  frequency dependency -- amplitude,time
                     const auto& currentEnvelopeKnot  = toneshaper.transient[stateOsc.envelopePhase];
                      // TODO interpolate
-                    stateOsc.envelopeTargetValueVelocity =
-                        (velocity * static_cast<uint64_t>(currentEnvelopeKnot.targetValue.get() )) >> 10; // 25 bit for the signal
+//                    stateOsc.envelopeTargetValueVelocity =
+//                        ( velocity * static_cast<uint64_t>(currentEnvelopeKnot.targetValue.get() )) >> 8; // 25 bit for the signal
+                    stateOsc.envelopeTargetValueVelocity = currentEnvelopeKnot.targetValue.get(velocity,pitchDepDx); // 25 bit for the signal
                     stateOsc.envelopMultiplierExpChecked = oscillatorOutSampleCountExp - currentEnvelopeKnot.curveSpeed;
                 }
             } // end if( envelopeKnotRelease == stateOsc.envelopePhase )
@@ -156,7 +164,7 @@ bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, 
             goto L_innerloop;
 //============================
 L_sustain:
-            deltaAddAcc = stateOsc.sustainModulator.mod( stateOsc.amplitudoOsc, toneshaper.sustain );
+            deltaAddAcc = stateOsc.sustainModulator.mod( stateOsc.amplitudoOsc, toneshaper.sustain, pitchDepDx );
             ++stat.cycleCounter[Statistics::COUNTER_SUSTAIN];
 //============================
 L_innerloop:
@@ -289,11 +297,12 @@ L_innerloop:
 
 //            stateOsc.amplitudoOsc = amplitudoOsc;
 //            stateOsc.phase = phase;
-
+            stateOsc.amplitudeDetunePitch = ( stateOsc.amplitudoOsc * toneshaper.amplitudeDetune ) >> detuneRange; 
             ++stat.cycleCounter[Statistics::COUNTER_INNER_LOOP];
             isEnd = false;
         }
         if( VOICE_RELEASE == voiceState && isEnd ) {
+//            std::cout << "-- VOICE_DOWN"  << std::endl;
             voiceState = VOICE_DOWN;
         }
         ++stat.cycleCounter[Statistics::COUNTER_OUTER_LOOP];
@@ -336,7 +345,7 @@ void Oscillator::voiceUp( const OscillatorInChange& in )
 #endif
         stateOsc.sustainModulator.reset();
         stateOsc.tickFrame          = 0;                // feature: must be set to 0
-        stateOsc.envelopePhase      = envelopeKnotUp;   // always the highest-1 knot for voiceUp
+        stateOsc.envelopePhase      = transientKnotCount-1;   // down count
 //        stateOsc.releaseEnd         = false;
     }
     voiceState          = VOICE_RUN;
@@ -344,15 +353,20 @@ void Oscillator::voiceUp( const OscillatorInChange& in )
 // --------------------------------------------------------------------
 void Oscillator::voiceRelease( const OscillatorInChange& in )
 {
-    if( VOICE_RELEASE == voiceState ) { // or if down !!!
+    switch(voiceState) {
+    case VOICE_RELEASE:
+    case VOICE_DOWN:
         return;
     }
+
     std::cout << "voiceRelease: " << std::endl;
 
     voiceState  = VOICE_RELEASE;
     for( auto oscindex = 0; oscindex < oscillatorCountUsed; ++oscindex ) {
         auto& stateOsc = state[ oscindex ];
-        stateOsc.tickFrame      = in.tickFrameRelease;  // used if not 0
+        stateOsc.tickFrame      = in.tickFrameRelease;  // used if not 0 -- legato 1
+        
+        // check other solution ?
         stateOsc.envelopePhase  = envelopeKnotRelease;
     }
 } // end Oscillator::voiceRelease( const OscillatorInChange& in )

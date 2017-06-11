@@ -24,6 +24,13 @@
  *
  * Created on October 3, 2016, 9:58 PM
  */
+
+#include    <cstdint>
+#include    <string>
+#include    <array>
+#include    <atomic>
+#include    <cstring>
+
 #define TAG_DEBUG_ON 1
 
 #ifdef TAG_DEBUG_ON
@@ -61,8 +68,6 @@ namespace TagMainLevel_00 {
     enum class TagMain : uint8_t {
         Nop,
         Clear,
-        Hello,          // connect
-        Bye,            // disconnect
         Mute,           // mute immediately
         UnMute,         // unmute
         ToneShaper,
@@ -78,17 +83,6 @@ namespace TagMainLevel_00 {
     };
 } // end namespace
 
-// level 1
-#if 0
-namespace TagSystemLevel_01 {
-    enum class TagSystem : uint8_t {
-        Nop,
-        Mute,
-        Unmute,
-    };
-} // end namespace
-#endif
-
 namespace TagToneShaperLevel_01 {
     enum class TagToneShaper : uint8_t {
         Nop,
@@ -96,6 +90,9 @@ namespace TagToneShaperLevel_01 {
         SetOvertoneCount,           // parameter: ToneShaperIndex, OvertoneCount
         SetOvertone,                // parameter: ToneShaperIndex, OvertoneIndex
         GetOvertone,                // parameter: ToneShaperIndex, OvertoneIndex
+        SetPitchVector,             // parameter: ToneShaperIndex, count max 256 (OvertoneIndex 0..n-1)
+        SetOvertoneVector,          // parameter: ToneShaperIndex, count max 256 - size:184
+        GetOvertoneVector,          // parameter: ToneShaperIndex, count max 256 - size:184
     };
 } // end namespace
 
@@ -171,6 +168,7 @@ namespace TagRouterLevel_01 {
     enum class TagRouter : uint8_t {
         Nop,
         Clear,
+        SetToneBank,
     };
 } // end namespace
 
@@ -178,6 +176,8 @@ namespace TagTunerLevel_01 {
     enum class TagTuner : uint8_t {
         Nop,
         Clear,
+        SetTuneTable,       // main rate table: eq tuned, natural tuned
+        SetTuneSubTable,    // sub table select from main table
     };
 } // end namespace
 
@@ -191,9 +191,14 @@ namespace TagEffectCollectorLevel_01 {
     };
 } // end namespace
 
+//
+// all Fx types from 0x40
+// 0 .. 3F are the different other type
+// used in DATABASE records
+//
 namespace TagEffectTypeLevel_02 {
     enum class TagEffectType : uint8_t {
-        Nop,
+        FxNop   = 0x40,
         FxNil,
         FxSlave,
         FxMixer,
@@ -221,8 +226,8 @@ namespace TagEffectFxFilterModeLevel_03 {
         SetMode_2ch_x4ap_phaser_mode01,
         SetMode_SVF01_2ch_mode01,
         SetMode_4p_2ch,
-        
-        
+
+
     };
 } // end namespace
 

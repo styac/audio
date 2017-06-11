@@ -72,7 +72,7 @@ namespace yacynth {
 //  op = reset, set, add -- int 32 bit
 //
 enum YAMOP : uint64_t {
-    YAMOP_MIDI_PREFIX       = 0x00, // obsolate - will disappear
+//    YAMOP_MIDI_PREFIX       = 0x00, // obsolate - will disappear
     YAMOP_SYSTEM_STOP       = 0x0000000000000001LL,
 //=============================================================================
     YAMOP_CONTROL_PREFIX    = 0x01,
@@ -85,16 +85,17 @@ enum YAMOP : uint64_t {
 //  byte7   byte6   byte5   byte4   byte3   byte2   byte1   byte0
 //------------------------------------------------------------------------
 //  2       oscNr   velocity(u16)   --- pitch (u32) -------------
-
     YAMOP_SETVOICE_NOTE     = 0x02,
 //=============================================================================
 //  byte7   byte6   byte5   byte4   byte3   byte2   byte1   byte0
 //------------------------------------------------------------------------
-//  2       oscNr   spctInd envInd  delta(int16)    velocity Hi/LO
-//
-//
+//  3       oscNr   spctInd envInd  delta(int16)    velocity Hi/LO
     YAMOP_CHNGVOICE_NOTE    = 0x03,
-
+//=============================================================================
+//  byte7   byte6   byte5   byte4   byte3   byte2   byte1   byte0
+//------------------------------------------------------------------------
+//  4       0       0       0       0       0       --- toneBank--
+    YAMOP_SET_TONE          = 0x04,    
 };
 
 

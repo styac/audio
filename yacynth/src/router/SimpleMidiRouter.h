@@ -36,7 +36,7 @@ public:
 
     void clear(void) {};
     
-    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
+    virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
     virtual Yamsgrt     translate( const RouteIn& in ) override;
     virtual uint32_t    getPitch( int32_t noteNr, uint16_t tableNr = 0 );

@@ -26,40 +26,14 @@
  */
 
 #include    "yacynth_globals.h"
-#include    "protocol.h"
+#include    "../effects/FxBase.h"
 
 #include    "v4.h"
-#include    "FxBase.h"
+#include    "FxOscillatorMixerParam.h"
 #include    "../oscillator/OscillatorOutput.h"
 
 
 namespace yacynth {
-using namespace TagEffectTypeLevel_02;
-
-class FxOscillatorMixerParam {
-public:
-    FxOscillatorMixerParam()
-    : gain(gainref)
-    {};
-    // mandatory fields
-    static constexpr char const * const name = "OscillatorMixer";
-    static constexpr TagEffectType  type     = TagEffectType::FxOscillatorMixer;
-    static constexpr std::size_t maxMode     = 1; // 
-    static constexpr std::size_t inputCount  = 0; // input is oscillator thread out 
-
-    // temp
-    static constexpr   float   gainref = 1.0f/(1L<<23);
-    
-    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
-    
-    // optional fields
-    float gain;
-
-    // index to put the amplitudeSumm
-    // interface to controller
-    float amplitudeSumm;
-};
-
 class FxOscillatorMixer : public Fx<FxOscillatorMixerParam>  {
 public:
     using MyType = FxOscillatorMixer;
@@ -74,10 +48,10 @@ public:
 //        fillSprocessv<5>(sprocess_05);
 
     }
-    
-    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override; 
-        
-    virtual void clearTransient() override;    
+
+    virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override;
+
+    virtual void clearTransient() override;
 
     // real process
     void process( const OscillatorOut& inp );

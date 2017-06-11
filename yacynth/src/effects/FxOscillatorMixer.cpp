@@ -48,7 +48,7 @@ void FxOscillatorMixer::process( const OscillatorOut& inp )
     out().copyMono2Stereo( addbuff.v, param.gain );
 }
 
-bool FxOscillatorMixerParam::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool FxOscillatorMixerParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     const uint8_t tag = message.getTag(tagIndex);
 //    switch(  ( message.getTag(tagIndex) ) ) {
@@ -62,7 +62,7 @@ bool FxOscillatorMixerParam::parameter( Yaxp::Message& message, uint8_t tagIndex
         return true;
     }
             
-    message.setStatus( Yaxp::MessageT::illegalTag, tag );
+    message.setStatus( yaxp::MessageT::illegalTag );
     return false;
     
 }
@@ -73,13 +73,13 @@ void FxOscillatorMixer::clearTransient()
     EIObuffer::clear();
 }
 
-bool FxOscillatorMixer::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool FxOscillatorMixer::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     // 1st tag is tag effect type
     const uint8_t tagType = message.getTag(tagIndex);    
     if( uint8_t(param.type) != tagType ) {
-        message.setStatus( Yaxp::MessageT::illegalTagEffectType, uint8_t(param.type) );
-        TAG_DEBUG(Yaxp::MessageT::illegalTagEffectType, uint8_t(param.type), tagType, "FxOscillatorMixer" );
+        message.setStatus( yaxp::MessageT::illegalTagEffectType );
+        TAG_DEBUG(yaxp::MessageT::illegalTagEffectType, uint8_t(param.type), tagType, "FxOscillatorMixer" );
         return false;        
     }
     // 2nd tag is tag operation

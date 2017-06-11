@@ -26,10 +26,11 @@
  */
 
 #include    "FxFilterParam.h"
+
+#include    "../effects/FxBase.h"
 #include    "../utils/Filter4Pole.h"
 #include    "../utils/FilterAllpass.h"
 #include    "../utils/FilterStateVariable.h"
-
 
 using namespace filter;
 
@@ -87,7 +88,7 @@ public:
         fillSprocessv<9>(sprocess_09);
     }
 
-    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override;
+    virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override;
 
     virtual void clearTransient() override;
 

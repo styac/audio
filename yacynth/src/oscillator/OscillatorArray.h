@@ -57,12 +57,14 @@ public:
 private:
     OscillatorInGenerate    oscillatorParamGenerate;
     OscillatorInChange      oscillatorParamChange;
+    int32_t                 commonFMPitch;
+    int16_t                 fastReleaseTick;
+    int16_t                 toneBank;
     uint8_t                 minVoice;
     uint8_t                 maxVoice;
     bool                    monoPhone;
     bool                    enableFM;
-    int16_t                 fastReleaseTick;
-    int32_t                 commonFMPitch;
+    
     
     // new
     ControllerIndex         pitchBendIndex;

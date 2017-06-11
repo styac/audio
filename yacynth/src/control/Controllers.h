@@ -29,8 +29,8 @@
 #include    "../utils/Fastsincos.h"
 #include    "../utils/Fastexp.h"
 
-#include    "../../include/Tags.h"
-#include    "../../include/protocol.h"
+#include    "Tags.h"
+#include    "protocol.h"
 
 #include    <cstdint>
 #include    <string>
@@ -135,7 +135,7 @@ public:
 
     static_assert( CC_END < arraySize, "array is too small" );
 
-    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
+    bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
     inline uint16_t getCountMasterLfo(void)
     {
@@ -435,7 +435,7 @@ public:
     }
 
 
-    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
+    bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
     void clear(void)
     {

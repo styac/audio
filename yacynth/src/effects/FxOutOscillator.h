@@ -25,34 +25,13 @@
  * Created on June 23, 2016, 7:46 PM
  */
 
-#include    "FxBase.h"
+#include    "FxOutOscillatorParam.h"
 #include    "../utils/Fastsincos.h"
+#include    "../effects/FxBase.h"
 
 using namespace tables;
 
 namespace yacynth {
-using namespace TagEffectTypeLevel_02;
-
-class FxOutOscillatorParam {
-public:
-    // mandatory fields
-    static constexpr char const * const name    = "Oscillator4x"; // 1 main + 3 slave
-    static constexpr TagEffectType  type        = TagEffectType::FxOutOscillator;
-    static constexpr std::size_t maxMode        = 13; // 0 is always exist> 0,1,2
-    static constexpr std::size_t inputCount     = 0;
-    static constexpr std::size_t slaveCount     = 3; // 0-base signal 1-modulation
-    static constexpr char const * const slavename = " ^OscillatorSlave";
-
-    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
-    // master
-    ControllerMapLinear<1>  freqMapper;         // controller value to freq (delta phase)
-    ControllerIndex         indexPhaseDelta;    // controller index of freq of channel 0
-    // master + n slaves
-    ControllerIndex         indexPhaseFreqDiff[slaveCount+1]; // controller index of phase or freq diff of channel 1
-
-
-    // need a direct steady control for multiphase source if there will be
-};
 
 class FxOutOscillator : public Fx<FxOutOscillatorParam>  {
 public:
@@ -79,7 +58,7 @@ public:
         fillSprocessv<13>(sprocess_13);
     }
 
-    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
+    virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
 
     // go up to Fx ??

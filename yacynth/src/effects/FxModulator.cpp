@@ -28,25 +28,26 @@
 namespace yacynth {
 using namespace TagEffectFxModulatorModeLevel_03;
 
-bool FxModulatorParam::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool FxModulatorParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     const uint8_t tag = message.getTag(tagIndex);
     switch( TagEffectFxModulatorMode( tag ) ) {
     case TagEffectFxModulatorMode::Clear :
         TAG_DEBUG(TagEffectFxModulatorMode::Clear, tagIndex, paramIndex, "FxModulatorParam" );
+        message.setStatusSetOk();                
         return true;
         
     case TagEffectFxModulatorMode::SetParameters :
         TAG_DEBUG(TagEffectFxModulatorMode::SetParameters, tagIndex, paramIndex, "FxModulatorParam" );
         if( message.setTargetData(*this) ) {
+            message.setStatusSetOk();                            
             return true;
         }        
-        message.setStatus( Yaxp::MessageT::illegalDataLength );
+        message.setStatus( yaxp::MessageT::illegalDataLength );
         return false;
     }            
-    message.setStatus( Yaxp::MessageT::illegalTag, tag );
-    return false;
-    
+    message.setStatus( yaxp::MessageT::illegalTag );
+    return false;    
 }
 
 void FxModulator::clearTransient()
@@ -54,13 +55,13 @@ void FxModulator::clearTransient()
     EIObuffer::clear();    
 }
 
-bool FxModulator::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool FxModulator::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     // 1st tag is tag effect type
     const uint8_t tagType = message.getTag(tagIndex);    
     if( uint8_t(param.type) != tagType ) {
-        message.setStatus( Yaxp::MessageT::illegalTagEffectType, uint8_t(param.type) );
-        TAG_DEBUG(Yaxp::MessageT::illegalTagEffectType, uint8_t(param.type), tagType, "FxModulator" );
+        message.setStatus( yaxp::MessageT::illegalTagEffectType );
+        TAG_DEBUG(yaxp::MessageT::illegalTagEffectType, uint8_t(param.type), tagType, "FxModulator" );
         return false;        
     }
     // 2nd tag is tag operation

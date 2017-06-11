@@ -28,70 +28,77 @@
 namespace yacynth {
 using namespace TagEffectFxEchoModeLevel_03;
 
-bool FxEchoParam::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool FxEchoParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     const uint8_t tag = message.getTag(tagIndex);
     switch( TagEffectFxEchoMode( tag ) ) {
     case TagEffectFxEchoMode::Clear :
         TAG_DEBUG(TagEffectFxEchoMode::Clear, tagIndex, paramIndex, "FxEchoParam" );
 //        clear();
+        message.setStatusSetOk();
         return true;
 
     case TagEffectFxEchoMode::SetParameters :
         TAG_DEBUG(TagEffectFxEchoMode::SetParameters, tagIndex, paramIndex, "FxEchoParam" );
         if( ! message.checkTargetData(*this) ) {
-            message.setStatus( Yaxp::MessageT::illegalData, tag );
+            message.setStatus( yaxp::MessageT::illegalData);
             return false;
         }
         if( ! message.setTargetData(*this) ) {
-            message.setStatus( Yaxp::MessageT::illegalData, tag );
+            message.setStatus( yaxp::MessageT::illegalData);
             return false;
         }
+        message.setStatusSetOk();
         return true;
 
     case TagEffectFxEchoMode::SetDryCoeffs :
         TAG_DEBUG(TagEffectFxEchoMode::SetDryCoeffs, tagIndex, paramIndex, "FxEchoParam" );
 
         if( check() ) {
+            message.setStatusSetOk();
             return true;
         }
-        message.setStatus( Yaxp::MessageT::illegalTargetIndex, tag );
+        message.setStatus( yaxp::MessageT::illegalTargetIndex);
         return false;
 
     case TagEffectFxEchoMode::SetTapOutput :
         TAG_DEBUG(TagEffectFxEchoMode::SetTapOutput, tagIndex, paramIndex, "FxEchoParam" );
 
         if( check() ) {
+            message.setStatusSetOk();
             return true;
         }
-        message.setStatus( Yaxp::MessageT::illegalTargetIndex, tag );
+        message.setStatus( yaxp::MessageT::illegalTargetIndex);
         return false;
 
     case TagEffectFxEchoMode::SetTapFeedback :
         TAG_DEBUG(TagEffectFxEchoMode::SetTapFeedback, tagIndex, paramIndex, "FxEchoParam" );
 
         if( check() ) {
+            message.setStatusSetOk();
             return true;
         }
-        message.setStatus( Yaxp::MessageT::illegalTargetIndex, tag );
+        message.setStatus( yaxp::MessageT::illegalTargetIndex);
         return false;
 
     case TagEffectFxEchoMode::SetTapOutputLP :
         TAG_DEBUG(TagEffectFxEchoMode::SetTapOutputLP, tagIndex, paramIndex, "FxEchoParam" );
 
         if( check() ) {
+            message.setStatusSetOk();
             return true;
         }
-        message.setStatus( Yaxp::MessageT::illegalTargetIndex, tag );
+        message.setStatus( yaxp::MessageT::illegalTargetIndex);
         return false;
 
     case TagEffectFxEchoMode::SetTapFeedbackLP :
         TAG_DEBUG(TagEffectFxEchoMode::SetTapFeedbackLP, tagIndex, paramIndex, "FxEchoParam" );
 
         if( check() ) {
+            message.setStatusSetOk();
             return true;
         }
-        message.setStatus( Yaxp::MessageT::illegalTargetIndex, tag );
+        message.setStatus( yaxp::MessageT::illegalTargetIndex);
         return false;
 
     case TagEffectFxEchoMode::SetTapOutputCount :
@@ -101,9 +108,10 @@ bool FxEchoParam::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t p
             if( tapOutputCount > tapOutputSize ) {
                 tapOutputCount = tapOutputSize;
             }
+            message.setStatusSetOk();
             return true;
         }
-        message.setStatus( Yaxp::MessageT::illegalParamIndex, tag );
+        message.setStatus( yaxp::MessageT::illegalParamIndex );
         return false;
 
     case TagEffectFxEchoMode::SetTapFeedbackCount :
@@ -113,10 +121,11 @@ bool FxEchoParam::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t p
             if( tapFeedbackCount > tapFeedbackSize ) {
                 tapFeedbackCount = tapFeedbackSize;
             }
+            message.setStatusSetOk();
             return true;
         }
 
-        message.setStatus( Yaxp::MessageT::illegalTargetIndex, tag );
+        message.setStatus( yaxp::MessageT::illegalTargetIndex);
         return false;
 
     case TagEffectFxEchoMode::SetTapOutputLPCount :
@@ -126,10 +135,11 @@ bool FxEchoParam::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t p
             if( tapOutputLPCount > tapOutputLPSize ) {
                 tapOutputLPCount = tapOutputLPSize;
             }
+            message.setStatusSetOk();
             return true;
         }
 
-        message.setStatus( Yaxp::MessageT::illegalTargetIndex, tag );
+        message.setStatus( yaxp::MessageT::illegalTargetIndex);
         return false;
 
     case TagEffectFxEchoMode::SetTapFeedbackLPCount :
@@ -139,14 +149,15 @@ bool FxEchoParam::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t p
             if( tapFeedbackLPCount > tapFeedbackLPSize ) {
                 tapFeedbackLPCount = tapFeedbackLPSize;
             }
+            message.setStatusSetOk();
             return true;
         }
 
-        message.setStatus( Yaxp::MessageT::illegalTargetIndex, tag );
+        message.setStatus( yaxp::MessageT::illegalTargetIndex);
         return false;
     }
     TAG_DEBUG(TagEffectFxEchoMode::Nop, tagIndex, paramIndex, "FxEchoParam" );
-    message.setStatus( Yaxp::MessageT::illegalTag, tag );
+    message.setStatus( yaxp::MessageT::illegalTag );
     return false;
 }
 
@@ -163,13 +174,13 @@ bool FxEcho::connect( const FxBase * v, uint16_t ind )
     doConnect(v,ind);
 };
 
-bool FxEcho::parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool FxEcho::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     // 1st tag is tag effect type
     const uint8_t tagType = message.getTag(tagIndex);
     if( uint8_t(param.type) != tagType ) {
-        message.setStatus( Yaxp::MessageT::illegalTagEffectType, uint8_t(param.type) );
-        TAG_DEBUG(Yaxp::MessageT::illegalTagEffectType, uint8_t(param.type), tagType, "FxEcho" );
+        message.setStatus( yaxp::MessageT::illegalTagEffectType );
+        TAG_DEBUG(yaxp::MessageT::illegalTagEffectType, uint8_t(param.type), tagType, "FxEcho" );
         return false;
     }
     // 2nd tag is tag operation

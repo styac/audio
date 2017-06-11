@@ -26,12 +26,13 @@
  */
 
 
-#include    "FxBase.h"
+#include    "../effects/FxFlangerParam.h"
 #include    "../utils/Fastsincos.h"
 #include    "../oscillator/Tables.h"
 #include    "../utils/Limiters.h"
 #include    "../effects/DelayTap.h"
 #include    "../oscillator/NoiseSample.h"
+#include    "../effects/FxBase.h"
 
 //     0.3 mS to 14.4 ms -- 0 .. 1024
 // + feedback
@@ -42,82 +43,6 @@ using namespace tables;
 // #define CHECK_DEBUG_FLANGER
 
 namespace yacynth {
-using namespace TagEffectTypeLevel_02;
-
-class FxFlangerParam {
-public:
-    // mandatory fields
-    static constexpr char const * const name        = "FxFlanger";
-    static constexpr TagEffectType  type            = TagEffectType::FxFlanger;
-    static constexpr std::size_t maxMode            = 4;
-    static constexpr std::size_t inputCount         = 1;
-
-    // static constexpr std::size_t tapSize            = 4;
-    static constexpr std::size_t delayLngExp        = 5; // 2048
-    static constexpr std::size_t delayLng           = 1<<(delayLngExp+EbufferPar::sectionSizeExp);
-    static constexpr std::size_t delayOffsMaxLng    = delayLng - 1;
-    static constexpr std::size_t delayOffsMinLng    = 0; // 0 ?
-
-    static constexpr uint64_t minBaseDelay          = 128LL << 32;  // ca 2.5 msec
-    static constexpr uint64_t maxBaseDelay          = 1000LL << 32; // ca 20 msec
-
-    static constexpr int32_t  depthHighLimit        = 1<<29;
-    static constexpr int32_t  depthLowLimit         = 1<<4; 
-    
-    bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
-
-    struct Mode01 {
-        bool check()
-        {
-            if( baseDelay < minBaseDelay ) {
-                baseDelay = minBaseDelay;
-            }
-            if( baseDelay > maxBaseDelay ) {
-                baseDelay = maxBaseDelay;
-            }
-            if( gain < -1.0 ) {
-                gain = -1.0;
-            }
-            if( gain > 1.0 ) {
-                gain = 1.0;
-            }
-            if( feedbackGain < -0.99 ) {
-                feedbackGain = -0.99;
-            }
-            if( feedbackGain > 0.99 ) {
-                feedbackGain = 0.99;
-            }
-            if( depth > depthHighLimit ) {
-                depth = depthHighLimit;
-            }
-            if( depth < depthLowLimit ) {
-                depth = depthLowLimit;
-            }
-            
-            return true;
-        }
-        
-        // use minDelay + unipolar function > sin, triangle
-        
-        uint64_t        baseDelay;          // controller ?
-        float           gain;            // wetIndex
-        float           feedbackGain;       // feedbackIndex
-        int32_t         depth;              // depthIndex
-
-        // TODO : check max range with baseDelay !
-        // manual
-        ControllerIndex feedbackIndex;      // tune feedbackGain
-        ControllerIndex depthIndex;         // tune sineRange
-        ControllerIndex deltaPhaseIndex;    // to set the freq
-        ControllerIndex phaseDiffIndex;     // to set the phase diff A-B
-
-        // get the sine component of the modulation signal
-        ControllerIndex oscMasterIndex;     // to get the osc phase chA
-        ControllerIndex oscSlaveIndex;      // to get the osc phase chB
-
-    } mode01;
-
-};
 
 class FxFlanger : public Fx<FxFlangerParam>  {
 public:
@@ -135,7 +60,7 @@ public:
         fillSprocessv<4>(sprocess_04);
     }
 
-    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
+    virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
 
     // go up to Fx ??
@@ -225,7 +150,7 @@ private:
             const int64_t delayA = modulatorValue[ chA ].getInc() >> modulatorNorm;
             const int64_t delayB = modulatorValue[ chB ].getInc() >> modulatorNorm;
             const float vA = delay.getInterpolated2Order<chA>( param.mode01.baseDelay + delayA - si64 );
-            const float vB = delay.getInterpolated2Order<chB>( param.mode01.baseDelay + delayB - si64 );            
+            const float vB = delay.getInterpolated2Order<chB>( param.mode01.baseDelay + delayB - si64 );
             out().channel[ chA ][ si ] += vA * param.mode01.gain;
             out().channel[ chB ][ si ] += vB * param.mode01.gain;
             delay.channel[ chA ][ startIndex + si ] -= vA * param.mode01.feedbackGain;
