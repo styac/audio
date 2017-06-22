@@ -28,27 +28,9 @@
 #include    <unistd.h>
 #include    <atomic>
 
-// for writing
-#include    <sndfile.h>
-
 
 namespace yacynth {
 
-SNDFILE * sndf;
-float filebuf[1024];
-SF_INFO sf_info;
-
-void wrsndfile( OscillatorOut *out )
-{
-
-        auto k = 0;
-        for( auto j=0; j < oscillatorOutSampleCount; ++j  ) {
-            filebuf[k++]    = float( out->layer[0][j] ) * 1.0e-11;
-            filebuf[k++]    = float( out->layer[1][j] ) * 1.0e-11;
-        }
-
-        sf_write_float(sndf, filebuf , 2 * oscillatorOutSampleCount );
-}
 
 SynthFrontend::SynthFrontend (
         YaIoInQueueVector&      queueinP,
@@ -102,15 +84,7 @@ bool SynthFrontend::generate( void )
     if( ! outVector.isFull() ) {
         const int wi = outVector.getWriteIndex();
         oscArray->generate( outVector.out[ wi ], statistics );
-//        wrsndfile( &outVector->out[ wi ]);
         outVector.writeOk();
-#if 0
-        std::cout
-               << "end SynthFrontend   " << outVector->getFullCount()
-               << " wi " << wi
-               << " writePtr " << outVector->writePtr
-               << std::endl;
-#endif
         return true;
     }
     return false;
@@ -127,23 +101,7 @@ bool SynthFrontend::run( void )
 
     statistics.startTimer();
     statistics.stopTimer();
-
-#if 0
-    sf_info.channels    = 2;
-    sf_info.format      = SF_FORMAT_WAV | SF_FORMAT_FLOAT  ;
-    sf_info.samplerate  = 48000;
-    sf_info.seekable    = 0;
-    sf_info.sections    = 0;
-    sf_info.frames      = 200000;
-    sndf = sf_open( "testsound.wav", SFM_WRITE, &sf_info ) ;
-    if( sndf == nullptr ) {
-        std::cout << "testsound.wav open error" << std::endl;
-        exit(-1);
-    }
-//    queuein.queueOscillator.put( 0x2002600000049 );
-
-#endif
-     std::cout << "SynthFrontend::run " << std::endl;
+    std::cout << "SynthFrontend::run " << std::endl;
 
     while( runFe ) {
         statistics.startTimer();
@@ -182,10 +140,6 @@ void SynthFrontend::exec( void * data )
 
 } // end  SynthFrontend::exec
 // --------------------------------------------------------------------
-
-
-
-
 
 } // end namespace yacynth
 

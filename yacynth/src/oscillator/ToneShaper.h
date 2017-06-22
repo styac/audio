@@ -29,7 +29,6 @@
 // -O3 -mfpmath=sse -msse2 -msse3 -msse4.2 -ffast-math -funsafe-math-optimizations -mfma -mfma4 -mavx -funsafe-loop-optimizations -funswitch-loops -fvariable-expansion-in-unroller -ftree-vectorizer-verbose=2
 
 #include    "yacynth_globals.h"
-#include    "Serialize.h"
 
 #include    <array>
 #include    <iostream>
@@ -98,25 +97,6 @@ struct InterpolatedDecreaseU16 {
     int16_t     rate;       // value_high_frequencies - value_low_frequencies
 };
 
-inline void serialize( YsifOutStream& ser, const InterpolatedDecreaseU16& val, const char * const name )
-{
-    serializeObjBeg(ser,name);
-    serialize(ser, val.rate, "rate");
-    serialize(ser, val.lowBase, "lowBase");
-    serializeObjEnd(ser);
-};
-// --------------------------------------------------------------------
-
-inline bool deserialize( YsifInpStream& ser, InterpolatedDecreaseU16& val, const char * const name )
-{
-    bool ret = true;
-    ret = ret && deserializeObjBeg(ser,name);
-    ret = ret && deserialize(ser, val.rate, "rate");
-    ret = ret && deserialize(ser, val.lowBase, "lowBase");
-    ret = ret && deserializeObjEnd(ser);
-    return ret;
-};
-
 //
 // normally this increases with freq
 // result could be uint64_t -- velocity can be incorporated here ?
@@ -156,83 +136,28 @@ struct InterpolatedAmplitudeU32 {
     int16_t     rate;       // value_high_frequencies - value_low_frequencies
 };
 
-inline void serialize( YsifOutStream& ser, const InterpolatedAmplitudeU32& val, const char * const name )
-{
-    serializeObjBeg(ser,name);
-    serialize(ser, val.rate, "rate");
-    serialize(ser, val.lowBase, "lowBase");
-    serializeObjEnd(ser);
-};
-// --------------------------------------------------------------------
-
-inline bool deserialize( YsifInpStream& ser, InterpolatedAmplitudeU32& val, const char * const name )
-{
-    bool ret = true;
-    ret = ret && deserializeObjBeg(ser,name);
-    ret = ret && deserialize(ser, val.rate, "rate");
-    ret = ret && deserialize(ser, val.lowBase, "lowBase");
-    ret = ret && deserializeObjEnd(ser);
-    return ret;
-};
-
-// --------------------------------------------------------------------
-//
-//  tickFrame >= 0
-//  if tickFrame == 0 then ignored
-//
-//
-//  targetValue >= 0
-//  -3 <= multiplierExp <= 3    : 7 different curves
-//
-//
-//
-//  N knot ( practically 16) are in a set
-//  release                             : knot[15]
-//  transient starts with the highest-1 : knot[14]
-//  sustain should be the last          : knot[0]
 //
 // in legato mode :
 //  release: -- test
 //  transient -- test
 //
 
-// --------------------------------------------------------------------
-// sustain level !!!!
-// check -> max 1/4 of peek : 1<<28
-// TODO freq dependent amplitude !!! direct equalisation - higher less overtones !!!
-// --------------------------------------------------------------------
-
-//
-// value + value * ( ( pitch - t0 ) * k )
-// pitch    - int32
-// k        - int16
-// fac = ( ( pitch * k   + 0x08000 ) >> 16 )
-// value + ( value * fac + 0x08000 ) >> 16 )
-//
-
-
 struct AmplitudeTransient  {
     static constexpr int8_t   curveSpeedLimit       = 3;
     static constexpr uint32_t tickLimit             = 10000;    // 13 sec
     static constexpr int8_t   amplEnvFreqDepRange   = 2;    // min max
 
-    bool clear(void)
+    void clear(void)
     {
         targetValue.lowBase = 0;
         targetValue.rate    = 0x7FFF;
         tickFrame.lowBase   = 0;
         tickFrame.rate      = 0x7FFF;
-        curveSpeed          = 0;
+        curveSpeed          = 0;        
     };
 
     bool check(void) const
     {
-        // sustain level !!!! - last node node[0]
-        // check -> max 1/4 of peek : 1<<28
-
-        // valid only -3..+3
-        //curveSpeed = saturate<int8_t,curveSpeedLimit>(curveSpeed); // no set onlz check
-
         return true;
     };
 
@@ -252,41 +177,25 @@ struct AmplitudeTransient  {
     };
 
     //------- data ----------
+    // target amplitude value at the end of period
     InterpolatedAmplitudeU32    targetValue;
+    // frame count for the given transient part
     InterpolatedDecreaseU16     tickFrame;
-    int8_t                      curveSpeed;         // -3 .. 0 .. +3 : curve concave-lin-convex
+    // curve : convex concave : -3 ... +3
+    int8_t                      curveSpeed;
+    // padding
     int8_t                      rfu1;
 };
-// --------------------------------------------------------------------
-inline void serialize( YsifOutStream& ser, const AmplitudeTransient& val )
-{
-    serializeObjBeg(ser, "AmplitudeTransient");
-    serialize(ser, val.targetValue, "targetValue");
-    serialize(ser, val.tickFrame, "tickFrame");
-    serialize(ser, val.curveSpeed, "curveSpeed");
-    serializeObjEnd(ser);
-};
-// --------------------------------------------------------------------
-inline bool deserialize( YsifInpStream& ser, AmplitudeTransient& val )
-{
-    bool ret = true;
-    ret = ret && deserializeObjBeg(ser, "AmplitudeTransient");
-    ret = ret && deserialize(ser, val.targetValue, "targetValue");
-    ret = ret && deserialize(ser, val.tickFrame, "tickFrame");
-    ret = ret && deserialize(ser, val.curveSpeed, "curveSpeed");
-    ret = ret && deserializeObjEnd(ser);
-    return ret;
-};
+
 // --------------------------------------------------------------------
 struct AmplitudeSustain {
-    // static constexpr uint8_t decayCoeffCount = 8;
     enum {
         MODTYPE_INPHASE = 0,
         MODTYPE_RAND1,
         MODTYPE_RAND2,
         MODTYPE_RAND3,
     };
-    bool clear(void)
+    void clear(void)
     {
         *this = {0};
     };
@@ -299,60 +208,28 @@ struct AmplitudeSustain {
         *this = val;
     };
     //----------------------------------
+    // decayed sustain speed - interpolated by freq
     InterpolatedDecreaseU16 decayCoeff;
+    // sustain integrating modulator parameters
     uint16_t        sustainModPeriod;
     uint8_t         sustainModDepth;    // modulation depth 0==disable -> sustainModDepth/256
     uint8_t         sustainModType;
     int8_t          sustainModDeltaFreq;    // speed up (+), slow down (-)
     uint8_t         sustainModDeltaCount;   // how many cycles
 };
-// --------------------------------------------------------------------
-inline void serialize( YsifOutStream& ser, const AmplitudeSustain& val )
-{
-    serializeObjBeg(ser,"AmplitudeSustain");
-    serialize( ser, val.decayCoeff, "decayCoeff" );
-    serialize( ser, val.sustainModPeriod, "sustainModPeriod" );
-    serialize( ser, val.sustainModDepth, "sustainModDepth" );
-    serialize( ser, val.sustainModType, "sustainModType" );
-    serialize( ser, val.sustainModDeltaFreq, "sustainModDeltaFreq" );
-    serialize( ser, val.sustainModDeltaCount, "sustainModDeltaCount" );
-    serializeObjEnd( ser );
-};
-// --------------------------------------------------------------------
-inline bool deserialize( YsifInpStream& ser, AmplitudeSustain& val )
-{
-    bool ret = true;
-    ret = ret && deserializeObjBeg(ser,"AmplitudeSustain");
-    ret = ret && deserialize( ser, val.decayCoeff, "decayCoeff" );
-    ret = ret && deserialize( ser, val.sustainModPeriod, "sustainModPeriod" );
-    ret = ret && deserialize( ser, val.sustainModDepth, "sustainModDepth" );
-    ret = ret && deserialize( ser, val.sustainModType, "sustainModType" );
-    ret = ret && deserialize( ser, val.sustainModDeltaFreq, "sustainModDeltaFreq" );
-    ret = ret && deserialize( ser, val.sustainModDeltaCount, "sustainModDeltaCount" );
-    ret = ret && deserializeObjEnd( ser );
-    return ret;
-};
+
 // --------------------------------------------------------------------
 //template< uint16_t transientKnotCountT >
 struct ToneShaper {
     static constexpr uint32_t transientVectorSize = transientKnotCount;
-#ifndef TONESHAPER_CTOR    
-    // this must be elliminated 
-    ToneShaper(); // obsolate - must be eliminated if init is ready or make operator=
-#endif
-    bool clear(void)
+    void clear(void)
     {
         memset(this,0,sizeof(ToneShaper));
     };
-
-    // update all the fields
-    // this struct MUST NOT HAVE ANY DYNAMIC SH*T
-
     void update( const ToneShaper& val )
     {
         *this = val;
     };
-
     bool dump( ToneShaper& val, size_t size )
     {
         if( sizeof(*this ) > size )
@@ -360,99 +237,41 @@ struct ToneShaper {
         val = *this;
         return true;
     };
-
     bool check(void) const
     {
         return true;
     };
 
     // no implicit padding 184 = 4 + 10*16 + 10 + 4 + 2 + 4
-    int32_t                     pitch;              // may be negative !! - undertones
-    AmplitudeTransient          transient[ transientVectorSize ]; // transient knots
-    AmplitudeSustain            sustain;            // suntain parameters
-    InterpolatedDecreaseU16     tickFrameRelease;   // freq dependent but only index 0 used yet
+    // pitch in ycent 
+    int32_t                     pitch;
+    // transient vector
+    AmplitudeTransient          transient[ transientVectorSize ];
+    // sustain parameters
+    AmplitudeSustain            sustain;      
+    // release frame - interpolated by frequency
+    InterpolatedDecreaseU16     tickFrameRelease; 
+    // special detune parameter -- amplitude dependent -
     int16_t                     amplitudeDetune;   
+    // release curve convex concave : -3 .. +3
     int8_t                      curveSpeedRelease;
+    // oscillator type : 0 = sine
     uint8_t                     oscillatorType;
+    // output channel for the overtone - not implemented yet
     uint8_t                     outChannel;         // TODO : which channel to write
+    // padding
     uint8_t                     rfu1;   
 };
 // --------------------------------------------------------------------
-
-inline void serialize( YsifOutStream& ser, const ToneShaper& val )
-{
-    serializeComment(ser) << "-----------" << std::endl;
-    serializeObjBeg(ser,"ToneShaper");
-    serialize( ser, val.pitch, "pitch" );
-    serialize( ser, val.tickFrameRelease, "tickFrameRelease"  );
-    serialize( ser, val.amplitudeDetune, "amplitudeDetune" );
-    serialize( ser, val.curveSpeedRelease, "curveSpeedRelease"  );
-    serialize( ser, val.oscillatorType, "oscillatorType" );
-    serialize( ser, val.outChannel, "outChannel" );
-    uint16_t index = 0;
-    for( auto& v :  val.transient ) {
-        serializeVecBeg( ser, index, "indexTransientVector", ToneShaper::transientVectorSize-1 );
-        serialize( ser, v );
-        serializeVecEnd( ser, index==ToneShaper::transientVectorSize-1 );
-        ++index;
-    };
-    serialize( ser, val.sustain );
-    serializeObjEnd( ser );
-};
-// --------------------------------------------------------------------
-inline bool deserialize( YsifInpStream& ser, ToneShaper& val )
-{
-    bool ret = true;
-    ret = ret && deserializeObjBeg(ser,"ToneShaper");
-    ret = ret && deserialize( ser, val.pitch, "pitch" );
-    ret = ret && deserialize( ser, val.tickFrameRelease, "tickFrameRelease"  );
-    ret = ret && deserialize( ser, val.amplitudeDetune, "amplitudeDetune" );
-    ret = ret && deserialize( ser, val.curveSpeedRelease, "curveSpeedRelease"  );
-    ret = ret && deserialize( ser, val.oscillatorType, "oscillatorType" );
-    ret = ret && deserialize( ser, val.outChannel, "outChannel" );
-    uint32_t index = 0;
-    // TODO replace direct indexing
-    for( auto& v :  val.transient ) {
-        bool last;
-        ret = ret && deserializeVecBeg( ser, index, "indexTransientVector", ToneShaper::transientVectorSize-1 );
-        // TODO set index
-        ret = ret && deserialize( ser, v );
-        ret = ret && deserializeVecEnd(ser, last);
-        if( !ret ) {
-            // end of vector - try continue
-            break;
-        }
-    }
-    ret = ret && deserialize( ser, val.sustain );
-    ret = ret && deserializeObjEnd( ser );
-    return ret;
-};
-// --------------------------------------------------------------------
-
-
-// this will be saved to the DB
-//template< uint16_t overtoneCountOfOscillator >
 struct ToneShaperVector {
     static constexpr uint16_t  idlength = 127;
     static constexpr uint32_t  toneShaperVectorSize = overtoneCountOscDef;
-
-
     inline uint16_t maxOscillatorCount(void) const { return overtoneCountOscDef; };
     ToneShaperVector()
     :   oscillatorCountUsed( overtoneCountOscDef )
-    {
-        // test for the new system
-        // SAWTOOTH LIKE THE OLD
-        genFreqNtimes(); // step 1 if the same result
-        genAmpl1pN();
+    {};
 
-    };
-    
-    // OBSOLATE
-    static int32_t relFreq2pitch( double relf ) {
-        return std::round( std::log2( relf ) * ycentNorm );
-    };
-    bool clear(void)
+    void clear(void)
     {
         for( auto& vi : toneShaperVec ) vi.clear();
     };
@@ -464,75 +283,11 @@ struct ToneShaperVector {
     {
         toneShaperVec[ index & overtoneCountOscDefMask ].update( val );
     };
-    // ----------------------------------
-    // OBSOLATE
-    // generator helper funcs for testing
-    // copy 0 to 1..N
-    void genO0toAll(void)
-    {
-        for( auto vi = 1u; vi < overtoneCountOscDef; ++vi ) {
-            toneShaperVec[vi].update( toneShaperVec[0] );
-        }
-    }
-    // ----------------------------------
-    // generator helper funcs for testing
-    // OBSOLATE
-    // pitch[ k ] = k* pitch[0]
-    void genFreqNtimes(void)
-    {
-        for( auto vi = 0u; vi < overtoneCountOscDef; ++vi ) {
-            toneShaperVec[vi].pitch = relFreq2pitch( vi+1 );
-        }
-    }
-    // ----------------------------------
-    // generator helper funcs for testing
-    // OBSOLATE
-    // amplitudes = 1/n
-    void genAmpl1pN(void)
-    {
-        for( auto vi = 0u; vi < overtoneCountOscDef; ++vi ) {
-            const float onevi = 1.0f/float(vi+1);
-            for( auto ni = 0u; ni < transientKnotCount; ++ni ) {
-                toneShaperVec[vi].transient[ni].targetValue.lowBase *= onevi;
-            }
-        }
-    }
 
+    
     ToneShaper  toneShaperVec[ toneShaperVectorSize ];
     uint16_t    oscillatorCountUsed; 
 };
-// --------------------------------------------------------------------
-inline void serialize( YsifOutStream& ser, const ToneShaperVector& val )
-{
-    serializeObjBeg( ser, "ToneShaperVector" );
-    //serialize( ser, val.oscillatorCountUsed, "oscillatorCountUsed" );
-    uint32_t index = 0;
-    for( auto& v : val.toneShaperVec ) {
-        serializeVecBeg( ser, index, "indexToneShaperVector", ToneShaperVector::toneShaperVectorSize-1 );
-        serialize(ser, v);
-        serializeVecEnd( ser, index==ToneShaperVector::toneShaperVectorSize-1 );
-        ++index;
-    }
-    serializeObjEnd(ser);
-};
-// --------------------------------------------------------------------
-inline bool deserialize( YsifInpStream& ser, ToneShaperVector& val )
-{
-    bool ret = true;
-    //ret = ret && deserialize( ser, val.oscillatorCountUsed, "oscillatorCountUsed" );
-    ret = ret && deserializeObjBeg( ser, "ToneShaperVector" );
-    uint32_t index = 0;
-    for( auto& v : val.toneShaperVec ) {
-        bool last;
-        ret = ret && deserializeVecBeg( ser, index, "indexToneShaperVector", ToneShaperVector::toneShaperVectorSize-1 );
-        ret = ret && deserialize( ser, v );
-        ret = ret && deserializeVecEnd(ser,last);
-    }
-    ret = ret && deserializeObjEnd(ser);
-    return ret;
-};
-// --------------------------------------------------------------------
-
 // --------------------------------------------------------------------
 } // end namespace yacynth
 

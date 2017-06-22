@@ -36,6 +36,7 @@
 namespace yacynth {
 
 using namespace TagEffectTypeLevel_02;
+using namespace TagEffectFxEchoModeLevel_03;
 
 class FxEchoParam {
 public:
@@ -60,7 +61,7 @@ public:
     static constexpr float feedbackLimit            = 0.6f;
     static constexpr float outputLimit              = 1.0f;
 
-//    static constexpr uint8_t subtype         = uint8_t(TagEffectFxEarlyReflectionMode::SetParametersMode01);
+    static constexpr uint8_t subtype         = uint8_t(TagEffectFxEchoMode::SetParametersMode01);
 
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 

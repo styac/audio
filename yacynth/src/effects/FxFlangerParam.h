@@ -35,6 +35,7 @@
 namespace yacynth {
 
 using namespace TagEffectTypeLevel_02;
+using namespace TagEffectFxFlangerModeLevel_03;
 
 class FxFlangerParam {
 public:
@@ -59,7 +60,7 @@ public:
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
     struct Mode01 {
-//    static constexpr uint8_t subtype         = uint8_t(TagEffectFxEarlyReflectionMode::SetParametersMode01);
+        static constexpr uint8_t subtype         = uint8_t(TagEffectFxFlangerMode::SetParametersMode01);
 
         bool check()
         {

@@ -62,7 +62,7 @@ public:
     // control mixing dry - wet - mixer
 
     struct Mode01 {
-//    static constexpr uint8_t subtype         = uint8_t(TagEffectFxEarlyReflectionMode::SetParametersMode01);
+        static constexpr uint8_t subtype         = uint8_t(TagEffectFxLateReverbMode::SetParametersMode01);
 
         bool check()
         {

@@ -38,8 +38,8 @@ bool FxEchoParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t p
         message.setStatusSetOk();
         return true;
 
-    case TagEffectFxEchoMode::SetParameters :
-        TAG_DEBUG(TagEffectFxEchoMode::SetParameters, tagIndex, paramIndex, "FxEchoParam" );
+    case TagEffectFxEchoMode::SetParametersMode01 :
+        TAG_DEBUG(TagEffectFxEchoMode::SetParametersMode01, tagIndex, paramIndex, "FxEchoParam" );
         if( ! message.checkTargetData(*this) ) {
             message.setStatus( yaxp::MessageT::illegalData);
             return false;

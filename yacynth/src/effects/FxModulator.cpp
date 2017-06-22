@@ -37,8 +37,8 @@ bool FxModulatorParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint
         message.setStatusSetOk();                
         return true;
         
-    case TagEffectFxModulatorMode::SetParameters :
-        TAG_DEBUG(TagEffectFxModulatorMode::SetParameters, tagIndex, paramIndex, "FxModulatorParam" );
+    case TagEffectFxModulatorMode::SetParametersMode01 :
+        TAG_DEBUG(TagEffectFxModulatorMode::SetParametersMode01, tagIndex, paramIndex, "FxModulatorParam" );
         if( message.setTargetData(*this) ) {
             message.setStatusSetOk();                            
             return true;

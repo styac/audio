@@ -34,6 +34,7 @@
 namespace yacynth {
 using namespace TagEffectCollectorLevel_01;
 using namespace TagEffectTypeLevel_02;
+using namespace TagEffectFxFilterModeLevel_03;
 
 // --------------------------------------------------------------------
 // FxFilterParam ------------------------------------------------------
@@ -81,7 +82,7 @@ public:
     // state variable mode
     //
     struct Mode_SVF01_2ch {
-//    static constexpr uint8_t subtype         = uint8_t(TagEffectFxEarlyReflectionMode::SetParametersMode01);
+    static constexpr uint8_t subtype         = uint8_t(TagEffectFxFilterMode::SetMode_SVF01_2ch_mode01);
 
         bool check()
         {
@@ -108,7 +109,8 @@ public:
     // 4 pole mode
     //
     struct Mode_4p_2ch {
-//    static constexpr uint8_t subtype         = uint8_t(TagEffectFxEarlyReflectionMode::SetParametersMode01);
+    static constexpr uint8_t subtype         = uint8_t(TagEffectFxFilterMode::SetMode_4p_2ch);
+
         bool check()
         {
             return true;
@@ -133,8 +135,8 @@ public:
     // allpass mode
     //
     struct Mode_2ch_x4ap_phaser_mode01 {
-//    static constexpr uint8_t subtype         = uint8_t(TagEffectFxEarlyReflectionMode::SetParametersMode01);
-
+    static constexpr uint8_t subtype         = uint8_t(TagEffectFxFilterMode::SetMode_2ch_x4ap_phaser_mode01);
+        
         bool check()
         {
             return true;

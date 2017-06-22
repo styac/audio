@@ -32,6 +32,7 @@
 namespace yacynth {
 
 using namespace TagEffectTypeLevel_02;
+using namespace TagEffectFxChorusModeLevel_03;
 
 class FxChorusParam {
 public:
@@ -61,7 +62,7 @@ public:
     // osc << 16+n + noise << 7
     //
     struct Mode01 {
-//        static constexpr uint8_t subtype         = uint8_t(TagEffectFxEarlyReflectionMode::SetParametersMode01);
+        static constexpr uint8_t subtype         = uint8_t(TagEffectFxChorusMode::SetParametersMode01);
 
         bool check()
         {

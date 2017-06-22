@@ -34,6 +34,7 @@
 namespace yacynth {
 
 using namespace TagEffectTypeLevel_02;
+using namespace TagEffectFxOutNoiseModeLevel_03;
 
 class FxOutNoiseParam {
 public:
@@ -44,7 +45,7 @@ public:
     static constexpr std::size_t inputCount     = 0;
 
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
-//    static constexpr uint8_t subtype         = uint8_t(TagEffectFxEarlyReflectionMode::SetParametersMode01);
+    static constexpr uint8_t subtype         = uint8_t(TagEffectFxOutNoiseMode::SetParametersMode01);
 
     // optional fields
     uint8_t redPole;

@@ -34,6 +34,8 @@
 
 #define YAC_DEBUG    1
 
+// global namespace
+
 namespace yacynth {
 
 #define cArrayElementCount(T)    (sizeof(T) / sizeof(T[0]))
@@ -115,7 +117,7 @@ constexpr inline uint32_t freq2ycent( double freq )
 
 inline double freq2ycentDouble( double freq )
     { return std::log2( deltaPhaseScalerBase * freq ) * ycentNorm; };
-
+    
 //====================================================
 // there should a constexpr function to calculate these
 //

@@ -37,11 +37,8 @@ class ToneShaperMatrix {
 private:
 
 public:
-    ToneShaperMatrix() {};
-    bool fill(  YsifInpStream& ser );
-    void dump(  YsifOutStream& ser );
+    ToneShaperMatrix() = default;
     void clear( void );
-
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
     std::array< ToneShaperVector,  settingVectorSize>   toneShapers;
 };

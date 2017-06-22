@@ -35,6 +35,7 @@
 namespace yacynth {
 
 using namespace TagEffectTypeLevel_02;
+using namespace TagEffectFxOscillatorMixerModeLevel_03;
 
 class FxOscillatorMixerParam {
 public:
@@ -49,7 +50,7 @@ public:
 
     // temp
     static constexpr   float   gainref = 1.0f/(1L<<23);
-//    static constexpr uint8_t subtype         = uint8_t(TagEffectFxEarlyReflectionMode::SetParametersMode01);
+    static constexpr uint8_t subtype         = uint8_t(TagEffectFxOscillatorMixerMode::SetParametersMode01);
 
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 

@@ -31,9 +31,11 @@ namespace yacynth {
 // --------------------------------------------------------------------
 YaIoJack::YaIoJack()
     :   jackOptions(JackNoStartServer)
-    ,   midiInPort(     "midi",     JACK_DEFAULT_MIDI_TYPE,     JackPortIsInput|JackPortIsTerminal)
-    ,   audioOutPort1(  "audio_1",  JACK_DEFAULT_AUDIO_TYPE,    JackPortIsOutput|JackPortIsTerminal)
-    ,   audioOutPort2(  "audio_2",  JACK_DEFAULT_AUDIO_TYPE,    JackPortIsOutput|JackPortIsTerminal)
+    ,   midiInPort(     "midi",         JACK_DEFAULT_MIDI_TYPE,     JackPortIsInput|JackPortIsTerminal)
+    ,   audioOutPort1(  "audio_out_1",  JACK_DEFAULT_AUDIO_TYPE,    JackPortIsOutput|JackPortIsTerminal)
+    ,   audioOutPort2(  "audio_out_2",  JACK_DEFAULT_AUDIO_TYPE,    JackPortIsOutput|JackPortIsTerminal)
+    ,   audioInPort1(   "audio_in_1",   JACK_DEFAULT_AUDIO_TYPE,    JackPortIsInput|JackPortIsTerminal)
+    ,   audioInPort2(   "audio_in_2",   JACK_DEFAULT_AUDIO_TYPE,    JackPortIsInput|JackPortIsTerminal)
     ,   muted(true)
 {
 }

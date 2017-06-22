@@ -35,6 +35,7 @@
 namespace yacynth {
 
 using namespace TagEffectTypeLevel_02;
+using namespace TagEffectFxModulatorModeLevel_03;
 
 class FxModulatorParam {
 public:
@@ -50,8 +51,7 @@ public:
     ,   "processModulationMix"
     ,   "processRingVolColtrol"
     };
-//    static constexpr uint8_t subtype         = uint8_t(TagEffectFxEarlyReflectionMode::SetParametersMode01);
-
+    static constexpr uint8_t subtype         = uint8_t(TagEffectFxModulatorMode::SetParametersMode01);
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
     ControllerIndex inMultIndex;
     ControllerIndex mixMultIndex;

@@ -40,8 +40,8 @@ bool FxOutOscillatorParam::parameter( yaxp::Message& message, uint8_t tagIndex, 
         message.setStatusSetOk();
         return true;
 
-    case TagEffectFxOutOscillatorMode::SetParameters :
-        TAG_DEBUG(TagEffectFxOutOscillatorMode::SetParameters, tagIndex, paramIndex, "TagEffectFxOutOscillatorMode" );
+    case TagEffectFxOutOscillatorMode::SetParametersMode01 :
+        TAG_DEBUG(TagEffectFxOutOscillatorMode::SetParametersMode01, tagIndex, paramIndex, "TagEffectFxOutOscillatorMode" );
         if( !message.setTargetData(*this) ) {
             message.setStatus( yaxp::MessageT::illegalDataLength );
             return false;

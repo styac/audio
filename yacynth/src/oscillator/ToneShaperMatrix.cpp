@@ -30,22 +30,6 @@ namespace yacynth {
 using namespace TagToneShaperLevel_01;
 
 // --------------------------------------------------------------------
-// obsolete
-bool ToneShaperMatrix::fill( YsifInpStream& ser )
-{
-    // for testing
-    bool ret = deserialize ( ser, toneShapers[0] );
-    return ret;
-}
-
-// --------------------------------------------------------------------
-// obsolete
-void ToneShaperMatrix::dump( YsifOutStream& ser )
-{
-    // for testing
-    serialize ( ser, toneShapers[0] );
-}
-// --------------------------------------------------------------------
 
 void ToneShaperMatrix::clear(void)
 {

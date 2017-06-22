@@ -80,6 +80,16 @@ void IOThread::midiInCB( void *data, uint8_t *eventp, uint32_t eventSize, bool l
     midi.chn            = ( *eventp ) & 0x0F;
     midi.note_cc_val    = ( 1 < eventSize ) ? *(eventp+1) : 0;
     midi.velocity_val   = ( 2 < eventSize ) ? *(eventp+2) : 0;
+    
+    /*
+     switch( eventSize ) {
+     case 0:
+        return;
+     case 1:
+        break;
+     default:
+        break;
+     */
 
     ymsg = thp.midiRouter.translate( midi );
     if( 0 == ymsg.store )

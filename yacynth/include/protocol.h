@@ -28,8 +28,9 @@
 #include    <cstdint>
 #include    <string>
 #include    <cstring>
-#include    "Serialize.h"
-
+#include    <array>
+// #include    <iomanip>
+// #include    <iostream>
 
 namespace yacynth {
 //
@@ -235,7 +236,7 @@ struct Message : public Header
     void getTargetData(const T& d)
     {
         constexpr std::size_t tsize = sizeof(T);
-        std::cout << "-----  getTargetData sizeof " << std::dec << tsize << std::endl;
+ //       std::cout << "-----  getTargetData sizeof " << std::dec << tsize << std::endl;
         static_assert(tsize < size ,"data size too big" );
         length = tsize;
         *((T*)data)  = d;
@@ -247,7 +248,7 @@ struct Message : public Header
     {
         constexpr std::size_t tsize = sizeof(T)*N;
         using tarray = std::array<uint8_t,tsize>; // avoid const-ness of input type - maybe dirty
-        std::cout << "-----  getTargetData sizeof " << std::dec << tsize << std::endl;
+//        std::cout << "-----  getTargetData sizeof " << std::dec << tsize << std::endl;
         static_assert(tsize < size ,"data size too big" );
         length = tsize;
         *((tarray *)data)  = *((tarray*)&d);
@@ -257,7 +258,7 @@ struct Message : public Header
     bool setTargetData(T& d)
     {
         constexpr std::size_t tsize = sizeof(T);
-        std::cout << "-----  setTargetData sizeof " << std::dec << tsize << " length " << length << std::endl;
+ //       std::cout << "-----  setTargetData sizeof " << std::dec << tsize << " length " << length << std::endl;
         static_assert(tsize < size ,"data size too big" );
         if( length != tsize ) {
             return false;
@@ -273,7 +274,7 @@ struct Message : public Header
     bool checkTargetData(const T& d)
     {
         constexpr std::size_t tsize = sizeof(T);
-        std::cout << "-----  checkTargetData sizeof " << std::dec << tsize << " length " << length << std::endl;
+//        std::cout << "-----  checkTargetData sizeof " << std::dec << tsize << " length " << length << std::endl;
         static_assert(tsize < size ,"data size too big" );
         if( length != tsize ) {
             return false;
@@ -285,7 +286,7 @@ struct Message : public Header
     bool addMessageData(T& d, bool first=false)
     {
         constexpr std::size_t tsize = sizeof(T);
-        std::cout << "-----  getTargetData sizeof " << std::dec << tsize << std::endl;
+//        std::cout << "-----  getTargetData sizeof " << std::dec << tsize << std::endl;
         static_assert(tsize < size ,"data size too big" );
         if( first ) {
             length=0;
@@ -302,7 +303,7 @@ struct Message : public Header
     bool setTargetData(T1& d1, T1& d2)
     {
         constexpr std::size_t tsize = sizeof(T1) + sizeof(T2);
-        std::cout << "-----  setTargetData sizeof " << std::dec << tsize << " length " << length << std::endl;
+//        std::cout << "-----  setTargetData sizeof " << std::dec << tsize << " length " << length << std::endl;
         static_assert(tsize < size ,"data size too big" );
         if( length != tsize ) {
             return false;
@@ -313,36 +314,6 @@ struct Message : public Header
     }
 
     uint8_t     data[ size ];
-};
-
-inline void serialize( YsifOutStream& ser, const Message& val )
-{
-    serializeObjBeg( ser, "Yaxp::Message" );
-    for( uint32_t index = 0; (index < Message::maxTagCount)  && (val.tags[index] > 0 ); ++index ) {
-        serializeVecBeg( ser, index, "indexTag", Message::maxTagCount-1 );
-        serialize(ser, val.tags[index], "commandTag");
-        serializeVecEnd( ser, val.tags[index] == 0 );
-    }
-    serializeObjEnd( ser );
-};
-
-inline bool deserialize( YsifInpStream& ser, Message& val )
-{
-    bool ret    = true;
-    bool endVec = false;
-    uint32_t index = 0;
-    uint32_t x = 0;
-    val.data[0] = 0;
-    ret = ret && deserializeObjBeg( ser, "Yaxp::Message" );
-    while( !endVec && (++index < Message::maxTagCount) && ret ) {
-        // std::cerr << "deserialize  " <<  index << " " <<  x << " " << endVec << " ret: " << ret <<  std::endl;
-        ret = ret && deserializeVecBeg( ser, x, "indexTag", Message::maxTagCount );
-        ret = ret && deserialize(ser, val.data[index], "commandTag");
-        ret = ret && deserializeVecEnd( ser, endVec );
-    }
-    val.data[0] = index;
-    ret = ret && deserializeObjEnd( ser );
-    return ret;
 };
 
 

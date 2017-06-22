@@ -87,11 +87,13 @@ namespace TagToneShaperLevel_01 {
     enum class TagToneShaper : uint8_t {
         Nop,
         Clear,
-        SetOvertoneCount,           // parameter: ToneShaperIndex, OvertoneCount
+        // first set
         SetOvertone,                // parameter: ToneShaperIndex, OvertoneIndex
-        GetOvertone,                // parameter: ToneShaperIndex, OvertoneIndex
-        SetPitchVector,             // parameter: ToneShaperIndex, count max 256 (OvertoneIndex 0..n-1)
         SetOvertoneVector,          // parameter: ToneShaperIndex, count max 256 - size:184
+        SetOvertoneCount,           // parameter: ToneShaperIndex, OvertoneCount
+        SetPitchVector,             // parameter: ToneShaperIndex, count max 256 (OvertoneIndex 0..n-1)
+        // then get
+        GetOvertone,                // parameter: ToneShaperIndex, OvertoneIndex
         GetOvertoneVector,          // parameter: ToneShaperIndex, count max 256 - size:184
     };
 } // end namespace
@@ -236,6 +238,7 @@ namespace TagEffectFxMixerModeLevel_03 {
         Nop,
         Clear,                      // clear all
         GetFeatures,
+        SetParametersMode01,        // all param - must be implemented
         SetVolumeControllerIndex,
         SetVolumeRange,
     };
@@ -246,6 +249,7 @@ namespace TagEffectFxOscillatorMixerModeLevel_03 {
         Nop,
         Clear,                      // clear all
         GetFeatures,
+        SetParametersMode01,
     };
 } // end namespace
 
@@ -254,7 +258,7 @@ namespace TagEffectFxModulatorModeLevel_03 {
         Nop,
         Clear,
         GetFeatures,
-        SetParameters,
+        SetParametersMode01,
 //        SetMode_01_amplitudeModulation,
 //        GetMode_01_amplitudeModulation,
     };
@@ -265,7 +269,7 @@ namespace TagEffectFxOutNoiseModeLevel_03 {
         Nop,
         Clear,                      // clear all
         GetFeatures,
-        SetParameters,
+        SetParametersMode01,
     };
 } // end namespace
 
@@ -274,7 +278,7 @@ namespace TagEffectFxOutOscillatorModeLevel_03 {
         Nop,
         Clear,                      // clear all
         GetFeatures,
-        SetParameters,
+        SetParametersMode01,
     };
 } // end namespace
 
@@ -284,7 +288,7 @@ namespace TagEffectFxEchoModeLevel_03 {
         Nop,
         Clear,                      // clear all
         GetFeatures,
-        SetParameters,              // all params
+        SetParametersMode01,              // all params
         SetTapOutput,               // select params
         SetTapFeedback,
         SetTapOutputLP,
@@ -338,7 +342,7 @@ namespace TagEffect__ModeLevel_03 {
         Nop,
         Clear,                      // clear all
         GetFeatures,
-        SetParameters,
+        SetParametersMode01,
         SetMode_01___,
         GetMode_01___,
     };

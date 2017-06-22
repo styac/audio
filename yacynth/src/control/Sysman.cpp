@@ -24,7 +24,6 @@
  */
 
 #include    "Sysman.h"
-#include    "Serialize.h"
 
 namespace yacynth {
 using namespace TagMainLevel_00;

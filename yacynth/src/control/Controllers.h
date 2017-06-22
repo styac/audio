@@ -165,7 +165,7 @@ public:
     inline void clear(void)
     {
         value.clear();
-        for( auto i =0; i<arraySize ; ++i )
+        for( auto i = 0u; i<arraySize ; ++i )
             shiftleft[i] = norm-7;
     }
     /*
@@ -182,7 +182,7 @@ k 9 f 14.9358  -- 20.6
     // one pole filter>  kshift+6 --> 9
     inline void incFilter(void)
     {
-        for( int i=CC_BEGIN_FILTER; i<filteredRangeV4; ++i ) {
+        for( uint32_t i=CC_BEGIN_FILTER; i<filteredRangeV4; ++i ) {
             value.v4[i+filteredRangeV4] += (value.v4[i] - value.v4[i+filteredRangeV4] + kround ) >> kshift;
         }
     }
@@ -316,15 +316,15 @@ k 9 f 14.9358  -- 20.6
     // V4 processing !!
     inline void incrementFrameLFOscillatorPhases(void)
     {
-        int16_t currentPhaseInd = CC_LFO_MASTER_PHASE_BEGIN/4;
-        int16_t deltaPhaseInd = CC_LFO_MASTER_DELTA_PHASE_BEGIN/4;
+        uint16_t currentPhaseInd = CC_LFO_MASTER_PHASE_BEGIN/4;
+        uint16_t deltaPhaseInd = CC_LFO_MASTER_DELTA_PHASE_BEGIN/4;
         // update master current phase [mi]
-        for( int16_t mci=0; mci<lfoMasterCountV4; ++mci, ++currentPhaseInd, ++deltaPhaseInd ) {
+        for( uint16_t mci=0; mci<lfoMasterCountV4; ++mci, ++currentPhaseInd, ++deltaPhaseInd ) {
             value.v4[currentPhaseInd] += value.v4[deltaPhaseInd] ;
         }
-        for( int16_t sci=0; sci <lfoSlaveSetCount/4; ++sci ) {
-            int16_t currentPhaseMasterInd = CC_LFO_MASTER_PHASE_BEGIN/4;
-            for( int16_t i=0; i<lfoMasterCountV4; ++i, ++currentPhaseInd, ++deltaPhaseInd, ++currentPhaseMasterInd ) {
+        for( uint16_t sci=0; sci <lfoSlaveSetCount/4; ++sci ) {
+            uint16_t currentPhaseMasterInd = CC_LFO_MASTER_PHASE_BEGIN/4;
+            for( uint16_t i=0; i<lfoMasterCountV4; ++i, ++currentPhaseInd, ++deltaPhaseInd, ++currentPhaseMasterInd ) {
                 value.v4[currentPhaseInd] = value.v4[deltaPhaseInd] + value.v4[currentPhaseMasterInd];
             }
         }
@@ -468,8 +468,8 @@ public:
 
     // set the mapping between the midi controllers and the innercontroller
     void set( uint8_t channel, uint8_t controller, uint8_t ind = InnerController::CC_SINK, CMode mode = CMode::CM_RANGE )
-    {
-        if( ind >= InnerController::maxIndex || ind == 0 ) {
+    {            
+        if( ind == 0 ) {
             ind = InnerController::CC_SINK;
         }
         if( controllerCountAll <= controller ) {

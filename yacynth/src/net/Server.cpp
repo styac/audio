@@ -31,9 +31,9 @@
 #include    <linux/random.h>
 #include    <sys/syscall.h>
 
-extern "C" {
+//extern "C" {
 #include    "sha3.h"
-}
+//}
 
 namespace yacynth {
 
@@ -91,16 +91,16 @@ bool Server::run()
         logger->warn(" ***** Server::doAccept" );
         if( ! doAccept() ) {
             logger->warn(" ***** Server::doAccept failed" );
-            return false;
+//            return false;
         }
         if( ! authenticate() ) {
             logger->warn(" ***** Server::authenticate failed" );
-            return false;
+//            return false;
         }
         execute();
         logger->warn(" ***** Server::connection broken" );
-        shut();
     }
+    shut();
     return true;
 } // end Server::run
 
@@ -187,6 +187,7 @@ bool Server::authenticate()
     char auth[msglen] = {"****auth****"};
     message.getTargetData( randBlock );
     message.messageType = yaxp::MessageT::authRequest;
+    message.sequenceNr = 0;
     if( ! doSend() ) {
         logger->warn(" ***** Server::authenticate doSend false" );
         return false;

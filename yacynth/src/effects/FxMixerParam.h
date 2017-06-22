@@ -35,6 +35,7 @@
 namespace yacynth {
 
 using namespace TagEffectTypeLevel_02;
+using namespace TagEffectFxMixerModeLevel_03;
 // --------------------------------------------------------------------
 
 class FxMixerParam {
@@ -44,7 +45,7 @@ public:
     static constexpr std::size_t maxMode        = 4;
     static constexpr std::size_t inputCount     = 4;
 
-//    static constexpr uint8_t subtype         = uint8_t(TagEffectFxEarlyReflectionMode::SetParametersMode01);
+    static constexpr uint8_t subtype         = uint8_t(TagEffectFxMixerMode::SetParametersMode01);
 
     inline void clear()
     {

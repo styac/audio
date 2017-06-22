@@ -76,6 +76,8 @@ protected:
     YaIoJackPort    midiInPort;
     YaIoJackPort    audioOutPort1;
     YaIoJackPort    audioOutPort2;
+    YaIoJackPort    audioInPort1;
+    YaIoJackPort    audioInPort2;
 
 private:
     YaIoJack();

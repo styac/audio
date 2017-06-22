@@ -24,6 +24,8 @@
  */
 
 #include    "../effects/FxEarlyReflection.h"
+#include    <iomanip>
+#include    <iostream>
 
 namespace yacynth {
 

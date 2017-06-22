@@ -30,8 +30,8 @@ bool FxOutNoiseParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8
         message.setStatusSetOk();
         return true;
 
-    case TagEffectFxOutNoiseMode::SetParameters :
-        TAG_DEBUG(TagEffectFxOutNoiseMode::SetParameters, tagIndex, paramIndex, "FxOutNoiseParam" );
+    case TagEffectFxOutNoiseMode::SetParametersMode01 :
+        TAG_DEBUG(TagEffectFxOutNoiseMode::SetParametersMode01, tagIndex, paramIndex, "FxOutNoiseParam" );
         if( !message.setTargetData(*this) ) {
             message.setStatus( yaxp::MessageT::illegalDataLength );
             return false;

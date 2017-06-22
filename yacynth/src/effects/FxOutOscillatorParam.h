@@ -33,6 +33,7 @@
 namespace yacynth {
 
 using namespace TagEffectTypeLevel_02;
+using namespace TagEffectFxOutOscillatorModeLevel_03;
 
 class FxOutOscillatorParam {
 public:
@@ -45,7 +46,7 @@ public:
     static constexpr char const * const slavename = " ^OscillatorSlave";
 
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
-//    static constexpr uint8_t subtype         = uint8_t(TagEffectFxEarlyReflectionMode::SetParametersMode01);
+    static constexpr uint8_t subtype         = uint8_t(TagEffectFxOutOscillatorMode::SetParametersMode01);
 
     // master
     ControllerMapLinear<1>  freqMapper;         // controller value to freq (delta phase)
