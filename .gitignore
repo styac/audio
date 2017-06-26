@@ -1,0 +1,9 @@
+**/dist
+**/build
+**/CMakeFiles/**
+CMakeCache.txt
+cmake_install*
+*-bin
+*-dist
+*-build
+
