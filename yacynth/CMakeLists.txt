@@ -15,7 +15,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS}" )
 file(GLOB_RECURSE HDR_FILES  ${PROJECT_SOURCE_DIR} *.hpp *.h )
 file(GLOB_RECURSE SRC_FILES  ${PROJECT_SOURCE_DIR} *.cpp *.c )
 
-include_directories( ./include src src/include )
+include_directories( include src src/include )
 set(CMAKE_BUILD_TYPE RELEASE CACHE STRING "" FORCE)
 add_executable(yacynth ${SRC_FILES} ${HDR_FILES} )
 target_link_libraries( yacynth

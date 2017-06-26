@@ -1,7 +1,7 @@
 #/bin/bash
 
 export SRCDIR=`pwd`
-export BINDIR=${SRCDIR}-bin
+export BINDIR=${SRCDIR}_bin
 
 mkdir ${BINDIR}
 
