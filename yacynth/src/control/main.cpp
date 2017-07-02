@@ -116,7 +116,6 @@ static void signal_handler( int sig )
     case SIGTERM:
     case SIGINT:
         jack.shutdown();
-        sleep(1);
         exit(-1);
     }
 }
@@ -1566,38 +1565,6 @@ void setupEffects(Sysman  * sysman)
     std::cout << "\n---- Filter ap - phaser \n" << std::endl;
 
     FxFilterParam::Mode_2ch_x4ap_phaser_mode01 mode_2ch_x4ap_phaser_mode01 = {
-
-        // TODO
-        .feedbackGainIndex          = { InnerController::CC_PHASER_FEEDBACK_CTRL },
-        .wetDryGainIndex            = { InnerController::CC_PHASER_WETDRY_CTRL },
-
-        .bandWidhthIndex            = { InnerController::CC_PHASER_BANDWIDTH_CTRL },
-        // 2xLFO control
-        .deltaPhaseControlIndex     = { InnerController::CC_PHASER_LFO_FREQ_CTRL },
-        .phaseDiff00ControlIndex    = { InnerController::CC_PHASER_LFO_PHASEDIFF_CTRL },
-        // LFO delta phase
-        .deltaPhaseIndex            = { InnerController::CC_LFO_MASTER_DELTA_PHASE_BEGIN },
-        .phaseDiff00Index           = { InnerController::CC_LFO_SLAVE_DELTA_PHASE_BEGIN },
-        // LFO phase
-        .oscMasterIndex             = { InnerController::CC_LFO_MASTER_PHASE_BEGIN },
-        .oscSlave00Index            = { InnerController::CC_LFO_SLAVE_PHASE_BEGIN },
-
-        .oscFreqMapper = {
-            .slope = 1<<(27-7),
-            .shift = 0,
-            .y0 = {
-                int32_t(freq2ycent(0.1))
-            }
-         },
-
-        .bandwidthMapper = { // ???
-            .slope = 1<<20,
-            .shift = 0,
-            .y0 = {
-                int32_t(freq2ycent(100))
-            }
-         },
-
         .notchMapper = {
             .slope = 1<<9,
             .shift = 0,
@@ -1625,6 +1592,38 @@ void setupEffects(Sysman  * sysman)
 #endif
             }
          },
+        .oscFreqMapper = {
+            .slope = 1<<(27-7),
+            .shift = 0,
+            .y0 = {
+                int32_t(freq2ycent(0.1))
+            }
+         },
+
+        .bandwidthMapper = { // ???
+            .slope = 1<<20,
+            .shift = 0,
+            .y0 = {
+                int32_t(freq2ycent(100))
+            }
+         },
+
+        // TODO
+        .feedbackGainIndex          = { InnerController::CC_PHASER_FEEDBACK_CTRL },
+        .wetDryGainIndex            = { InnerController::CC_PHASER_WETDRY_CTRL },
+
+        .bandWidhthIndex            = { InnerController::CC_PHASER_BANDWIDTH_CTRL },
+        // 2xLFO control
+        .deltaPhaseControlIndex     = { InnerController::CC_PHASER_LFO_FREQ_CTRL },
+        .phaseDiff00ControlIndex    = { InnerController::CC_PHASER_LFO_PHASEDIFF_CTRL },
+        // LFO delta phase
+        .deltaPhaseIndex            = { InnerController::CC_LFO_MASTER_DELTA_PHASE_BEGIN },
+        .phaseDiff00Index           = { InnerController::CC_LFO_SLAVE_DELTA_PHASE_BEGIN },
+        // LFO phase
+        .oscMasterIndex             = { InnerController::CC_LFO_MASTER_PHASE_BEGIN },
+        .oscSlave00Index            = { InnerController::CC_LFO_SLAVE_PHASE_BEGIN },
+
+
 
     };
 
@@ -1660,13 +1659,13 @@ void setupEffects(Sysman  * sysman)
     std::cout << "\n---- Filter SVF \n" << std::endl;
 
     FxFilterParam::Mode_SVF01_2ch mode_SVF01_2ch = {
-        .fControlIndex = { InnerController::CC_FILTER_FREQ0 },
-        .qControlIndex = { InnerController::CC_FILTER_Q0 },
         .fMapper = {
             .slope = 1 << (27-6),
             .shift = 0,
-            .y0 = { 0x12000000 } // 2x oversamplng 1 octave lower
+            .y0 = { 0x12000000 }, // 2x oversamplng 1 octave lower
         },
+        .fControlIndex = { InnerController::CC_FILTER_FREQ0 },
+        .qControlIndex = { InnerController::CC_FILTER_Q0 },
 
     };
 
@@ -1698,14 +1697,13 @@ void setupEffects(Sysman  * sysman)
 
      */
     FxFilterParam::Mode_4p_2ch mode_4p_2ch = {
-        .fControlIndex = { InnerController::CC_FILTER_FREQ0 },
-        .qControlIndex = { InnerController::CC_FILTER_Q0 },
         .fMapper = {
             .slope = 1 << 20,
             .shift = 0,
             .y0 = { 0x16000000 }
         },
-
+        .fControlIndex = { InnerController::CC_FILTER_FREQ0 },
+        .qControlIndex = { InnerController::CC_FILTER_Q0 },
     };
 
     msgBuffer.clear();

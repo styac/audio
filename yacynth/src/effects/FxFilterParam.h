@@ -88,19 +88,19 @@ public:
         {
             return true;
         }
+        ControllerMapLinear<1>  fMapper;
 
         // manual control
         ControllerIndex         fControlIndex;
         ControllerIndex         qControlIndex;
-        ControllerMapLinear<1>  fMapper;
 
         // oscillator freq and phase diff
-        ControllerIndex deltaPhaseIndex;    // to set the freq
-        ControllerIndex phaseDiff00Index;   // to set the phase diff A-B
+        ControllerIndex         deltaPhaseIndex;    // to set the freq
+        ControllerIndex         phaseDiff00Index;   // to set the phase diff A-B
 
         // oscillator phase values
-        ControllerIndex oscMasterIndex;     // master oscillator
-        ControllerIndex oscSlave00Index;    // slave osc
+        ControllerIndex         oscMasterIndex;     // master oscillator
+        ControllerIndex         oscSlave00Index;    // slave osc
 
     } mode_SVF01_2ch;
 
@@ -115,19 +115,19 @@ public:
         {
             return true;
         }
+        ControllerMapLinear<1>  fMapper;
 
         // manual control
         ControllerIndex         fControlIndex;
         ControllerIndex         qControlIndex;
-        ControllerMapLinear<1>  fMapper;
 
         // oscillator freq and phase diff
-        ControllerIndex deltaPhaseIndex;    // to set the freq
-        ControllerIndex phaseDiff00Index;   // to set the phase diff A-B
+        ControllerIndex         deltaPhaseIndex;    // to set the freq
+        ControllerIndex         phaseDiff00Index;   // to set the phase diff A-B
 
         // oscillator phase values
-        ControllerIndex oscMasterIndex;     // master oscillator
-        ControllerIndex oscSlave00Index;    // slave osc
+        ControllerIndex         oscMasterIndex;     // master oscillator
+        ControllerIndex         oscSlave00Index;    // slave osc
 
     } mode_4p_2ch;
 
@@ -141,26 +141,26 @@ public:
         {
             return true;
         }
-
-
-        ControllerIndex feedbackGainIndex;  // to set the feedback gain
-        ControllerIndex wetDryGainIndex;       // to set the wet/dry gain -- which ???
-
-        ControllerIndex bandWidhthIndex;    // to set the bandwith of the filters (K1) - here all the same
-        // LFO
-        ControllerIndex deltaPhaseControlIndex;    // to set the freq - phase ch0
-        ControllerIndex phaseDiff00ControlIndex;   // to set the phase diff ch1 to ch0
-
-        // oscillator freq and phase diff
-        ControllerIndex deltaPhaseIndex;    // to set the freq - phase ch0
-        ControllerIndex phaseDiff00Index;   // to set the phase diff ch1 to ch0
-        // oscillator phase values
-        ControllerIndex oscMasterIndex;     // master oscillator
-        ControllerIndex oscSlave00Index;    // slave osc
-
+        ControllerMapLinear<8>  notchMapper;        // 1 slope + 8 offset or 8 slope + 8 offset?
         ControllerMapLinear<1>  oscFreqMapper;      // modulator frequency
         ControllerMapLinear<1>  bandwidthMapper;    // bandwith control to ycent (allpass K1)
-        ControllerMapLinear<8>  notchMapper;        // 1 slope + 8 offset or 8 slope + 8 offset?
+
+
+        ControllerIndex         feedbackGainIndex;  // to set the feedback gain
+        ControllerIndex         wetDryGainIndex;       // to set the wet/dry gain -- which ???
+
+        ControllerIndex         bandWidhthIndex;    // to set the bandwith of the filters (K1) - here all the same
+        // LFO
+        ControllerIndex         deltaPhaseControlIndex;    // to set the freq - phase ch0
+        ControllerIndex         phaseDiff00ControlIndex;   // to set the phase diff ch1 to ch0
+
+        // oscillator freq and phase diff
+        ControllerIndex         deltaPhaseIndex;    // to set the freq - phase ch0
+        ControllerIndex         phaseDiff00Index;   // to set the phase diff ch1 to ch0
+        // oscillator phase values
+        ControllerIndex         oscMasterIndex;     // master oscillator
+        ControllerIndex         oscSlave00Index;    // slave osc
+
 
         // ControllerMapLinear<1>  notchMapper[8]; // 1 slope + 8 offset or 8 slope + 8 offset?
 

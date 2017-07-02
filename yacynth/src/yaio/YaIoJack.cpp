@@ -48,12 +48,12 @@ YaIoJack::~YaIoJack()
 
 void YaIoJack::shutdown( void )
 {
-    std::chrono::seconds    duration(1);
-    audioOutPort1.unreg(    client );
-    audioOutPort2.unreg(    client );
-    midiInPort.unreg(       client );
+    std::chrono::milliseconds  duration(100);
+    audioOutPort1.unreg( client );
+    audioOutPort2.unreg( client );
+    midiInPort.unreg(    client );
     std::this_thread::sleep_for(duration);
-    jack_client_close(      client );
+    jack_client_close(   client );
     std::this_thread::sleep_for(duration);
 }
 

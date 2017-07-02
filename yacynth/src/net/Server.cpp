@@ -30,10 +30,7 @@
 #include    <errno.h>
 #include    <linux/random.h>
 #include    <sys/syscall.h>
-
-//extern "C" {
 #include    "sha3.h"
-//}
 
 namespace yacynth {
 

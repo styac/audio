@@ -29,6 +29,7 @@
 
 #include    "YaIoInQueue.h"
 #include    "../message/yamsg.h"
+#include    "yacynth_globals.h"
 
 #include    <cstddef>
 #include    <cstdint>
@@ -43,10 +44,6 @@
 
 namespace yacynth {
 
-#define NON_COPYABLE_NOR_MOVABLE(T) \
-      T(T const &) = delete; \
-      void operator=(T const &) = delete; \
-      T(T &&) = delete;
 
 class   YaIo {
 public:

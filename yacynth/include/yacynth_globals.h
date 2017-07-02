@@ -32,6 +32,12 @@
 #include    <cmath>
 #include    <algorithm>
 
+
+#define NON_COPYABLE_NOR_MOVABLE(T) \
+      T(T const &) = delete; \
+      void operator=(T const &) = delete; \
+      T(T &&) = delete;
+
 #define YAC_DEBUG    1
 
 // global namespace
