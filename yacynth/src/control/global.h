@@ -1,5 +1,6 @@
+#pragma once
 /*
- * Copyright (C) 2016 Istvan Simon -- stevens37 at gmail dot com
+ * Copyright (C) 2017 ist
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,22 +17,15 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-/*
- * File:   Tables.cpp
+/* 
+ * File:   global.h
  * Author: Istvan Simon -- stevens37 at gmail dot com
  *
- * Created on February 6, 2016, 5:15 PM
+ * Created on July 16, 2017, 12:34 PM
  */
 
-#include    "Tables.h"
+namespace yglobal {
 
-#include    <cstdlib>
-#include    <iostream>
-#include    <limits>
-
-namespace yacynth {
-
-
-} // end namespace yacynth
+} // end namespace global 
 
 

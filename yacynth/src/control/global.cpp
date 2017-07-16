@@ -1,7 +1,5 @@
-#pragma once
-
 /*
- * Copyright (C) 2016 Istvan Simon -- stevens37 at gmail dot com
+ * Copyright (C) 2017 ist
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -19,18 +17,14 @@
  */
 
 /* 
- * File:   start_params.h
+ * File:   global.cpp
  * Author: Istvan Simon -- stevens37 at gmail dot com
  *
- * Created on January 26, 2016, 11:57 PM
+ * Created on July 16, 2017, 12:34 PM
  */
+#include    "global.h"
 
-namespace cya {
-
-class StartParams {
-    
-};
+namespace yglobal {
 
 
-} // end namespace cya
-
+} // end namespace global 

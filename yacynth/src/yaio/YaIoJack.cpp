@@ -23,7 +23,9 @@
  */
 
 #include    "YaIoJack.h"
+#include    "../control/global.h"
 #include    <thread>
+
 
 
 namespace yacynth {
@@ -49,10 +51,10 @@ YaIoJack::~YaIoJack()
 void YaIoJack::shutdown( void )
 {
     std::chrono::milliseconds  duration(100);
-    audioOutPort1.unreg( client );
-    audioOutPort2.unreg( client );
-    midiInPort.unreg(    client );
-    std::this_thread::sleep_for(duration);
+    // audioOutPort1.unreg( client );
+    // audioOutPort2.unreg( client );
+    // midiInPort.unreg(    client );
+    // std::this_thread::sleep_for(duration);
     jack_client_close(   client );
     std::this_thread::sleep_for(duration);
 }
@@ -114,12 +116,11 @@ bool YaIoJack::initialize( void )
 
 bool YaIoJack::run( void )
 {
-  	if( 0 != jack_activate( client ))
-	{
+    if( 0 != jack_activate( client )) {
         errorString   += ":cannot activate client";
         std::cout << "cannot activate client " <<  std::endl;
-		return false;
-	}
+        return false;
+    }
     return true;
 }
 

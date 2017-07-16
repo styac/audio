@@ -163,11 +163,11 @@ bool MidiController::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_
     case TagMidiController::SetController: {
         TAG_DEBUG(TagMidiController::SetController, tagIndex, paramIndex, "MidiController" );
             const uint16_t countParam = message.params[paramIndex];
-            if( countParam * sizeof(MidiSetting) != message.length ) {
+            if( countParam * sizeof(MidiControllerSetting) != message.length ) {
                 message.setStatus( yaxp::MessageT::illegalDataLength );
                 return false;
             }
-            MidiSetting *data = static_cast<MidiSetting *>((void *)(message.data));
+            MidiControllerSetting *data = static_cast<MidiControllerSetting *>((void *)(message.data));
             for( uint16_t ind = 0; ind < countParam; ++ind, ++data ) {
                 set( data->channel, data->midiCC, data->innerIndex, CMode(data->midiMode) );
                 InnerController::getInstance().set( data->innerIndex, data->initValue );

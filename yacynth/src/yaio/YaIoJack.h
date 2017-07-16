@@ -62,10 +62,10 @@ public:
     // change sample rate  - not allowed
     static JackSampleRateCallback          samplerateCB;
 
-    static inline YaIoJack&   getInstance(void) 
+    static inline YaIoJack&   getInstance(void)
     {
-        static YaIoJack    jack;
-        return jack;
+        static YaIoJack inst;
+        return inst;
     }
     
 protected:

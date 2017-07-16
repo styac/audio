@@ -122,7 +122,7 @@ bool FxCollector::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t p
                 data->inputCount    = nodes[ind]->getInputCount();
                 data->masterId      = nodes[ind]->getMasterId();
                 std::memset( data->name,'\0',data->nameLength);
-                std::strncpy( data->name,nodes[ind]->name().data() ,data->nameLength-1);
+                std::strncpy( data->name, nodes[ind]->name().data(), data->nameLength-1);
             }
             message.setStatusGetOk(listLength);
         }
@@ -198,7 +198,7 @@ bool FxRunner::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t para
 
             clearConnections();
             for( uint16_t ind = 0; ind < countParam; ++ind, ++data ) {
-                FxRunner::RET ret = connect( data->fxIdOfFxCollector, data->fxIdOfFxRunner, data->inputIdOfFxRunner );
+                FxRunner::RET ret = connect( data->fxIdOfFxCollectorOutput, data->fxIdOfFxRunnerInput, data->inputId );
                 if( RET::OK != ret  ) {
                     TAG_DEBUG( TagEffectRunner::Fill, tagIndex, paramIndex, "FxRunner connect error" );
                     message.setStatus( yaxp::MessageT::targetRetCode );

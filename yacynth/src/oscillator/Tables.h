@@ -27,22 +27,12 @@
 
 #include    "yacynth_globals.h"
 #include    "v4.h"
+#include    "../utils/Fastexp.h"
 
 #include    <iostream>
 #include    <array>
 
 namespace yacynth {
-
-
-
-// GOES TO fastexp
-// exp2 from 1 to 2 -- mult by 1LL << 60
-extern uint64_t exp2Table[      waveTableSize+1 ]; // + 1 is because of interpolation
-// exp2 like but may change a bit -- need testing
-
-
-void    fillExp2Table(          void );
-
 // --------------------------------------------------------------------
 //
 // input:
@@ -66,9 +56,9 @@ inline uint32_t ycent2deltafi( uint32_t base,  int32_t delta )
     }
     const uint32_t  logv = base + delta;
     const uint16_t  ind = logv >> 8;
-    const uint16_t  xpo = logv >> 24;
-    const uint64_t  y1 = exp2Table[ ind ];
-    const uint64_t  dy = (( exp2Table[ ind + 1 ] - y1 ) * ( logv & 0x0FF )) >> 8;
+    const uint16_t  xpo = logv >> 24;    
+    const uint64_t  y1 = tables::exp2Table[ ind ];
+    const uint64_t  dy = (( tables::exp2Table[ ind + 1 ] - y1 ) * ( logv & 0x0FF )) >> 8;        
     const uint64_t  rs = ( y1 + dy ) >> ( precMultExp - xpo );
     return rs ;
 } // end ycent2deltafi( uint32_t logv )

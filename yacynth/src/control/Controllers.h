@@ -165,8 +165,8 @@ public:
     inline void clear(void)
     {
         value.clear();
-        for( auto i = 0u; i<arraySize ; ++i )
-            shiftleft[i] = norm-7;
+//        for( auto i = 0u; i<arraySize ; ++i )
+//            shiftleft[i] = norm-7;
     }
     /*
 k 1 f 5295.41
@@ -192,12 +192,12 @@ k 9 f 14.9358  -- 20.6
     {
         value.v[ ind & V4size::arraySizeMask ] = v;
     }
-
+#if 0
     inline void setShift( uint16_t ind, uint8_t v )
     {
         shiftleft[ ind & V4size::arraySizeMask ] = v;
     }
-
+#endif
     // mainly for setAmplitudeSumm
     // index is full: 2 x range
     inline void setLog( uint16_t ind, uint64_t v )
@@ -333,7 +333,7 @@ k 9 f 14.9358  -- 20.6
 private:
     InnerController();
     V4array<int32_t,arraySizeExp>   value;
-    uint8_t                         shiftleft[arraySize]; // obsolate -- must be eliminated
+    // uint8_t                         shiftleft[arraySize]; // obsolate -- must be eliminated
 
     // volume control characteristic
     static float expFuncTable[midiStep];

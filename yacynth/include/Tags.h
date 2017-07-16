@@ -50,7 +50,7 @@ std::cout \
 
 namespace yacynth {
 
-struct  __attribute__ ((packed)) EffectListEntry
+struct EffectListEntry
 {
     static constexpr uint8_t nameLength = 32;
     uint8_t fxIndex;
@@ -116,16 +116,16 @@ namespace TagEffectRunnerLevel_01 {
     };
 
     // parameter structures
-    struct  __attribute__ ((packed)) EffectRunnerFill
+    struct EffectRunnerFill
     {
         uint8_t fxIdOfFxCollector;
     };
 
-    struct  __attribute__ ((packed)) EffectRunnerSetConnections
+    struct EffectRunnerSetConnections
     {
-        uint8_t fxIdOfFxCollector;
-        uint8_t fxIdOfFxRunner;
-        uint8_t inputIdOfFxRunner;
+        uint8_t fxIdOfFxCollectorOutput;
+        uint8_t fxIdOfFxRunnerInput;
+        uint8_t inputId;
     };
 
 } // end namespace
@@ -140,13 +140,13 @@ namespace TagMidiControllerLevel_01 {
         SetController,              // parameter: count of MidiSetting
     };
 
-    struct  __attribute__ ((packed)) MidiSetting
+    struct MidiControllerSetting
     {
+        int32_t initValue;
         uint8_t channel;
         uint8_t midiCC;
         uint8_t midiMode;
         uint8_t innerIndex;
-        int32_t initValue;
     };
 } // end namespace
 
@@ -159,10 +159,11 @@ namespace TagInnerControllerLevel_01 {
         SetController,              // parameter : InnerControllerSetting
     };
 
-    struct  __attribute__ ((packed)) InnerControllerSetting
+    struct InnerControllerSetting
     {
-        uint16_t    index;
         int32_t     value;
+        uint16_t    index;
+        uint16_t    rfu;
     };
 } // end namespace
 

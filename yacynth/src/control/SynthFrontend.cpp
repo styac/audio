@@ -24,6 +24,7 @@
  */
 
 #include    "SynthFrontend.h"
+#include    "../control/global.h"
 
 #include    <unistd.h>
 #include    <atomic>
