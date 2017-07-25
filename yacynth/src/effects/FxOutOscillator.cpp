@@ -46,7 +46,7 @@ bool FxOutOscillatorParam::parameter( yaxp::Message& message, uint8_t tagIndex, 
             message.setStatus( yaxp::MessageT::illegalDataLength );
             return false;
         }
-        if( !freqMapper.check() ) {
+        if( ! mode01.freqMapper.check() ) {
             message.setStatus( yaxp::MessageT::dataCheckError );
             return false;
         }

@@ -36,7 +36,6 @@
 #include    "../yaio/IOthread.h"
 #include    "../net/Server.h"
 #include    "../router/SimpleMidiRouter.h"
-#include    "../effects/Filter.h"
 #include    "../effects/DelayTap.h"
 #include    "../effects/FxFilter.h"
 #include    "../effects/FxOutNoise.h"

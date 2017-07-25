@@ -43,6 +43,18 @@ struct alignas(16) MonoDelayBandpassTapArray {
     typedef std::array<uint32_t, N> DelayIndex;
     static constexpr std::size_t v4size = (N+3)/4;
 
+    static constexpr char const * const coeffIndexName          = "coeffIndex";
+    static constexpr char const * const coeffName               = "coeff";
+
+    static constexpr char const * const coeffLowPassIndexName   = "coeffLowPassIndex";
+    static constexpr char const * const coeffLowPassName        = "coeffLowPass";
+
+    static constexpr char const * const coeffHighPassIndexName  = "coeffHighPassIndex";
+    static constexpr char const * const coeffHighPassName       = "coeffHighPass";
+
+    static constexpr char const * const delayIndexName          = "delayIndex";
+    static constexpr char const * const delayName               = "delay";
+
     struct {
         union {
             float   v[N];             // feedback - output
@@ -74,6 +86,15 @@ struct alignas(16) MonoDelayLowpassTapArray {
     typedef std::array<uint32_t, N> DelayIndex;
     static constexpr std::size_t v4size = (N+3)/4;
 
+    static constexpr char const * const coeffIndexName          = "coeffIndex";
+    static constexpr char const * const coeffName               = "coeff";
+
+    static constexpr char const * const coeffLowPassIndexName   = "coeffLowPassIndex";
+    static constexpr char const * const coeffLowPassName        = "coeffLowPass";
+
+    static constexpr char const * const delayIndexName          = "delayIndex";
+    static constexpr char const * const delayName               = "delay";
+
     struct {
         union {
             float   v[N];             // feedback - output
@@ -98,6 +119,13 @@ struct alignas(16) MonoDelayTapArray {
     static constexpr std::size_t size = N;
     typedef std::array<uint32_t, N> DelayIndex;
     static constexpr std::size_t v4size = (N+3)/4;
+
+    static constexpr char const * const coeffIndexName          = "coeffIndex";
+    static constexpr char const * const coeffName               = "coeff";
+
+    static constexpr char const * const delayIndexName          = "delayIndex";
+    static constexpr char const * const delayName               = "delay";
+
     struct {
         union {
             float   v[N];             // feedback - output
@@ -108,12 +136,45 @@ struct alignas(16) MonoDelayTapArray {
     DelayIndex    delayIndex;             // delay of the tap
 };
 
+// used in EarlyReflection
+template< std::size_t N, std::size_t CH >
+struct DelayModulatedTapArrayNCH {
+    static constexpr char const * const tapIndexName        = "tapIndex";
+    static constexpr char const * const coeffName           = "coeffCH_";
+    static constexpr char const * const modDepthName        = "modDepthCH_";
+    static constexpr char const * const deltaPhaseName      = "deltaPhaseCH_";
+    static constexpr char const * const delayName           = "delayCH_";
+    //
+    // modDepth = coeff * depth / (1<<31)
+    //
+    V4fMvec<N,CH>   coeff;
+    V4fMvec<N,CH>   modDepth;
+    V4i32Mvec<N,CH> modDeltaPhase;
+    V4i32Mvec<N,CH> delayIndex;
+};
+
+template< std::size_t N, std::size_t CH >
+struct DelayTapArrayNCH {    
+    static constexpr char const * const tapIndexName        = "tapIndex";
+    static constexpr char const * const delayName           = "delayCH_";
+    V4i32Mvec<N,CH> delayIndex;
+};
 
 // used in Echo
 template< std::size_t N >
 struct StereoDelayTapArray {
     typedef std::array<uint32_t, N> DelayIndex;
     static constexpr std::size_t size = N;
+
+    static constexpr char const * const coeffIndexName          = "coeffIndex";
+    static constexpr char const * const coeffName               = "coeff";
+
+    static constexpr char const * const delayIndexName          = "delayIndex";
+    static constexpr char const * const delayName               = "delay";
+
+    static constexpr char const * const delayChannelName        = "delayCH_";
+    static constexpr char const * const coeffChannelName        = "coeffCH_";
+
     V4vf        coeff[N];
     uint32_t    delayIndex[N][2];
 };
@@ -123,6 +184,19 @@ template< std::size_t N >
 struct StereoDelayLowPassTapArray {
     typedef std::array<uint32_t, N> DelayIndex;
     static constexpr std::size_t size = N;
+
+    static constexpr char const * const coeffIndexName          = "coeffIndex";
+    static constexpr char const * const coeffName               = "coeff";
+
+    static constexpr char const * const coeffLowPassIndexName   = "coeffLowPassIndex";
+    static constexpr char const * const coeffLowPassName        = "coeffLowPass";
+
+    static constexpr char const * const delayIndexName          = "delayIndex";
+    static constexpr char const * const delayName               = "delay";
+
+    static constexpr char const * const delayChannelName        = "delayCH_";
+    static constexpr char const * const coeffChannelName        = "coeffCH_";
+
     V4vf        coeff[N];
     V4vf        coeffLowPass[N];
     uint32_t    delayIndex[N][2];

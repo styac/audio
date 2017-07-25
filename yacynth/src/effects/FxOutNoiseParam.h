@@ -51,6 +51,7 @@ public:
     uint8_t redPole;
     uint8_t purplePole;
     uint8_t blueZero;
+    uint8_t rfu;
 };
 
 }; // end namespace yacynth

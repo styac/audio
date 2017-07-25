@@ -52,6 +52,15 @@ namespace yacynth {
 
 struct EffectListEntry
 {
+    static constexpr const char * const typeName = "EffectListEntry";
+    static constexpr const char * const fxIndexName = "fxIndex";
+    static constexpr const char * const idName = "id";
+    static constexpr const char * const fxTypeName = "fxType";
+    static constexpr const char * const fxMaxModeName = "fxMaxMode";
+    static constexpr const char * const inputCountName = "inputCount";
+    static constexpr const char * const masterIdName = "masterId";
+    static constexpr const char * const nameIdName = "name";
+    
     static constexpr uint8_t nameLength = 32;
     uint8_t fxIndex;
     uint8_t id;
@@ -118,11 +127,17 @@ namespace TagEffectRunnerLevel_01 {
     // parameter structures
     struct EffectRunnerFill
     {
+        static constexpr const char * const typeName = "EffectRunnerFill";        
+        static constexpr const char * const fxIdOfFxCollectorName = "fxIdOfFxCollector";        
         uint8_t fxIdOfFxCollector;
     };
 
     struct EffectRunnerSetConnections
     {
+        static constexpr const char * const typeName = "EffectRunnerSetConnections";        
+        static constexpr const char * const fxIdOfFxCollectorOutputName = "fxIdOfFxCollectorOutput";        
+        static constexpr const char * const fxIdOfFxRunnerInputName = "fxIdOfFxRunnerInput";        
+        static constexpr const char * const inputIdName = "inputId";        
         uint8_t fxIdOfFxCollectorOutput;
         uint8_t fxIdOfFxRunnerInput;
         uint8_t inputId;
@@ -142,6 +157,12 @@ namespace TagMidiControllerLevel_01 {
 
     struct MidiControllerSetting
     {
+        static constexpr const char * const typeName = "MidiControllerSetting";         
+        static constexpr const char * const initValueName = "initValue";         
+        static constexpr const char * const channelName = "channel";         
+        static constexpr const char * const midiCCName = "midiCC";         
+        static constexpr const char * const midiModeName = "midiMode";         
+        static constexpr const char * const innerIndexName = "innerIndex";         
         int32_t initValue;
         uint8_t channel;
         uint8_t midiCC;
@@ -161,6 +182,9 @@ namespace TagInnerControllerLevel_01 {
 
     struct InnerControllerSetting
     {
+        static constexpr const char * const typeName = "InnerControllerSetting";
+        static constexpr const char * const valueName = "InnerControllerValue";
+        static constexpr const char * const indexName = "InnerControllerIndex";
         int32_t     value;
         uint16_t    index;
         uint16_t    rfu;

@@ -51,8 +51,6 @@ public:
     // void *arg == this
     static int processCB( jack_nframes_t nframes, void *arg ); 
 
-// ----------- ?????
-    
     // not really needed yet
     static JackThreadInitCallback          threadInitCB;
     // jackd was shut down
@@ -69,7 +67,6 @@ public:
     }
     
 protected:
-    bool            muted;        
     jack_client_t   *client;
     jack_options_t  jackOptions;
     jack_status_t   jackStatus;
@@ -78,6 +75,7 @@ protected:
     YaIoJackPort    audioOutPort2;
     YaIoJackPort    audioInPort1;
     YaIoJackPort    audioInPort2;
+    bool            muted;        
 
 private:
     YaIoJack();

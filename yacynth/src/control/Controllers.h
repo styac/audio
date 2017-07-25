@@ -501,6 +501,7 @@ private:
 
 // define an index
 struct ControllerIndex {
+    static constexpr const char * const indexName = "innerControllerIndex";
     uint16_t    index;
     bool setIndex( uint16_t ind )
     {
@@ -716,6 +717,11 @@ struct ControllerPitchBend {
 
 template< uint8_t acount >
 struct ControllerMapLinear {
+    static constexpr const char * const slopeName       = "slope";
+    static constexpr const char * const shiftName       = "shift";
+    static constexpr const char * const y0Name          = "y0_";
+    static constexpr const char * const acountName      = "y0Count";
+    static constexpr const char * const acountIndexName = "y0Index";
     int32_t     slope;
     uint32_t    shift;
     int32_t     y0[acount];

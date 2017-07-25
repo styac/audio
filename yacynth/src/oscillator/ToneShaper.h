@@ -143,6 +143,7 @@ struct InterpolatedAmplitudeU32 {
 //
 
 struct AmplitudeTransient  {
+    static constexpr const char * const typeName = "AmplitudeTransient";        
     static constexpr int8_t   curveSpeedLimit       = 3;
     static constexpr uint32_t tickLimit             = 10000;    // 13 sec
     static constexpr int8_t   amplEnvFreqDepRange   = 2;    // min max
@@ -189,6 +190,7 @@ struct AmplitudeTransient  {
 
 // --------------------------------------------------------------------
 struct AmplitudeSustain {
+    static constexpr const char * const typeName = "AmplitudeSustain";    
     enum {
         MODTYPE_INPHASE = 0,
         MODTYPE_RAND1,
@@ -221,6 +223,7 @@ struct AmplitudeSustain {
 // --------------------------------------------------------------------
 //template< uint16_t transientKnotCountT >
 struct ToneShaper {
+    static constexpr const char * const typeName = "ToneShaper";
     static constexpr uint32_t transientVectorSize = transientKnotCount;
     void clear(void)
     {
@@ -264,6 +267,7 @@ struct ToneShaper {
 };
 // --------------------------------------------------------------------
 struct ToneShaperVector {
+    static constexpr const char * const typeName = "ToneShaperVector";
     static constexpr uint16_t  idlength = 127;
     static constexpr uint32_t  toneShaperVectorSize = overtoneCountOscDef;
     inline uint16_t maxOscillatorCount(void) const { return overtoneCountOscDef; };

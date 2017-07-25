@@ -56,9 +56,9 @@ public:
 
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
+    float               gainRange[ inputCount ] = {0.5f, 0.5f, 0.5f, 0.5f };
     ControllerIndex     gainIndex[inputCount];
      // range : n * -6 dB step
-    float   gainRange[ inputCount ] = {0.5f, 0.5f, 0.5f, 0.5f };
 };
 
 

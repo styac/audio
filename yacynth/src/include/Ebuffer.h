@@ -146,7 +146,7 @@ struct EIObuffer : public EbufferPar {
             vchannel[chB][i] = vchannel[chA][i] = inp.vchannel[chA][i];
         }
     }
-
+    
     // do vectorizing - check
     inline void copy( const EIObuffer& inp )
     {
@@ -156,6 +156,14 @@ struct EIObuffer : public EbufferPar {
         }
     }
 
+    template< std::size_t CH >
+    inline void copyCH( const EIObuffer& inp )
+    {
+        for( auto i=0u; i < vsectionSize; ++i ) {
+            vchannel[CH][i] = inp.vchannel[CH][i];
+        }
+    }
+    
     inline void add( const EIObuffer& inp )
     {
         for( auto i=0u; i < vsectionSize; ++i ) {

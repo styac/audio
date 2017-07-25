@@ -319,15 +319,16 @@ private:
     // the channel 1 phase differs
     inline void updateParamPhaseDiff(void)
     {
-        if( phasePhaseFreqDiffValue[0].update( param.indexPhaseFreqDiff[0] ) ) {
+        if( phasePhaseFreqDiffValue[0].update( param.mode01.indexPhaseFreqDiff[0] ) ) {
             phase[0][1] -= phaseDiff[0];
-            phaseDiff[0] = param.indexPhaseFreqDiff[0].getPhaseValueU32();
+            phaseDiff[0] = param.mode01.indexPhaseFreqDiff[0].getPhaseValueU32();
             phase[0][1] += phaseDiff[0];
         }
 
-        if( phaseDeltaValue[0].update( param.indexPhaseDelta ) ) {
+        if( phaseDeltaValue[0].update( param.mode01.indexPhaseDelta ) ) {
             // get the ycent value
-            const auto freqYcent = param.freqMapper.getOffseted( param.freqMapper.getScaled( phaseDeltaValue[0].getValueI32() ) );
+            const auto freqYcent = param.mode01.freqMapper.getOffseted( 
+                param.mode01.freqMapper.getScaled( phaseDeltaValue[0].getValueI32() ) );
             phaseDelta[0][1] = phaseDelta[0][0] = tables::ExpTable::getInstance().ycent2deltafi( freqYcent );
         }
     }
@@ -335,18 +336,19 @@ private:
     // the channel 1 freq differs
     inline void updateParamFreqDiff(void)
     {
-        if( phasePhaseFreqDiffValue[0].update( param.indexPhaseFreqDiff[0] ) ) {
+        if( phasePhaseFreqDiffValue[0].update( param.mode01.indexPhaseFreqDiff[0] ) ) {
             // smooth transition
             phaseDiff[0] = phasePhaseFreqDiffValue[0].getValueI32();
-            const auto freqYcent1 = param.freqMapper.getOffseted( param.freqMapper.getScaled( phaseDeltaValue[0].getValueI32() + phaseDiff[0] ) );
+            const auto freqYcent1 = param.mode01.freqMapper.getOffseted( 
+                param.mode01.freqMapper.getScaled( phaseDeltaValue[0].getValueI32() + phaseDiff[0] ) );
             phaseDelta[0][1] = tables::ExpTable::getInstance().ycent2deltafi( freqYcent1 );
             std::cout << "  updateParamPhaseDiff phaseDiff " << phaseDiff[0] << std::endl;
         }
 
-        if( phaseDeltaValue[0].update( param.indexPhaseDelta ) ) {
+        if( phaseDeltaValue[0].update( param.mode01.indexPhaseDelta ) ) {
             // get the ycent value
-            const auto freqYcent0 = param.freqMapper.getOffseted( param.freqMapper.getScaled( phaseDeltaValue[0].getValueI32() ) );
-            const auto freqYcent1 = param.freqMapper.getOffseted( param.freqMapper.getScaled( phaseDeltaValue[0].getValueI32() + phaseDiff[0] ) );
+            const auto freqYcent0 = param.mode01.freqMapper.getOffseted( param.mode01.freqMapper.getScaled( phaseDeltaValue[0].getValueI32() ) );
+            const auto freqYcent1 = param.mode01.freqMapper.getOffseted( param.mode01.freqMapper.getScaled( phaseDeltaValue[0].getValueI32() + phaseDiff[0] ) );
             phaseDelta[0][0] = tables::ExpTable::getInstance().ycent2deltafi( freqYcent0 );
             phaseDelta[0][1] = tables::ExpTable::getInstance().ycent2deltafi( freqYcent1 );
         }

@@ -25,11 +25,10 @@
  * Created on May 20, 2017, 8:11 PM
  */
 
-
 #include    "protocol.h"
 #include    "Tags.h"
 #include    "../control/Controllers.h"
-
+#include    "../effects/DelayTap.h"
 
 namespace yacynth {
 using namespace TagEffectTypeLevel_02;
@@ -51,7 +50,7 @@ public:
     static constexpr std::size_t coeffSetCount      = 1<<4;
     static constexpr std::size_t coeffSetCountMask  = coeffSetCount-1;
 
-    static constexpr std::size_t delayLngExp        = 9; // ca: 600 msec - 512*1.3
+    static constexpr std::size_t delayLngExp        = 11; // ca: 600 msec - 512*1.3
     static constexpr std::size_t delayLng           = 1<<(delayLngExp+effectFrameSizeExp);
     static constexpr std::size_t delayOffsMaxLng    = delayLng - 1;
     static constexpr std::size_t delayOffsMinLng    = effectFrameSize * 2;
@@ -63,50 +62,54 @@ public:
     // no Tap... type is used because of the modulation experiment
 
     struct Mode01 {
+
         static constexpr uint8_t subtype         = uint8_t(TagEffectFxEarlyReflectionMode::SetParametersMode01);
-        // should return error code not bool
+
+        static constexpr char const * const delayLateReverbName = "lateReverbDelay";
+        static constexpr char const * const earlyreflectionName = "earlyReflection";
+        
+        DelayModulatedTapArrayNCH< tapCount, channelCount > tap;
+        // left-right delay for late reverb
+        // need a controller later !
+        DelayTapArrayNCH< 1, channelCount >                 lateReverb;
+        
         bool check()
         {
-            for( auto &v0 : delayLateReverb ) {
+            for( auto &v0 : lateReverb.delayIndex.v ) {
                 if(( v0 > delayOffsMaxLng ) || ( v0 < delayOffsMinLng )) {
                     return false;
                 }
             }
-            for( auto &v0 : delaysEarlyreflection ) {
-                for( auto &v1 : v0 ) {
-                    if( ( v1 > delayOffsMaxLng ) || ( v1 < delayOffsMinLng )) {
-                        return false;
-                    }
+
+            for( auto &v0 : tap.coeff.v ) {
+                if(( v0 > 1.0f ) || ( v0 < -1.0f )) {
+                    return false;
                 }
             }
-            for( auto &v0 : coeffsEarlyreflection ) {
-                for( auto &v1 : v0 ) {
-                    for( auto &v2 : v1 ) {
-                        if(( v2 > 1.0f ) || ( v2 < -1.0f )) {
-                            return false;
-                        }
-                    }
+            
+            for( auto &v0 : tap.modDepth.v ) {
+                if(( v0 > 1.0f ) || ( v0 < -1.0f )) {
+                    return false;                
                 }
             }
-            for( auto &v0 : modulatorPeriod ) {
-                constexpr std::size_t maxPeriod = 2048 / coeffSetCount; // 2.5 sec if 1 period / set
-                constexpr std::size_t minPeriod = 3;    // 3 period ca 4 msec * 16 - 64 msec - 10-15 Hz
-                if(( v0 > maxPeriod ) || ( v0 < minPeriod )) { // irreal
+            
+            constexpr uint32_t minModDp = freq2deltaPhaseControlLfo(0.1);
+            constexpr uint32_t maxModDp = freq2deltaPhaseControlLfo(20.0);
+            for( auto &v0 : tap.modDeltaPhase.v ) {
+                if(( v0 > maxModDp ) || ( v0 < minModDp )) {
+                    return false;
+                }
+            }
+
+            for( auto &v0 : tap.delayIndex.v ) {
+                if(( v0 > delayOffsMaxLng ) || ( v0 < delayOffsMinLng )) {
                     return false;
                 }
             }
             return true;
         }
-        // left-right delay for late reverb
-        // need a controller later !
-        uint32_t    delayLateReverb[channelCount];
-        // left-right delay for early reflections
-        uint32_t    delaysEarlyreflection[tapCount][channelCount];
-        // left-right for early reflections
-        // coeffSetCount - rotating with low frequency modulation -simple case uses 0
-        // there should be 1 period - deviance about 10%
-        float       coeffsEarlyreflection[coeffSetCount][tapCount][channelCount];
-        uint16_t    modulatorPeriod[tapCount];
+
+
     } mode01;
 };
 

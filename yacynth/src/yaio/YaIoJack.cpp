@@ -32,31 +32,33 @@ namespace yacynth {
 
 // --------------------------------------------------------------------
 YaIoJack::YaIoJack()
-    :   jackOptions(JackNoStartServer)
-    ,   midiInPort(     "midi",         JACK_DEFAULT_MIDI_TYPE,     JackPortIsInput|JackPortIsTerminal)
-    ,   audioOutPort1(  "audio_out_1",  JACK_DEFAULT_AUDIO_TYPE,    JackPortIsOutput|JackPortIsTerminal)
-    ,   audioOutPort2(  "audio_out_2",  JACK_DEFAULT_AUDIO_TYPE,    JackPortIsOutput|JackPortIsTerminal)
-    ,   audioInPort1(   "audio_in_1",   JACK_DEFAULT_AUDIO_TYPE,    JackPortIsInput|JackPortIsTerminal)
-    ,   audioInPort2(   "audio_in_2",   JACK_DEFAULT_AUDIO_TYPE,    JackPortIsInput|JackPortIsTerminal)
-    ,   muted(true)
-{
-}
+:   client(0)
+,   jackOptions(JackNoStartServer)
+,   midiInPort(     "midi",         JACK_DEFAULT_MIDI_TYPE,     JackPortIsInput|JackPortIsTerminal)
+,   audioOutPort1(  "audio_out_1",  JACK_DEFAULT_AUDIO_TYPE,    JackPortIsOutput|JackPortIsTerminal)
+,   audioOutPort2(  "audio_out_2",  JACK_DEFAULT_AUDIO_TYPE,    JackPortIsOutput|JackPortIsTerminal)
+,   audioInPort1(   "audio_in_1",   JACK_DEFAULT_AUDIO_TYPE,    JackPortIsInput|JackPortIsTerminal)
+,   audioInPort2(   "audio_in_2",   JACK_DEFAULT_AUDIO_TYPE,    JackPortIsInput|JackPortIsTerminal)
+,   muted(true)
+{}
 
 YaIoJack::~YaIoJack()
 {
-//    shutdown();
+    //shutdown();
 }
 // --------------------------------------------------------------------
 
 void YaIoJack::shutdown( void )
 {
-    std::chrono::milliseconds  duration(100);
+    std::chrono::milliseconds const duration(100);
     // audioOutPort1.unreg( client );
     // audioOutPort2.unreg( client );
     // midiInPort.unreg(    client );
-    // std::this_thread::sleep_for(duration);
-    jack_client_close(   client );
+    if( client ) {
+        jack_client_close(   client );
+    }
     std::this_thread::sleep_for(duration);
+    client = 0;
 }
 
 // --------------------------------------------------------------------

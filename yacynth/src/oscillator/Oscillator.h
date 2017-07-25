@@ -87,7 +87,7 @@ struct SustainModulator {
     inline int64_t decay ( const int64_t in, const AmplitudeSustain& env, int16_t pitchDepDx )
     {
         // no pitchDepDx if base=0 then no decay
-        // TODO test it 
+        // TODO test it
         return env.decayCoeff.get() ? -(( ( env.decayCoeff.get(pitchDepDx) * in ) >> 28 ) + 1 ) : 0 ;
     }
     inline int64_t mod( const int64_t in, const AmplitudeSustain& env, int16_t pitchDepDx  )
@@ -138,8 +138,8 @@ struct SustainModulator {
     int16_t             phaseDelta;
     int16_t             phase;
     uint16_t            period;
-    uint16_t            sustainModPeriod;       // needed here - init by voiceUp for speeding
-    uint8_t             sustainModDeltaCount;   // needed here - init by voiceUp for speeding
+    uint16_t            sustainModPeriod;       // needed here - init by voiceUp for speeding - ???? cache
+    uint8_t             sustainModDeltaCount;   // needed here - init by voiceUp for speeding - ???? cache
     uint8_t             rfu1;
     uint8_t             rfu2;
     uint8_t             rfu3;
@@ -184,14 +184,20 @@ public:
 //        OSC_WAVE1   = 1,    // user fillable tables
 //        OSC_WAVE2   = 2,    // user fillable tables
 //        OSC_WAVE3   = 3,    // user fillable tables
+
+        // wide noise
         OSC_NOISE_WHITE   = 0x80,
         OSC_NOISE_RED,
         OSC_NOISE_PURPLE,
         OSC_NOISE_BLUE,
+
+        // narrow noise - correlated (common input)
         OSC_NOISE_PEEK1,
         OSC_NOISE_PEEK2,
         OSC_NOISE_PEEK3,
         OSC_NOISE_PEEK4,
+
+        // check: experimental
         OSC_SIN_MULT_RED_NOISE,
         OSC_NONE     = 255,
     };

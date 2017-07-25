@@ -34,6 +34,8 @@
 namespace yacynth {
 
 class ToneShaperMatrix {
+    static constexpr const char * const typeName = "ToneShaperMatrix";        
+    
 private:
 
 public:

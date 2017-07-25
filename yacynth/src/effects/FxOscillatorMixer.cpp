@@ -34,7 +34,7 @@ void FxOscillatorMixer::process( const OscillatorOut& inp )
     // index to put the amplitudeSumm
     // interface to controller
 
-    param.amplitudeSumm = static_cast<float>( inp.amplitudeSumm );
+    // param.amplitudeSummIndex.setInnerValue( static_cast<float>( inp.amplitudeSumm ) );
 
     for( uint16_t si = 0u; si < oscillatorOutSampleCount; ++si ) {
         addbuff.v[si] = inp.layer[0][si] + inp.layer[1][si];

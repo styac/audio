@@ -46,14 +46,17 @@ public:
     static constexpr char const * const slavename = " ^OscillatorSlave";
 
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
-    static constexpr uint8_t subtype         = uint8_t(TagEffectFxOutOscillatorMode::SetParametersMode01);
+    
+    struct Mode01 {
+        static constexpr uint8_t subtype         = uint8_t(TagEffectFxOutOscillatorMode::SetParametersMode01);
 
-    // master
-    ControllerMapLinear<1>  freqMapper;         // controller value to freq (delta phase)
-    ControllerIndex         indexPhaseDelta;    // controller index of freq of channel 0
-    // master + n slaves
-    ControllerIndex         indexPhaseFreqDiff[slaveCount+1]; // controller index of phase or freq diff of channel 1
+        // master
+        ControllerMapLinear<1>  freqMapper;         // controller value to freq (delta phase)
+        ControllerIndex         indexPhaseDelta;    // controller index of freq of channel 0
+        // master + n slaves
+        ControllerIndex         indexPhaseFreqDiff[slaveCount+1]; // controller index of phase or freq diff of channel 1
 
+    } mode01;
 
     // need a direct steady control for multiphase source if there will be
 };

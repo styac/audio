@@ -81,13 +81,13 @@ bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, 
             const auto& toneshaper  = tsvec.toneShaperVec[ oscindex ];
             auto& stateOsc          = state[ oscindex ];
             
-            // high osc only sine
-            // obsolate   const auto& oscillatorType  = ( oscindex & 0x80 ) ? OSC_SIN : toneshaper.oscillatorType;
             const auto oscillatorType  = toneshaper.oscillatorType;
 
             // TODOs
-            // go to fastexp !
-            // -> refactor transient detune !!!
+            // go to fastexp !            
+            // only for sine type - noise: switch( oscillatorType ) 
+            // wide noise : no pitch
+            // narrow noise: pitch from filter type table
             const uint32_t deltaPhase   = ycent2deltafi( basePitch + toneshaper.pitch, in.pitchDelta + stateOsc.amplitudeDetunePitch );
             if( 0 == deltaPhase )
                 continue; // too high sound
@@ -335,6 +335,12 @@ void Oscillator::voiceUp( const OscillatorInChange& in )
 #endif
 //    noiseWide.clear();
 //    noiseNarrow.clear();
+
+// to generate    
+// only for sine type - noise: switch( oscillatorType ) 
+// wide noise : no pitch
+// narrow noise: pitch from filter type table
+
     noiseNarrow.setFreqSv(basePitch);
     for( auto oscindex = 0; oscindex < oscillatorCountUsed; ++oscindex ) {
         auto& stateOsc = state[ oscindex ];

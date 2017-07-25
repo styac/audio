@@ -59,7 +59,7 @@ public:
 
     // index to put the amplitudeSumm
     // interface to controller
-    float amplitudeSumm;
+    ControllerIndex     amplitudeSummIndex;
 };
 
 
