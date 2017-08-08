@@ -119,7 +119,7 @@ void Server::execute()
             logger->warn( "** seq nr diff {0} {1}", lastSequenceNumber, message.sequenceNr );
         }
         // execute received command
-        logger->warn("** execute command {0}", message.print(str).data() );
+        // logger->warn("** execute command {0}", message.print(str).data() );
         switch( message.messageType ) {
         case yaxp::MessageT::requestC2E:
             sysman.evalMessage( message );
@@ -221,7 +221,7 @@ bool Server::authenticate()
 bool Server::doRecv()
 {
     std::string str;
-    logger->warn(" ***** Server::doRecv" );
+    //logger->warn(" ***** Server::doRecv" );
     if( ! recvAll( (char *)&message, sizeof(yaxp::Header) ) ) {
         logger->warn( "header received error" );
         return false;
@@ -236,7 +236,7 @@ bool Server::doRecv()
         return false;
     }
     message.print(str);
-    logger->warn( "message {0} ", str.data() );
+    //logger->warn( "message {0} ", str.data() );
     return true;
 }
 
@@ -272,7 +272,7 @@ bool Server::recvAll( char *p, uint32_t size )
 
 bool Server::doSend()
 {
-    logger->warn(" ***** Server::doSend" );
+    // logger->warn(" ***** Server::doSend" );
     std::size_t length = message.length + sizeof(yaxp::Header);
     if( message.messageType < yaxp::MessageT::validLength ) {
         length = sizeof(yaxp::Header);

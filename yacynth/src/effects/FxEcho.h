@@ -123,7 +123,7 @@ public:
         //      64 * 375 / 48000 = 0.5
         // fast horizontal v4sf processing
         //
-        for( auto ti = 0u; ti < param.tapOutputCount; ++ti ) {
+        for( auto ti = 0u; ti < param.tapOutputUsed; ++ti ) {
             const V4vf coeff = param.tapOutput.coeff[ti];
             const uint32_t indA = delay.getSectionIndex( param.tapOutput.delayIndex[ ti ][ chA ] );
             const uint32_t indB = delay.getSectionIndex( param.tapOutput.delayIndex[ ti ][ chB ] );
@@ -144,7 +144,7 @@ public:
         // low pass filtered taps for output
         // sample level processing
         //
-        for( auto ti = 0u; ti < param.tapOutputLPCount; ++ti ) {
+        for( auto ti = 0u; ti < param.tapOutputLPUsed; ++ti ) {
             const V4vf coeff    = param.tapOutputLP.coeff[ ti ];
             const V4vf coeffLP  = param.tapOutputLP.coeffLowPass[ ti ];
             const uint32_t indA = delay.getSectionIndex( param.tapOutputLP.delayIndex[ ti ][ chA ] );
@@ -174,7 +174,7 @@ public:
         // unfiltered taps for feedback
         // fast horizontal v4sf processing
         //
-        for( auto ti = 0u; ti < param.tapFeedbackCount; ++ti ) {
+        for( auto ti = 0u; ti < param.tapFeedbackUsed; ++ti ) {
             const V4vf coeff = param.tapFeedback.coeff[ti];
             const uint32_t indA = delay.getSectionIndex( param.tapFeedback.delayIndex[ ti ][ chA ] );
             const uint32_t indB = delay.getSectionIndex( param.tapFeedback.delayIndex[ ti ][ chB ] );
@@ -195,7 +195,7 @@ public:
         // low pass filtered taps for feedback
         // sample level processing
         //
-        for( auto ti = 0u; ti < param.tapFeedbackLPCount; ++ti ) {
+        for( auto ti = 0u; ti < param.tapFeedbackLPUsed; ++ti ) {
             const V4vf coeff    = param.tapFeedbackLP.coeff[ ti ];
             const V4vf coeffLP  = param.tapFeedbackLP.coeffLowPass[ ti ];
             const uint32_t indA = delay.getSectionIndex( param.tapFeedbackLP.delayIndex[ ti ][ chA ] );
@@ -223,8 +223,8 @@ public:
     }
 
 protected:
-    V4vf            sFilterOutput[   FxEchoParam::tapOutputLPSize ];
-    V4vf            sFilterFeedback[ FxEchoParam::tapFeedbackLPSize ];
+    V4vf            sFilterOutput[   FxEchoParam::tapOutputLPCount ];
+    V4vf            sFilterFeedback[ FxEchoParam::tapFeedbackLPCount ];
     EDelayLine      delay;
 };
 // --------------------------------------------------------------------

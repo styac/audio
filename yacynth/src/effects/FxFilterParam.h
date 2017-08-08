@@ -81,8 +81,8 @@ public:
     // -----------------------------------------------------------
     // state variable mode
     //
-    struct Mode_SVF01_2ch {
-    static constexpr uint8_t subtype         = uint8_t(TagEffectFxFilterMode::SetMode_SVF01_2ch_mode01);
+    struct ModeSV01 {
+    static constexpr uint8_t subtype         = uint8_t(TagEffectFxFilterMode::SetModeSV01);
 
         bool check()
         {
@@ -102,14 +102,14 @@ public:
         ControllerIndex         oscMasterIndex;     // master oscillator
         ControllerIndex         oscSlave00Index;    // slave osc
 
-    } mode_SVF01_2ch;
+    } modeSV01;
 
 
     // -----------------------------------------------------------
     // 4 pole mode
     //
-    struct Mode_4p_2ch {
-    static constexpr uint8_t subtype         = uint8_t(TagEffectFxFilterMode::SetMode_4p_2ch);
+    struct Mode4P01 {
+    static constexpr uint8_t subtype         = uint8_t(TagEffectFxFilterMode::SetMode4P01);
 
         bool check()
         {
@@ -129,13 +129,13 @@ public:
         ControllerIndex         oscMasterIndex;     // master oscillator
         ControllerIndex         oscSlave00Index;    // slave osc
 
-    } mode_4p_2ch;
+    } mode4P01;
 
     // -----------------------------------------------------------
     // allpass mode
     //
-    struct Mode_2ch_x4ap_phaser_mode01 {
-    static constexpr uint8_t subtype         = uint8_t(TagEffectFxFilterMode::SetMode_2ch_x4ap_phaser_mode01);
+    struct ModeAP01 {
+    static constexpr uint8_t subtype         = uint8_t(TagEffectFxFilterMode::SetModeAP01);
         
         bool check()
         {
@@ -164,7 +164,7 @@ public:
 
         // ControllerMapLinear<1>  notchMapper[8]; // 1 slope + 8 offset or 8 slope + 8 offset?
 
-    } mode_2ch_x4ap_phaser_mode01;
+    } modeAP01;
 
     // -----------------------------------------------------------
 

@@ -64,28 +64,38 @@ Yamsgrt SimpleMidiRouter::translate( const RouteIn& in )
 {
     out.store = 0;
     switch( in.op ) {
-    case MIDI_NOTE_OFF:
-        
-        out.setVoice.opcode = YAMOP_CHNGVOICE_NOTE;
-        out.setVoice.oscNr      = in.note_cc_val;
-        out.setVoice.velocity   = 0;    // ?
-        out.setVoice.pitch      = 0;    // OFF
 
+/*
+ 
+#ifdef OSCILLATOR_VELOCITY_RANDOMIZER
+    velocity = in.velocity + ( gRandom.getRaw() & 0x0FFFF );
+#else
+    velocity = in.velocity;
+#endif
+
+ 
+ 
+ */        
+
+    case MIDI_NOTE_OFF:        
+        out.voiceRelease.opcode         = YAMOP_VOICE_RELEASE;
+        out.voiceRelease.oscNr          = in.note_cc_val;
+        out.voiceRelease.tickRelease    = 0;    // ?
         break;
+        
     case MIDI_NOTE_ON:
         if( 0 == in.velocity_val ) {
-            out.setVoice.opcode = YAMOP_CHNGVOICE_NOTE;
-            out.setVoice.oscNr      = in.note_cc_val;
-            out.setVoice.velocity   = 0;    // ?
-            out.setVoice.pitch      = 0;    // OFF
+            out.voiceRelease.opcode         = YAMOP_VOICE_RELEASE;
+            out.voiceRelease.oscNr          = in.note_cc_val;
+            out.voiceRelease.tickRelease    = 0;    // ?
             break;
         }
-        out.setVoice.opcode = YAMOP_SETVOICE_NOTE;
-        out.setVoice.oscNr      = in.note_cc_val;
-        out.setVoice.velocity   = in.velocity_val << 9; // no fine value - 0..127
-        out.setVoice.pitch      = getPitch( in.note_cc_val, 0 );
+        out.voiceSet.oscNr          = in.note_cc_val;
+        out.voiceSet.toneBank       = 0;
+        out.voiceSet.velocity15bit  = in.velocity_val << 8; // 15 bit
+        out.voiceSet.pitch          = getPitch( in.note_cc_val, 0 );
         break;
-
+        
     case MIDI_PLY_AFTCH:
 //        out.setVoice.opcode = YAMOP_CHNGVOICE_NOTE;
 //        out.setVoice.oscNr      = in.note_cc_val;
@@ -93,9 +103,7 @@ Yamsgrt SimpleMidiRouter::translate( const RouteIn& in )
 //        out.setVoice.pitch      = 0;    // OFF
         break;
 
-    case MIDI_CONTR_CHNG: {
-//        InnerController::getInstance().setMidi( midiController.get( in.chn, in.note_cc_val ), in.velocity_val );
-        
+    case MIDI_CONTR_CHNG: {        
         MidiController::ControlData cdt =
             midiController.getControlData( in.chn, in.note_cc_val );
         

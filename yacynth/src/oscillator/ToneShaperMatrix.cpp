@@ -79,11 +79,11 @@ bool ToneShaperMatrix::parameter( yaxp::Message& message, uint8_t tagIndex, uint
                 message.setStatus( yaxp::MessageT::illegalTargetIndex );
                 return false;
             }
-            if( !message.setTargetData(toneShapers[vectorIndex].toneShaperVec[overtoneIndex] ) ) {
+            if( !message.setTargetData(toneShapers[vectorIndex].toneShaper[overtoneIndex] ) ) {
                 message.setStatus( yaxp::MessageT::illegalDataLength );
                 return false;
             }
-            if( toneShapers[vectorIndex].toneShaperVec[overtoneIndex].check() ) {
+            if( toneShapers[vectorIndex].toneShaper[overtoneIndex].check() ) {
                 message.setStatusSetOk();
                 return true;
             }
@@ -106,7 +106,7 @@ bool ToneShaperMatrix::parameter( yaxp::Message& message, uint8_t tagIndex, uint
                 message.setStatus( yaxp::MessageT::illegalTargetIndex );
                 return false;
             }
-            message.getTargetData(toneShapers[vectorIndex].toneShaperVec[overtoneIndex] );
+            message.getTargetData(toneShapers[vectorIndex].toneShaper[overtoneIndex] );
             message.setStatusGetOk();
             return true;
         }
@@ -133,7 +133,7 @@ bool ToneShaperMatrix::parameter( yaxp::Message& message, uint8_t tagIndex, uint
             }
             int32_t *pitch = (int32_t * )(&message.data[0]);
             for( auto vi=0u; vi < pitchCount; ++vi, ++pitch ) {
-                toneShapers[vectorIndex].toneShaperVec[ vi ].pitch = *pitch;             
+                toneShapers[vectorIndex].toneShaper[ vi ].pitch = *pitch;             
             }
         }
         message.setStatusSetOk();
@@ -150,7 +150,7 @@ bool ToneShaperMatrix::parameter( yaxp::Message& message, uint8_t tagIndex, uint
                 message.setStatus( yaxp::MessageT::illegalTargetIndex );
                 return false;
             }
-            auto &dst = toneShapers[vectorIndex].toneShaperVec;
+            auto &dst = toneShapers[vectorIndex].toneShaper;
             
             for( auto vi=0u; vi<overtoneCount; ++vi ) {
                 dst[ vi ] = message
@@ -179,7 +179,7 @@ bool ToneShaperMatrix::parameter( yaxp::Message& message, uint8_t tagIndex, uint
                 message.setStatus( yaxp::MessageT::illegalTargetIndex );
                 return false;
             }
-            message.getTargetData(toneShapers[vectorIndex].toneShaperVec[overtoneIndex] );
+            message.getTargetData(toneShapers[vectorIndex].toneShaper[overtoneIndex] );
             message.setStatusGetOk();
             return true;
         }

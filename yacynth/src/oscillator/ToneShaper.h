@@ -104,15 +104,17 @@ struct InterpolatedDecreaseU16 {
 //
 struct InterpolatedAmplitudeU32 {
     static constexpr int8_t   scaleUp = 14; // this must be optimized, probably 12..14
+#if 0
     inline uint64_t get( uint16_t velocity ) const
     {
         // 16 * 16 -> 25 is needed ! down by 7
         return uint64_t( uint32_t(lowBase) * velocity )<<6;
     }    
-    
+#endif    
     inline uint64_t get( uint16_t velocity, int16_t dx ) const
     {
-        return (((uint64_t(lowBase)<<15) + ((int32_t(rate) * dx))) * velocity ) >> 9;
+        //                                    15 * 15 = 30 bit   *  15 = 45 - 8  = 37
+        return (((uint64_t(lowBase)<<15) + ((int32_t(rate) * dx))) * velocity ) >> 8;
     }
     
     inline void setPar( uint16_t lb, int16_t rt ) 
@@ -277,7 +279,7 @@ struct ToneShaperVector {
 
     void clear(void)
     {
-        for( auto& vi : toneShaperVec ) vi.clear();
+        for( auto& vi : toneShaper ) vi.clear();
     };
     bool check(void)
     {
@@ -285,11 +287,11 @@ struct ToneShaperVector {
     };
     void update( const ToneShaper& val, uint16_t index )
     {
-        toneShaperVec[ index & overtoneCountOscDefMask ].update( val );
+        toneShaper[ index & overtoneCountOscDefMask ].update( val );
     };
 
     
-    ToneShaper  toneShaperVec[ toneShaperVectorSize ];
+    ToneShaper  toneShaper[ toneShaperVectorSize ];
     uint16_t    oscillatorCountUsed; 
 };
 // --------------------------------------------------------------------

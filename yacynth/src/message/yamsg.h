@@ -29,77 +29,72 @@
 
 namespace yacynth {
 
-//
 // message structure
 //  RT msg - 8 byte long
-//
-// SYSTEM
-//  byte7   byte6   byte5   byte4   byte3   byte2   byte1   byte0
-//------------------------------------------------------------------------
-//  0       0       0       0       0       0       0       1
-//
 //
 //  MIDI
 //  byte7   byte6   byte5   byte4   byte3   byte2   byte1   byte0
 //------------------------------------------------------------------------
 //  MIDI NOTE OFF
-//  0       1       chn     note    0       0       VH      VL
+//  FF      1       chn     note    0       0       VH      VL
 //  MIDI NOTE ON
-//  0       2       chn     note    0       0       VH      VL
+//  FF      2       chn     note    0       0       VH      VL
 //  MIDI POLY AFTERTOUCH
-//  0       3       chn     note    0       0       VH      VL
+//  FF      3       chn     note    0       0       VH      VL
 //  MIDI CONTROL
-//  0       4       chn     contr   0       0       VH      VL
+//  FF      4       chn     contr   0       0       VH      VL
 //                                  diffH   diffL
 //  MIDI PROGRAM CHANGE
-//  0       5       chn     0       0       0       VH      VL
+//  FF      5       chn     0       0       0       VH      VL
 //  MIDI CHANNEL AFTERTOUCH
-//  0       6       chn     0       0       0       VH      VL
+//  FF      6       chn     0       0       0       VH      VL
 //  MIDI PITCH BEND
-//  0       7       chn     0       0       0       VH      VL
+//  FF      7       chn     0       0       0       VH      VL
 //                                  diffH   diffL
 //
-//
-//  VH-VL   = signed> -32768...+32767 -> generally the same as in the MIDI
-//  velocity: VH=0 VL=0..127
-//  pitch bend -0x2000 -- 0 means no bend
-//
-//    1 004c 0000 0064
-//    2 004c 0000 0000
-// 0020 xxxx xxxx xxxx
+//=============================================================================    
+// redesign:
+//  bit7 = 0
+//    YAMOP_SETVOICE_NOTE     = 0
+//  velocity(u15)   oscNr  TS select --- pitch (u32) -------------    
+//  velocity: 15 bit cannot be 0 ! - highest bit = 0
+// TS select 8 bit
+// oscNr 8 bit    
 
-// controller:
-//  op = reset, set, add -- int 32 bit
-//
-enum YAMOP : uint64_t {
-//    YAMOP_MIDI_PREFIX       = 0x00, // obsolate - will disappear
-    YAMOP_SYSTEM_STOP       = 0x0000000000000001LL,
+//YAMOP_VOICE_SET
 //=============================================================================
-    YAMOP_CONTROL_PREFIX    = 0x01,
+//  byte7   byte6   byte5   byte4   byte3   byte2   byte1   byte0
+//------------------------------------------------------------------------
+//------------------------------------------------------------------------
+//  velocity(u15)  TSVector  oscNr  --- pitch (u32) -------------
+// 
+
 
 //=============================================================================
-// think: start a voice then change with interpolation
-// glissando, legato, etc
-// value FF, FFFF is the NOP/KEEP
-//
 //  byte7   byte6   byte5   byte4   byte3   byte2   byte1   byte0
 //------------------------------------------------------------------------
-//  2       oscNr   velocity(u16)   --- pitch (u32) -------------
-    YAMOP_SETVOICE_NOTE     = 0x02,
-//=============================================================================
-//  byte7   byte6   byte5   byte4   byte3   byte2   byte1   byte0
-//------------------------------------------------------------------------
-//  3       oscNr   spctInd envInd  delta(int16)    velocity Hi/LO
-    YAMOP_CHNGVOICE_NOTE    = 0x03,
-//=============================================================================
-//  byte7   byte6   byte5   byte4   byte3   byte2   byte1   byte0
-//------------------------------------------------------------------------
-//  4       0       0       0       0       0       --- toneBank--
-    YAMOP_SET_TONE          = 0x04,    
+// YAMOP_SET_OVERTONECOUNT
+//  0x8x   subcode  -- maxOvertone-    ------ rfu ----------------
+
+// mode 0 - no control
+// mode 1 - velocity   dependent index 0..127 
+// mode 2 - controller dependent index 0..127 
+
+// array<uint8_t,127> -- for each TS ? -- probably enough for 32..64
+
+enum YAMOP : uint8_t {
+    YAMOP_VOICE_RELEASE = 0x80,
+    YAMOP_VOICE_CHANGE,
+    YAMOP_SET_OVERTONECOUNT,
+    
+    // last range
+    YAMOP_GLOBAL = 0xFF
 };
 
+// part of YAMOP_GLOBAL space
+constexpr uint64_t  YAMOP_SYSTEM_STOP = uint64_t(-1LL);
 
-
+#if 0
 enum YAMOP_MIDI : uint64_t {
     YAMOP_MIDI_NOTE_OFF     = 0x01LL,
     YAMOP_MIDI_NOTE_ON      = 0x02LL,
@@ -109,7 +104,7 @@ enum YAMOP_MIDI : uint64_t {
     YAMOP_MIDI_CHN_AFTCH    = 0x06LL,
     YAMOP_MIDI_PITCHBEND    = 0x07LL,
 };
-
+#endif
 //
 // input module
 //
@@ -150,6 +145,8 @@ struct YformSV {
     uint8_t     opcode;
 };
 
+
+
 // YAMOP_CONTROL
 struct YformCC {
     int16_t     valueX;
@@ -164,16 +161,51 @@ struct YformV {
     uint8_t     byte[8];
 };
 
+// NEW
+struct YformVoiceSet {
+    uint32_t    pitch;
+    uint8_t     oscNr;
+    uint8_t     toneBank;
+    uint16_t    velocity15bit; // 15 bit
+};
+
+struct YformVoiceChange {
+    uint32_t    pitch;
+    uint16_t    velocity;
+    uint8_t     oscNr;
+    uint8_t     opcode;
+};
+
+struct YformVoiceRelease {
+    uint32_t    rfu;
+    uint16_t    tickRelease;
+    uint8_t     oscNr;
+    uint8_t     opcode;
+};
+
+struct YformOvertone {
+    uint32_t    rfu;
+    uint16_t    maxOvertone;
+    uint8_t     subcode;
+    uint8_t     opcode;
+};
+
 union Yamsgrt {
     Yamsgrt()
     :   store(0)
     {};
-    uint64_t        store;
-    YformV          vec;
-    Yform1          f1;
-    Yform2          f2;
-    YformSV         setVoice;
-    YformCC         setController;
+    uint64_t            store;
+    YformV              vec;
+    Yform1              f1;
+    Yform2              f2;
+//    YformSV             setVoiceOld;
+    YformCC             setController;
+    
+    // NEW
+    YformVoiceChange    voiceChange;
+    YformVoiceRelease   voiceRelease;
+    YformVoiceSet       voiceSet;
+    YformOvertone       overtoneControl;
 };
 
 } // end namespace yacynth

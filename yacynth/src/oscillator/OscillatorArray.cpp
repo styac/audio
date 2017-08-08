@@ -36,7 +36,7 @@ OscillatorArray::OscillatorArray()
 ,   minVoice(0)
 ,   maxVoice(voiceCount)
 ,   commonFMPitch(0)
-,   toneBank(0)
+//,   toneBank(0)
 {
     pitchBendIndex.setIndex( InnerController::CC_PITCHBEND );
     pitchBendIndex.setInnerValue( pitchBendRange.middleValue );
@@ -77,21 +77,22 @@ void OscillatorArray::generate( OscillatorOut& out, Statistics& stat )
     }
 } // OscillatorArray::generate
 // --------------------------------------------------------
-void OscillatorArray::voiceUp(  uint16_t oscNr,  uint32_t pitch,  uint16_t velocity )
+void OscillatorArray::voiceRun(  uint16_t oscNr,  uint32_t pitch,  uint16_t velocity, uint16_t toneBank )
 {
-    if( oscNr >= voiceCount ) return;
-    oscillatorParamChange.pitch = pitch;
-
-    std::cout << "voiceUp oscNr: " << oscNr << " pitch: " << oscillatorParamChange.pitch << std::endl;
-
-    oscillatorParamChange.velocity = velocity;
-    oscillatorParamChange.toneShaperSelect = toneBank;
-    array[ oscNr ].voiceUp( oscillatorParamChange );
+    if( oscNr >= voiceCount ) 
+        return;
+    
+    std::cout << "voiceUp oscNr:" << oscNr << " pitch:" << oscillatorParamChange.pitch << " toneBank:" << toneBank << std::endl;
+    oscillatorParamChange.pitch             = pitch;
+    oscillatorParamChange.velocity          = velocity;
+    oscillatorParamChange.toneShaperSelect  = toneBank;
+    array[ oscNr ].voiceRun( oscillatorParamChange );
 } // OscillatorArray::voiceUp
 // --------------------------------------------------------
-void OscillatorArray::voiceChange( uint16_t oscNr,  uint32_t pitch,  uint16_t velocity )
+void OscillatorArray::voiceRelease( uint16_t oscNr )
 {
-    if( oscNr >= voiceCount ) return;
+    if( oscNr >= voiceCount ) 
+        return;
 
     std::cout << "new voiceChange voice: " << oscNr << std::endl;
 

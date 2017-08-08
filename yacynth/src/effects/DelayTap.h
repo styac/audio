@@ -35,26 +35,27 @@
 
 namespace yacynth {
 
+// TODO
+// rename MonoDelayBandpassTapArray to CombBandpassTapArray
+
 // used in LateReverb
 // delay with lowpass + highpass
-template< std::size_t N >
-struct alignas(16) MonoDelayBandpassTapArray {
+template< std::size_t N, std::size_t CH >
+struct alignas(16) DelayMultBandpassTapArrayNCH {
     static constexpr std::size_t size = N;
     typedef std::array<uint32_t, N> DelayIndex;
     static constexpr std::size_t v4size = (N+3)/4;
 
-    static constexpr char const * const coeffIndexName          = "coeffIndex";
-    static constexpr char const * const coeffName               = "coeff";
+    static constexpr char const * const tapIndexName        = "tapIndex";
+    static constexpr char const * const coeffName           = "coeff_";
+    static constexpr char const * const coeffLowPassName    = "coeffLowPass_";
+    static constexpr char const * const coeffHighPassName   = "coeffHighPass_";
+    static constexpr char const * const delayName           = "delay_";
 
-    static constexpr char const * const coeffLowPassIndexName   = "coeffLowPassIndex";
-    static constexpr char const * const coeffLowPassName        = "coeffLowPass";
-
-    static constexpr char const * const coeffHighPassIndexName  = "coeffHighPassIndex";
-    static constexpr char const * const coeffHighPassName       = "coeffHighPass";
-
-    static constexpr char const * const delayIndexName          = "delayIndex";
-    static constexpr char const * const delayName               = "delay";
-
+    V4fMvec<N,CH>   coeff;
+    V4fMvec<N,CH>   coeffLowPass;
+    V4fMvec<N,CH>   coeffHighPass;
+#if 0
     struct {
         union {
             float   v[N];             // feedback - output
@@ -74,27 +75,26 @@ struct alignas(16) MonoDelayBandpassTapArray {
             v4sf    v4[(N+3)/4];
         };
     } coeffHighPass;
-
+#endif
     DelayIndex    delayIndex;             // delay of the tap
 };
 
 // used in LateReverb
 // delay with lowpass
-template< std::size_t N >
-struct alignas(16) MonoDelayLowpassTapArray {
+template< std::size_t N, std::size_t CH >
+struct alignas(16) DelayMultLowpassTapArrayNCH {
     static constexpr std::size_t size = N;
     typedef std::array<uint32_t, N> DelayIndex;
     static constexpr std::size_t v4size = (N+3)/4;
+    
+    static constexpr char const * const tapIndexName        = "tapIndex";
+    static constexpr char const * const coeffName           = "coeff_";
+    static constexpr char const * const coeffLowPassName    = "coeffLowPass_";
+    static constexpr char const * const delayName           = "delay_";
 
-    static constexpr char const * const coeffIndexName          = "coeffIndex";
-    static constexpr char const * const coeffName               = "coeff";
-
-    static constexpr char const * const coeffLowPassIndexName   = "coeffLowPassIndex";
-    static constexpr char const * const coeffLowPassName        = "coeffLowPass";
-
-    static constexpr char const * const delayIndexName          = "delayIndex";
-    static constexpr char const * const delayName               = "delay";
-
+    V4fMvec<N,CH>   coeff;
+    V4fMvec<N,CH>   coeffLowPass;
+#if 0    
     struct {
         union {
             float   v[N];             // feedback - output
@@ -108,31 +108,30 @@ struct alignas(16) MonoDelayLowpassTapArray {
             v4sf    v4[(N+3)/4];
         };
     } coeffLowPass;
-
+#endif
     DelayIndex    delayIndex;             // delay of the tap
 };
 
 // used in LateReverb
 // simple delay
-template< std::size_t N >
-struct alignas(16) MonoDelayTapArray {
+template< std::size_t N, std::size_t CH >
+struct alignas(16) DelayMultTapArrayNCH {
     static constexpr std::size_t size = N;
     typedef std::array<uint32_t, N> DelayIndex;
     static constexpr std::size_t v4size = (N+3)/4;
+    static constexpr char const * const tapIndexName        = "tapIndex";
+    static constexpr char const * const coeffName           = "coeff_";
+    static constexpr char const * const delayName           = "delay_";
 
-    static constexpr char const * const coeffIndexName          = "coeffIndex";
-    static constexpr char const * const coeffName               = "coeff";
-
-    static constexpr char const * const delayIndexName          = "delayIndex";
-    static constexpr char const * const delayName               = "delay";
-
+    V4fMvec<N,CH>   coeff;
+#if 0    
     struct {
         union {
             float   v[N];             // feedback - output
             v4sf    v4[(N+3)/4];
         };
     } coeff;
-
+#endif
     DelayIndex    delayIndex;             // delay of the tap
 };
 

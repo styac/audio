@@ -66,12 +66,15 @@ struct OscillatorInChange {
     ,   tickFrameRelease(0)
     ,   toneShaperSelect(0)
     ,   pitch(0)
+    ,   oscillatorCountUsed(0)
     {};
+    
     uint32_t    pitch;
     uint16_t    velocity;           // linear velocity
     uint16_t    tickFrameRelease;   // for Release for direct input
     uint16_t    toneShaperSelect; // select the envelope table
     uint16_t    delay;              // set delay
+    uint16_t    oscillatorCountUsed;
     uint8_t     outputChannel;      // considering to change the current solution apply diff effects
 };
 // --------------------------------------------------------------------
@@ -79,6 +82,10 @@ struct OscillatorInChange {
 // --------------------------------------------------------------------
 
 // this must be retested - optimized
+// check triangle
+//            const int32_t tmp = phase.v[ vi ]>>1;
+//            const int32_t triangle = ((tmp>>30) ^ tmp );
+
 struct SustainModulator {
     inline void reset(void)
     {
@@ -228,8 +235,9 @@ public:
         { return const_cast<ToneShaperMatrix&>(toneShaperMatrix); };
     void        initialize( void );
     bool        generate(           const OscillatorInGenerate& in,  OscillatorOut& out, Statistics& stat );
-    void        voiceUp(            const OscillatorInChange& in );
+    void        voiceRun(           const OscillatorInChange& in );
     void        voiceRelease(       const OscillatorInChange& in );
+    void        voiceChange(        const OscillatorInChange& in );
     void        voiceDelay(         const OscillatorInChange& in );
     std::size_t sizeVector(void)    const { overtoneCountOscDef; };
 
@@ -272,6 +280,7 @@ private:
     }
 
     OscillatorState                 state[ overtoneCountOscDef ];
+    const ToneShaperVector        * toneShaperVecCurr;
     NoiseSample                     noiseWide;      // only 1 for a voice
     OscillatorNoise                 noiseNarrow;    // only 1 for a voice
     int32_t                         basePitch;

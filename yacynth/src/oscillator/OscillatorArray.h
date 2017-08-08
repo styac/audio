@@ -44,8 +44,9 @@ public:
         { return Oscillator::getToneShaperMatrix(); };
         
     void        generate(       OscillatorOut& out, Statistics& stat );
-    void        voiceUp(        uint16_t oscNr,  uint32_t pitch,  uint16_t velocity );
-    void        voiceChange(    uint16_t oscNr,  uint32_t pitch,  uint16_t velocity );
+    void        voiceRun(       uint16_t oscNr,  uint32_t pitch,  uint16_t velocity, uint16_t toneBank = 0 );
+    void        voiceRelease(   uint16_t oscNr );
+    void        voiceChange(    uint16_t oscNr );
 
     inline void getPitch() 
     {
@@ -59,7 +60,7 @@ private:
     OscillatorInChange      oscillatorParamChange;
     int32_t                 commonFMPitch;
     int16_t                 fastReleaseTick;
-    int16_t                 toneBank;
+//    int16_t                 toneBank;
     uint8_t                 minVoice;
     uint8_t                 maxVoice;
     bool                    monoPhone;

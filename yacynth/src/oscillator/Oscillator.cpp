@@ -34,8 +34,11 @@ const ToneShaperMatrix  Oscillator::toneShaperMatrix;
 // --------------------------------------------------------------------
 Oscillator::Oscillator()
 :   noiseWide(GaloisShifterSingle<seedThreadOscillator_noise>::getInstance())
+,   toneShaperSelect(0)
+,   toneShaperVecCurr(&toneShaperMatrix.toneShapers[ 0 ])
+,   oscillatorCountUsed( overtoneCountOscDef )
 {
-    oscillatorCountUsed = overtoneCountOscDef;
+    ;
     for( auto i=0; i<overtoneCountOscDef; i++ ) {
         state[i].phase  = 0;
         voiceState      = VOICE_DOWN;
@@ -69,16 +72,13 @@ bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, 
     case VOICE_RELEASE:
         isEnd = true;
     case VOICE_RUN:
-        const auto& tsvec     = toneShaperMatrix.toneShapers[ toneShaperSelect ];
-        oscillatorCountUsed = tsvec.oscillatorCountUsed;
-//        oscillatorCountUsed = 10;
+        oscillatorCountUsed = toneShaperVecCurr->oscillatorCountUsed;
 
         if( out.overtoneCount < oscillatorCountUsed ) {  // TODO what is this
             out.overtoneCount = oscillatorCountUsed;
         }
-        //oscillatorCountUsed = 13;
         for( auto oscindex = 0; oscindex < oscillatorCountUsed; ++oscindex ) {
-            const auto& toneshaper  = tsvec.toneShaperVec[ oscindex ];
+            const auto& toneshaper  = toneShaperVecCurr->toneShaper[ oscindex ];
             auto& stateOsc          = state[ oscindex ];
             
             const auto oscillatorType  = toneshaper.oscillatorType;
@@ -314,25 +314,31 @@ L_innerloop:
 // if runningCount > limit then delay the new voice by a cycle
 // void Oscillator::voiceUp( uint16_t envBankSel, uint16_t spectBankSel, uint16_t runningCount, int16_t velocity )
 
-void Oscillator::voiceUp( const OscillatorInChange& in )
+void Oscillator::voiceRun( const OscillatorInChange& in )
 {
 #if 0
     if( VOICE_DOWN != voiceState ) {
         return;
     }
 #endif
-    toneShaperSelect    = in.toneShaperSelect;
+    toneShaperSelect    = in.toneShaperSelect; // direct from router
+    if( toneShaperSelect >= settingVectorSize ) {
+      toneShaperSelect = settingVectorSize-1;
+    }
+    toneShaperVecCurr   = &toneShaperMatrix.toneShapers[ toneShaperSelect ];
+    oscillatorCountUsed = toneShaperVecCurr->oscillatorCountUsed;
+    
+    if(( in.oscillatorCountUsed > 0 ) && ( in.oscillatorCountUsed < oscillatorCountUsed )) {
+        oscillatorCountUsed = in.oscillatorCountUsed;
+    }
     basePitch           = in.pitch;
     setPitchDependency();
 
     // monitoring
     std::cout << "voiceUp: " << in.pitch << " depdx " << pitchDepDx << std::endl;
 //    random4SustainModulator.reset();
-#ifdef OSCILLATOR_VELOCITY_RANDOMIZER
-    velocity = in.velocity + ( gRandom.getRaw() & 0x0FFFF );
-#else
     velocity = in.velocity;
-#endif
+    
 //    noiseWide.clear();
 //    noiseNarrow.clear();
 
@@ -376,6 +382,19 @@ void Oscillator::voiceRelease( const OscillatorInChange& in )
         stateOsc.envelopePhase  = envelopeKnotRelease;
     }
 } // end Oscillator::voiceRelease( const OscillatorInChange& in )
+
+void Oscillator::voiceChange( const OscillatorInChange& in )
+{
+    switch(voiceState) {
+    case VOICE_RELEASE:
+    case VOICE_DOWN:
+        return;
+    }
+
+    std::cout << "voiceChange: " << std::endl;
+
+} // end Oscillator::voiceRelease( const OscillatorInChange& in )
+
 // --------------------------------------------------------------------
 void Oscillator::voiceDelay( const OscillatorInChange& in )
 {

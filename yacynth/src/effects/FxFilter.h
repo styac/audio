@@ -217,37 +217,37 @@ private:
         }
         out().wetDryBalance( inp<0>(), wetDryGain );
 //        const auto sinv         = param.mode_2ch_x4ap_phaser_mode01.oscMasterIndex.getLfoTriangleI16();// .getLfoSinI16();
-        const auto sinv         = param.mode_2ch_x4ap_phaser_mode01.oscMasterIndex.getLfoSinI16();
-        const auto sinvScaled   = param.mode_2ch_x4ap_phaser_mode01.notchMapper.getScaled(sinv);
-        const auto sinvYcent    = param.mode_2ch_x4ap_phaser_mode01.notchMapper.getOffseted(sinvScaled);        
+        const auto sinv         = param.modeAP01.oscMasterIndex.getLfoSinI16();
+        const auto sinvScaled   = param.modeAP01.notchMapper.getScaled(sinv);
+        const auto sinvYcent    = param.modeAP01.notchMapper.getOffseted(sinvScaled);        
         filterAllpass.setYcentAll<0>(sinvYcent, 1<<23);
                         
         // std::cout << "old " << ycentKA << " new " << sinvYcent << std::endl;
                 
-        if( feedbackGainCache.update( param.mode_2ch_x4ap_phaser_mode01.feedbackGainIndex ) ) {
+        if( feedbackGainCache.update( param.modeAP01.feedbackGainIndex ) ) {
         // must be init
 //            filterAllpass.setFeedback(feedbackGainCache.getExpValueFloat());
             filterAllpass.setFeedback(0.3f);
         }
 
-        if( wetDryGainCache.update( param.mode_2ch_x4ap_phaser_mode01.wetDryGainIndex ) ) {
+        if( wetDryGainCache.update( param.modeAP01.wetDryGainIndex ) ) {
         // must be init
         //    wetDryGain = wetDryGainCache.getExpValueFloat();
         }
 
-        if( bandWidhthCache.update( param.mode_2ch_x4ap_phaser_mode01.bandWidhthIndex ) ) {
+        if( bandWidhthCache.update( param.modeAP01.bandWidhthIndex ) ) {
             const auto bwCVal   = bandWidhthCache.getValueI32();
-            const auto bwScaled = param.mode_2ch_x4ap_phaser_mode01.bandwidthMapper.getScaled( bwCVal );
-            const auto bw       = param.mode_2ch_x4ap_phaser_mode01.bandwidthMapper.getOffseted( bwScaled );
+            const auto bwScaled = param.modeAP01.bandwidthMapper.getScaled( bwCVal );
+            const auto bw       = param.modeAP01.bandwidthMapper.getOffseted( bwScaled );
             filterAllpass.setYcentAll<1>(bw, 0);
         }
 
-        if( deltaPhaseControlCache.update( param.mode_2ch_x4ap_phaser_mode01.deltaPhaseControlIndex ) ) {
+        if( deltaPhaseControlCache.update( param.modeAP01.deltaPhaseControlIndex ) ) {
         // must be init
         //    wetDryGain = wetDryGainCache.getExpValueFloat();
         }
 
-        if( phaseDiff00ControlCache.update( param.mode_2ch_x4ap_phaser_mode01.phaseDiff00ControlIndex ) ) {
+        if( phaseDiff00ControlCache.update( param.modeAP01.phaseDiff00ControlIndex ) ) {
         // must be init
         //    wetDryGain = wetDryGainCache.getExpValueFloat();
         }        
@@ -263,12 +263,12 @@ private:
             filterStateVariable.get1x1BP1<0>( out().channel[1][si] );
         }       
         
-        if( fControlCache.updateDelta( param.mode_SVF01_2ch.fControlIndex ) ) {
-            const int32_t ycent = param.mode_SVF01_2ch.fMapper.getOffseted( param.mode_SVF01_2ch.fMapper.getScaled( fControlCache.value ) );
+        if( fControlCache.updateDelta( param.modeSV01.fControlIndex ) ) {
+            const int32_t ycent = param.modeSV01.fMapper.getOffseted( param.modeSV01.fMapper.getScaled( fControlCache.value ) );
             filterStateVariable.set_F( ycent, 0 );
         }
 
-        if( qControlCache.updateDelta( param.mode_SVF01_2ch.qControlIndex ) ) {
+        if( qControlCache.updateDelta( param.modeSV01.qControlIndex ) ) {
             filterStateVariable.set_Q( qControlCache.getExpValueFloat_127() );
         }        
     }
@@ -280,12 +280,12 @@ private:
             filter4Pole.get1x1BP32<0,2>( out().channel[1][si] );
         }       
         
-        if( fControlCache.updateDelta( param.mode_4p_2ch.fControlIndex ) ) {
-            const int32_t ycent = param.mode_4p_2ch.fMapper.getOffseted( param.mode_4p_2ch.fMapper.getScaled( fControlCache.value ) );
+        if( fControlCache.updateDelta( param.mode4P01.fControlIndex ) ) {
+            const int32_t ycent = param.mode4P01.fMapper.getOffseted( param.mode4P01.fMapper.getScaled( fControlCache.value ) );
             filter4Pole.set_F( ycent, 0 );
         }
 
-        if( qControlCache.updateDelta( param.mode_4p_2ch.qControlIndex ) ) {
+        if( qControlCache.updateDelta( param.mode4P01.qControlIndex ) ) {
             filter4Pole.set_Q( qControlCache.getExpValueFloat() );
         }        
     }

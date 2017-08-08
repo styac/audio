@@ -62,7 +62,7 @@
 
 #include    <unistd.h>
 #include    <pthread.h>
-#include    <sndfile.h>
+// #include    <sndfile.h>
 #include    <bitset>
 #include    <map>
 #include    <list>
@@ -147,7 +147,7 @@ static void basicInit( Sysman  * sysman )
     FxFlanger  * fxFlanger  = new FxFlanger();
     constexpr int   EffectInstance_FxFlanger            = EffectInstance_Nil + 15;    
 
-    constexpr   int overToneCount = 16;
+    constexpr   int overToneCount = 4;
     
     ToneShaper ts;
     ts.clear();

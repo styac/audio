@@ -28,6 +28,7 @@
 
 #include    <unistd.h>
 #include    <atomic>
+#include    <thread>
 
 
 namespace yacynth {
@@ -53,32 +54,37 @@ bool SynthFrontend::initialize( void )
 
 } // end SynthFrontend::initialize
 // --------------------------------------------------------------------
+
 bool SynthFrontend::evalMEssage( void )
 {
+    const int hwconc = std::thread::hardware_concurrency();
     Yamsgrt     msg;
     uint16_t    velocityLin;
     while( msg.store = queuein.queueOscillator.get() ) {
-        std::cout << std::hex << "msg: " << msg.store << std::endl;
-        if( YAMOP_SYSTEM_STOP == msg.store) {
-            return false;
-        }
-
-        switch(  msg.f1.opcode ) {
-        case YAMOP_SETVOICE_NOTE:
-            oscArray->voiceUp(      msg.setVoice.oscNr, msg.setVoice.pitch, msg.setVoice.velocity );
+        std::cout << std::hex << " msg:" << msg.store << " cpu:"<< sched_getcpu()  << std::endl;
+        if( int64_t(msg.store) > 0 ) {
+            oscArray->voiceRun( msg.voiceSet.oscNr, msg.voiceSet.pitch, msg.voiceSet.velocity15bit, msg.voiceSet.toneBank );
             if( 0 == ++cycleNoise ) { // reset after 2^32 cycles
                 GaloisShifterSingle<seedThreadOscillator_noise>::getInstance().reset();
                 GaloisShifterSingle<seedThreadOscillator_random>::getInstance().reset();
             }
-
-            break;
-        case YAMOP_CHNGVOICE_NOTE:
-            oscArray->voiceChange(  msg.setVoice.oscNr, msg.setVoice.pitch, msg.setVoice.velocity );
-            break;
-        }
+            continue;
+        } 
+        switch( msg.voiceChange.opcode ) {
+        case YAMOP_VOICE_RELEASE :
+            oscArray->voiceRelease( msg.voiceRelease.oscNr );
+            continue;
+        case YAMOP_VOICE_CHANGE :
+            continue;
+        default:
+            if( int64_t(msg.store) == -1LL ) {
+                return false;
+            }
+        }        
     }
     return true;
 } // end SynthFrontend::evalMEssage
+
 // --------------------------------------------------------------------
 bool SynthFrontend::generate( void )
 {
@@ -117,6 +123,7 @@ bool SynthFrontend::run( void )
                << "--- osc " << statistics.cycleDeltaSumm
                << " over " << statistics.countOverSumm
                << " max " << statistics.cycleDeltaMax
+               << " cpu:"<< sched_getcpu()
                << std::endl;
            statistics.countDisplay  = 0;
            statistics.cycleDeltaSumm = 0;

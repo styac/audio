@@ -63,6 +63,9 @@ public:
 
     struct Mode01 {
         static constexpr uint8_t subtype         = uint8_t(TagEffectFxLateReverbMode::SetParametersMode01);
+        static constexpr char const * const tapFeedbackName = "tapFeedback";
+        static constexpr char const * const tapFeedbackInternalName = "tapFeedbackInternal";
+        static constexpr char const * const tapOutputName = "tapOutput";
 
         bool check()
         {
@@ -109,9 +112,9 @@ public:
             }
             return true;
         }
-        MonoDelayBandpassTapArray<combCount> tapFeedback;
-        MonoDelayLowpassTapArray<combCount>  tapFeedbackInternal;
-        MonoDelayLowpassTapArray<combCount>  tapOutput;
+        DelayMultBandpassTapArrayNCH<combCount,1> tapFeedback;
+        DelayMultLowpassTapArrayNCH<combCount,1>  tapFeedbackInternal;
+        DelayMultLowpassTapArrayNCH<combCount,1>  tapOutput;
     } mode01;
 };
 

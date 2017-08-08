@@ -67,12 +67,12 @@ public:
 
         static constexpr char const * const delayLateReverbName = "lateReverbDelay";
         static constexpr char const * const earlyreflectionName = "earlyReflection";
-        
+
         DelayModulatedTapArrayNCH< tapCount, channelCount > tap;
         // left-right delay for late reverb
         // need a controller later !
         DelayTapArrayNCH< 1, channelCount >                 lateReverb;
-        
+
         bool check()
         {
             for( auto &v0 : lateReverb.delayIndex.v ) {
@@ -86,13 +86,13 @@ public:
                     return false;
                 }
             }
-            
+
             for( auto &v0 : tap.modDepth.v ) {
                 if(( v0 > 1.0f ) || ( v0 < -1.0f )) {
-                    return false;                
+                    return false;
                 }
             }
-            
+
             constexpr uint32_t minModDp = freq2deltaPhaseControlLfo(0.1);
             constexpr uint32_t maxModDp = freq2deltaPhaseControlLfo(20.0);
             for( auto &v0 : tap.modDeltaPhase.v ) {
@@ -108,8 +108,6 @@ public:
             }
             return true;
         }
-
-
     } mode01;
 };
 

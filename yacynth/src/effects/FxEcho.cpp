@@ -104,9 +104,9 @@ bool FxEchoParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t p
     case TagEffectFxEchoMode::SetTapOutputCount :
         TAG_DEBUG(TagEffectFxEchoMode::SetTapOutputCount, tagIndex, paramIndex, "FxEchoParam" );
         if( message.checkParamIndex(paramIndex) ) {
-            tapOutputCount = message.getParam(paramIndex);
-            if( tapOutputCount > tapOutputSize ) {
-                tapOutputCount = tapOutputSize;
+            tapOutputUsed = message.getParam(paramIndex);
+            if( tapOutputUsed > tapOutputCount ) {
+                tapOutputUsed = tapOutputCount;
             }
             message.setStatusSetOk();
             return true;
@@ -117,9 +117,9 @@ bool FxEchoParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t p
     case TagEffectFxEchoMode::SetTapFeedbackCount :
         TAG_DEBUG(TagEffectFxEchoMode::SetTapFeedbackCount, tagIndex, paramIndex, "FxEchoParam" );
         if( message.checkParamIndex(paramIndex) ) {
-            tapFeedbackCount = message.getParam(paramIndex);
-            if( tapFeedbackCount > tapFeedbackSize ) {
-                tapFeedbackCount = tapFeedbackSize;
+            tapFeedbackUsed = message.getParam(paramIndex);
+            if( tapFeedbackUsed > tapFeedbackCount ) {
+                tapFeedbackUsed = tapFeedbackCount;
             }
             message.setStatusSetOk();
             return true;
@@ -131,9 +131,9 @@ bool FxEchoParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t p
     case TagEffectFxEchoMode::SetTapOutputLPCount :
         TAG_DEBUG(TagEffectFxEchoMode::SetTapOutputLPCount, tagIndex, paramIndex, "FxEchoParam" );
         if( message.checkParamIndex(paramIndex) ) {
-            tapOutputLPCount = message.getParam(paramIndex);
-            if( tapOutputLPCount > tapOutputLPSize ) {
-                tapOutputLPCount = tapOutputLPSize;
+            tapOutputLPUsed = message.getParam(paramIndex);
+            if( tapOutputLPUsed > tapOutputLPCount ) {
+                tapOutputLPUsed = tapOutputLPCount;
             }
             message.setStatusSetOk();
             return true;
@@ -145,9 +145,9 @@ bool FxEchoParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t p
     case TagEffectFxEchoMode::SetTapFeedbackLPCount :
         TAG_DEBUG(TagEffectFxEchoMode::SetTapFeedbackLPCount, tagIndex, paramIndex, "FxEchoParam" );
         if( message.checkParamIndex(paramIndex) ) {
-            tapFeedbackLPCount = message.getParam(paramIndex);
-            if( tapFeedbackLPCount > tapFeedbackLPSize ) {
-                tapFeedbackLPCount = tapFeedbackLPSize;
+            tapFeedbackLPUsed = message.getParam(paramIndex);
+            if( tapFeedbackLPUsed > tapFeedbackLPCount ) {
+                tapFeedbackLPUsed = tapFeedbackLPCount;
             }
             message.setStatusSetOk();
             return true;

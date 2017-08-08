@@ -45,11 +45,12 @@ public:
     static constexpr TagEffectType  type            = TagEffectType::FxEcho;
     static constexpr std::size_t maxMode            = 2;
     static constexpr std::size_t inputCount         = 1;
-
-    static constexpr std::size_t tapOutputSize      = 8;
-    static constexpr std::size_t tapFeedbackSize    = 8;
-    static constexpr std::size_t tapOutputLPSize    = 8;
-    static constexpr std::size_t tapFeedbackLPSize  = 8;
+    
+    static constexpr std::size_t channelCount       = 2;
+    static constexpr std::size_t tapOutputCount     = 8;
+    static constexpr std::size_t tapFeedbackCount   = 8;
+    static constexpr std::size_t tapOutputLPCount   = 8;
+    static constexpr std::size_t tapFeedbackLPCount = 8;
 
     static constexpr std::size_t delayLngExp        = 13;
     static constexpr std::size_t delayLng           = 1<<(delayLngExp+effectFrameSizeExp);
@@ -60,6 +61,18 @@ public:
     static constexpr float lowpassHighLimit         = f2FilterOnePole_F( 30.0 );
     static constexpr float feedbackLimit            = 0.6f;
     static constexpr float outputLimit              = 1.0f;
+
+    static constexpr char const * const tapOutputName           = "tapOutput";
+    static constexpr char const * const tapFeedbackName         = "tapFeedback";
+    static constexpr char const * const tapOutputLPName         = "tapOutputLP";
+    static constexpr char const * const tapFeedbackLPName       = "tapFeedbackLP";
+    
+    static constexpr char const * const tapOutputUsedName       = "tapOutputUsedCount";
+    static constexpr char const * const tapFeedbackUsedName     = "tapFeedbackUsedCount";
+    static constexpr char const * const tapOutputLPUsedName     = "tapOutputLPUsedCount";
+    static constexpr char const * const tapFeedbackLPUsedName   = "tapFeedbackLPUsedCount";
+
+    static constexpr char const * const dryName                 = "dry";
 
     static constexpr uint8_t subtype         = uint8_t(TagEffectFxEchoMode::SetParametersMode01);
 
@@ -166,20 +179,20 @@ public:
         }
 
         // limit the counts
-        if( tapOutputCount > tapOutputSize ) {
-            tapOutputCount = tapOutputSize;
+        if( tapOutputUsed > tapOutputCount ) {
+            tapOutputUsed = tapOutputCount;
         }
 
-        if( tapFeedbackCount > tapFeedbackSize ) {
-            tapFeedbackCount = tapFeedbackSize;
+        if( tapFeedbackUsed > tapFeedbackCount ) {
+            tapFeedbackUsed = tapFeedbackCount;
         }
 
-        if( tapOutputLPCount > tapOutputLPSize ) {
-            tapOutputLPCount = tapOutputLPSize;
+        if( tapOutputLPUsed > tapOutputLPCount ) {
+            tapOutputLPUsed = tapOutputLPCount;
         }
 
-        if( tapFeedbackLPCount > tapFeedbackLPSize ) {
-            tapFeedbackLPCount = tapFeedbackLPSize;
+        if( tapFeedbackLPUsed > tapFeedbackLPCount ) {
+            tapFeedbackLPUsed = tapFeedbackLPCount;
         }
 
         // limit the mixer values
@@ -196,17 +209,18 @@ public:
         }
         return true;
     }
-    StereoDelayTapArray<tapOutputSize>              tapOutput;
-    StereoDelayTapArray<tapFeedbackSize>            tapFeedback;
-    StereoDelayLowPassTapArray<tapOutputLPSize>     tapOutputLP;
-    StereoDelayLowPassTapArray<tapFeedbackLPSize>   tapFeedbackLP;
+    StereoDelayTapArray<tapOutputCount>             tapOutput;
+    StereoDelayTapArray<tapFeedbackCount>           tapFeedback;
+    StereoDelayLowPassTapArray<tapOutputLPCount>    tapOutputLP;
+    StereoDelayLowPassTapArray<tapFeedbackLPCount>  tapFeedbackLP;
     // actual value : tap...Count <= ... tap...Size
-    uint8_t                                         tapOutputCount;
-    uint8_t                                         tapFeedbackCount;
-    uint8_t                                         tapOutputLPCount;
-    uint8_t                                         tapFeedbackLPCount;
+    uint8_t                                         tapOutputUsed;
+    uint8_t                                         tapFeedbackUsed;
+    uint8_t                                         tapOutputLPUsed;
+    uint8_t                                         tapFeedbackLPUsed;
     // dry mix value for chA,chB
     float                                           dry[2];
+    uint32_t                                        rfu;
 };
 
 

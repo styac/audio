@@ -119,7 +119,7 @@ void IOThread::audioOutCB( void *data, uint32_t nframes, float *outp1, float *ou
     // gains are not complete
     const int64_t  maxC = 1000;
     if( --thp.count < 0 ) {
-        std::cout << std::dec << " ---new  iothread " << ( thp.timer / bufferSizeMult ) << std::endl;
+        std::cout << std::dec << " ---new  iothread " << ( thp.timer / bufferSizeMult ) << " cpu:"<< sched_getcpu() << std::endl;
         thp.count = maxC;
         thp.timer = 0;
     }
@@ -132,6 +132,9 @@ void IOThread::audioOutCB( void *data, uint32_t nframes, float *outp1, float *ou
         // main cycle for the effect stage -- called according to the frames rate:
         // dev state: 64 sample internal, 256 external
         // one frame cycle
+        
+        // check here the MIDI? to educe the avg latency
+        
         InnerController::getInstance().incrementFrameLFOscillatorPhases();
         const int ri = thp.queueOut.getReadIndex();
         thp.fxOscillatorMixer.process( thp.queueOut.out[ri] ); // this has a special interface
