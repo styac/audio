@@ -54,7 +54,7 @@ void Oscillator::initialize( void )
 bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, Statistics& stat )
 {
     // under this amplitude value the signal will not be generated
-    constexpr uint64_t  hearingThreshold = 1L<<23;
+    constexpr uint64_t  hearingThreshold = 1L<<8;
     
     // 25 bit * 7 bit = 32 -> result 21
     // TODO this must be set to a resonable value with experiments - 15 bit multiplier
@@ -113,15 +113,16 @@ bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, 
                 // fast release  : input stateOsc.tickFrame > 0 -- legato - envelopMultiplierExpChecked fix
                 if( 0 == stateOsc.tickFrame ) { // if fastRelease then stateOsc.tickFrame == 1
                     stateOsc.tickFrame = toneshaper.tickFrameRelease.get(pitchDepDx);  // TODO interpolate
-                    stateOsc.envelopMultiplierExpChecked = oscillatorOutSampleCountExp - toneshaper.curveSpeedRelease;
+                    stateOsc.envelopDeltaDividerExp = oscillatorOutSampleCountExp - toneshaper.tickFrameRelease.curveSpeed;
                 } else {
-                    stateOsc.envelopMultiplierExpChecked = oscillatorOutSampleCountExp + 1;
+                    stateOsc.envelopDeltaDividerExp = oscillatorOutSampleCountExp + 1;
                 }
                 stateOsc.envelopePhase = 0; // next will  be -1 -- tricky
             } else {
                 while( 0 == stateOsc.tickFrame ) {
                     changeEnvPhase = true;
-                    stateOsc.tickFrame = toneshaper.transient[stateOsc.envelopePhase].tickFrame.get(pitchDepDx); // TODO interpolate
+                    stateOsc.tickFrame = toneshaper.transient[stateOsc.envelopePhase].tickFrame.get(pitchDepDx);
+
                     if( 0 < stateOsc.tickFrame )
                         break;
                     if( 0 > --stateOsc.envelopePhase ) {
@@ -130,13 +131,9 @@ bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, 
                     }
                 }
                 if( changeEnvPhase ) {
-                    // TODO:  frequency dependency -- amplitude,time
                     const auto& currentEnvelopeKnot  = toneshaper.transient[stateOsc.envelopePhase];
-                     // TODO interpolate
-//                    stateOsc.envelopeTargetValueVelocity =
-//                        ( velocity * static_cast<uint64_t>(currentEnvelopeKnot.targetValue.get() )) >> 8; // 25 bit for the signal
-                    stateOsc.envelopeTargetValueVelocity = currentEnvelopeKnot.targetValue.get(velocity,pitchDepDx); // 25 bit for the signal
-                    stateOsc.envelopMultiplierExpChecked = oscillatorOutSampleCountExp - currentEnvelopeKnot.curveSpeed;
+                    stateOsc.envelopeTargetValueVelocity = ( int64_t(currentEnvelopeKnot.targetValue) * velocity ) >> 17; // 32+15-16
+                    stateOsc.envelopDeltaDividerExp = oscillatorOutSampleCountExp - currentEnvelopeKnot.tickFrame.curveSpeed;
                 }
             } // end if( envelopeKnotRelease == stateOsc.envelopePhase )
 
@@ -156,7 +153,7 @@ bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, 
                 break;
             default:
                 deltaAddAcc = (( stateOsc.envelopeTargetValueVelocity - stateOsc.amplitudoOsc ) / stateOsc.tickFrame )
-                    >> stateOsc.envelopMultiplierExpChecked;
+                    >> stateOsc.envelopDeltaDividerExp;
                 --stateOsc.tickFrame;
                 break;
             }
@@ -164,10 +161,11 @@ bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, 
             goto L_innerloop;
 //============================
 L_sustain:
-            deltaAddAcc = stateOsc.sustainModulator.mod( stateOsc.amplitudoOsc, toneshaper.sustain, pitchDepDx );
+            deltaAddAcc = stateOsc.sustainModulator.decayMod( stateOsc.amplitudoOsc );
             ++stat.cycleCounter[Statistics::COUNTER_SUSTAIN];
 //============================
 L_innerloop:
+                
             if( ( hearingThreshold > stateOsc.amplitudoOsc ) && ( 0 >= deltaAddAcc )) {
                 stateOsc.amplitudoOsc = 0;
                 stateOsc.phase += deltaPhase<<oscillatorOutSampleCountExp; // no signal but move the phase by a tick
@@ -175,7 +173,7 @@ L_innerloop:
                 continue; // next oscillator
             }
 
-            // adjust if negative because of the truncation to avoid going into minus
+// adjust if negative because of the truncation to avoid going into minus
             if( 0 > deltaAddAcc) {
                 ++deltaAddAcc;
             }
@@ -228,10 +226,92 @@ L_innerloop:
                 }
                 break;
 //---------------------------
-            case OSC_SIN_RING:
+            case OSC_PD00:
                 for( auto buffindex = 0; buffindex < oscillatorOutSampleCount; ++buffindex ) {
-                    *layp++ +=  ( tables::waveSinTable[ uint16_t((( stateOsc.phase += deltaPhase ) >> normFactorPhaseIndexExp))]
-                            * (stateOsc.amplitudoOsc /* * ringtable[++ri & mask] >> 16 */  ) ) >> normAmplitudeOscillatorExp;
+                    const uint16_t phase = (stateOsc.phase += deltaPhase ) >> normFactorPhaseIndexExp;
+                    *layp++ += ( tables::waveSinTable[ uint16_t(phase + (uint16_t( tables::waveSinTable[ phase ] ))) ] 
+                            * stateOsc.amplitudoOsc ) >> normAmplitudeOscillatorExp;
+                    stateOsc.amplitudoOsc += deltaAddAcc;
+                }
+                break;
+//---------------------------
+            case OSC_PD01:
+                for( auto buffindex = 0; buffindex < oscillatorOutSampleCount; ++buffindex ) {
+                    const uint16_t phase = (stateOsc.phase += deltaPhase ) >> normFactorPhaseIndexExp;
+                    *layp++ += ( tables::waveSinTable[ uint16_t(phase + (uint16_t( tables::waveSinTable[ phase ]>>1) )) ] 
+                            * stateOsc.amplitudoOsc ) >> normAmplitudeOscillatorExp;
+                    stateOsc.amplitudoOsc += deltaAddAcc;
+                }
+                break;
+//---------------------------
+            case OSC_PD02:
+                for( auto buffindex = 0; buffindex < oscillatorOutSampleCount; ++buffindex ) {
+                    const uint16_t phase = (stateOsc.phase += deltaPhase ) >> normFactorPhaseIndexExp;
+                    *layp++ += ( tables::waveSinTable[ uint16_t(phase + (uint16_t( tables::waveSinTable[ phase ]>>2) )) ] 
+                            * stateOsc.amplitudoOsc ) >> normAmplitudeOscillatorExp;
+                    stateOsc.amplitudoOsc += deltaAddAcc;
+                }
+                break;  
+//---------------------------
+            case OSC_PD03:
+                for( auto buffindex = 0; buffindex < oscillatorOutSampleCount; ++buffindex ) {
+                    const uint16_t phase = (stateOsc.phase += deltaPhase ) >> normFactorPhaseIndexExp;
+                    *layp++ += ( tables::waveSinTable[ uint16_t(phase + (uint16_t( tables::waveSinTable[ phase ]>>3) )) ] 
+                            * stateOsc.amplitudoOsc ) >> normAmplitudeOscillatorExp;
+                    stateOsc.amplitudoOsc += deltaAddAcc;
+                }
+                break;                
+//---------------------------
+            case OSC_12OV0:
+                for( auto buffindex = 0; buffindex < oscillatorOutSampleCount; ++buffindex ) {
+                    const uint32_t phase = (stateOsc.phase += deltaPhase );
+                    *layp++ += (( tables::waveSinTable[ uint16_t(phase>>16) ] + tables::waveSinTable[ uint16_t(phase>>15) ] ) 
+                            * stateOsc.amplitudoOsc ) >> normAmplitudeOscillatorExp;
+                    stateOsc.amplitudoOsc += deltaAddAcc;
+                }
+                break;
+//---------------------------
+            case OSC_12OV1:
+                for( auto buffindex = 0; buffindex < oscillatorOutSampleCount; ++buffindex ) {
+                    const uint32_t phase = (stateOsc.phase += deltaPhase );
+                    *layp++ += (( tables::waveSinTable[ uint16_t(phase>>16) ] + (tables::waveSinTable[ uint16_t(phase>>15) ] >> 1 )) 
+                            * stateOsc.amplitudoOsc ) >> normAmplitudeOscillatorExp;
+                    stateOsc.amplitudoOsc += deltaAddAcc;
+                }
+                break;
+//---------------------------
+            case OSC_12OV2:
+                for( auto buffindex = 0; buffindex < oscillatorOutSampleCount; ++buffindex ) {
+                    const uint32_t phase = (stateOsc.phase += deltaPhase );
+                    *layp++ += (( tables::waveSinTable[ uint16_t(phase>>16) ] + (tables::waveSinTable[ uint16_t(phase>>15) ] >> 2 )) 
+                            * stateOsc.amplitudoOsc ) >> normAmplitudeOscillatorExp;
+                    stateOsc.amplitudoOsc += deltaAddAcc;
+                }
+                break;
+//---------------------------
+            case OSC_13OV0:
+                for( auto buffindex = 0; buffindex < oscillatorOutSampleCount; ++buffindex ) {
+                    const uint32_t phase = (stateOsc.phase += deltaPhase );
+                    *layp++ += (( tables::waveSinTable[ uint16_t(phase>>16) ] + tables::waveSinTable[ uint16_t(phase>>14) ] ) 
+                            * stateOsc.amplitudoOsc ) >> normAmplitudeOscillatorExp;
+                    stateOsc.amplitudoOsc += deltaAddAcc;
+                }
+                break;
+//---------------------------
+            case OSC_13OV1:
+                for( auto buffindex = 0; buffindex < oscillatorOutSampleCount; ++buffindex ) {
+                    const uint32_t phase = (stateOsc.phase += deltaPhase );
+                    *layp++ += (( tables::waveSinTable[ uint16_t(phase>>16) ] + (tables::waveSinTable[ uint16_t(phase>>14) ] >> 1 )) 
+                            * stateOsc.amplitudoOsc ) >> normAmplitudeOscillatorExp;
+                    stateOsc.amplitudoOsc += deltaAddAcc;
+                }
+                break;
+//---------------------------
+            case OSC_13OV2:
+                for( auto buffindex = 0; buffindex < oscillatorOutSampleCount; ++buffindex ) {
+                    const uint32_t phase = (stateOsc.phase += deltaPhase );
+                    *layp++ += (( tables::waveSinTable[ uint16_t(phase>>16) ] + (tables::waveSinTable[ uint16_t(phase>>14) ] >> 2 )) 
+                            * stateOsc.amplitudoOsc ) >> normAmplitudeOscillatorExp;
                     stateOsc.amplitudoOsc += deltaAddAcc;
                 }
                 break;
@@ -244,46 +324,48 @@ L_innerloop:
 //
             case OSC_NOISE_WHITE:
                 for( auto buffindex = 0; buffindex < oscillatorOutSampleCount; ++buffindex ) {
-                    *layp++ +=  ( noiseWide.getWhite() * stateOsc.amplitudoOsc ) >> (normAmplitudeOscillatorExp+2);
+                    *layp++ +=  ( noiseWide.getWhite() * stateOsc.amplitudoOsc ) >> (normAmplitudeOscillatorExp+8);
                     stateOsc.amplitudoOsc += deltaAddAcc;
                 }
                 break;
 //---------------------------
             case OSC_NOISE_RED:
                 for( auto buffindex = 0; buffindex < oscillatorOutSampleCount; ++buffindex ) {
-                    *layp++ +=  ( noiseWide.getRed() * stateOsc.amplitudoOsc ) >> (normAmplitudeOscillatorExp+2);
+                    *layp++ +=  ( noiseWide.getRed() * stateOsc.amplitudoOsc ) >> (normAmplitudeOscillatorExp+16);
                     stateOsc.amplitudoOsc += deltaAddAcc;
                 }
 //---------------------------
+                // TODO check
             case OSC_NOISE_PURPLE:
                 for( auto buffindex = 0; buffindex < oscillatorOutSampleCount; ++buffindex ) {
-                    *layp++ +=  ( noiseWide.getPurple() * stateOsc.amplitudoOsc ) >> (normAmplitudeOscillatorExp+2);
+                    *layp++ +=  ( noiseWide.getPurple() * stateOsc.amplitudoOsc ) >> (normAmplitudeOscillatorExp+8);
                     stateOsc.amplitudoOsc += deltaAddAcc;
                 }
                 break;
 //---------------------------
+                // TODO add diff zero
             case OSC_NOISE_BLUE:
                 for( auto buffindex = 0; buffindex < oscillatorOutSampleCount; ++buffindex ) {
-                    *layp++ +=  ( noiseWide.getBlue() * stateOsc.amplitudoOsc ) >> (normAmplitudeOscillatorExp+2);
+                    *layp++ +=  ( noiseWide.getBlue() * stateOsc.amplitudoOsc ) >> (normAmplitudeOscillatorExp+6);
                     stateOsc.amplitudoOsc += deltaAddAcc;
                 }
                 break;
 //---------------------------
             case OSC_NOISE_PEEK1:
                 for( auto buffindex = 0; buffindex < oscillatorOutSampleCount; ++buffindex ) {
-                    *layp++ +=  ( noiseNarrow.getSv1( whiteNoiseFrame.getFrame()[buffindex] ) * stateOsc.amplitudoOsc ) >> (normAmplitudeOscillatorExp+2);
+                    *layp++ +=  ( noiseNarrow.getSv1( whiteNoiseFrame.getFrame()[buffindex] ) * stateOsc.amplitudoOsc ) >> (normAmplitudeOscillatorExp+8);
                     stateOsc.amplitudoOsc += deltaAddAcc;
                 }
 //---------------------------
             case OSC_NOISE_PEEK2:
                 for( auto buffindex = 0; buffindex < oscillatorOutSampleCount; ++buffindex ) {
-                    *layp++ +=  ( noiseNarrow.getSv2( whiteNoiseFrame.getFrame()[buffindex] ) * stateOsc.amplitudoOsc ) >> (normAmplitudeOscillatorExp+2);
+                    *layp++ +=  ( noiseNarrow.getSv2( whiteNoiseFrame.getFrame()[buffindex] ) * stateOsc.amplitudoOsc ) >> (normAmplitudeOscillatorExp+8);
                     stateOsc.amplitudoOsc += deltaAddAcc;
                 }
 //---------------------------
             case OSC_NOISE_PEEK3:
                 for( auto buffindex = 0; buffindex < oscillatorOutSampleCount; ++buffindex ) {
-                    *layp++ +=  ( noiseNarrow.getSv3( whiteNoiseFrame.getFrame()[buffindex] ) * stateOsc.amplitudoOsc ) >> (normAmplitudeOscillatorExp+5);
+                    *layp++ +=  ( noiseNarrow.getSv3( whiteNoiseFrame.getFrame()[buffindex] ) * stateOsc.amplitudoOsc ) >> (normAmplitudeOscillatorExp+8);
                     stateOsc.amplitudoOsc += deltaAddAcc;
                 }
 //---------------------------
@@ -335,7 +417,13 @@ void Oscillator::voiceRun( const OscillatorInChange& in )
     setPitchDependency();
 
     // monitoring
-    std::cout << "voiceUp: " << in.pitch << " depdx " << pitchDepDx << std::endl;
+    std::cout 
+        << "\n  ***  depdx " << pitchDepDx 
+        << " tick " << toneShaperVecCurr->toneShaper[0].tickFrameRelease.get(pitchDepDx) 
+        << " decay "    << toneShaperVecCurr->toneShaper[0].sustain.decayCoeff.get(pitchDepDx) 
+        << " depth "    << toneShaperVecCurr->toneShaper[0].sustain.modDepth
+        << " delta "    << toneShaperVecCurr->toneShaper[0].sustain.modDeltaPhase
+        << std::endl;
 //    random4SustainModulator.reset();
     velocity = in.velocity;
     
@@ -355,7 +443,7 @@ void Oscillator::voiceRun( const OscillatorInChange& in )
         // if voice is not running !!
         stateOsc.phase = gRandom.getRaw();
 #endif
-        stateOsc.sustainModulator.reset();
+        stateOsc.sustainModulator.reset( toneShaperVecCurr->toneShaper[oscindex].sustain, pitchDepDx );
         stateOsc.tickFrame          = 0;                // feature: must be set to 0
         stateOsc.envelopePhase      = transientKnotCount-1;   // down count
 //        stateOsc.releaseEnd         = false;

@@ -49,7 +49,7 @@ public:
     static constexpr std::size_t inputCount  = 0; // input is oscillator thread out
 
     // temp
-    static constexpr   float   gainref = 1.0f/(1L<<23);
+    static constexpr   float   gainref = 1.0f/(1L<<24);
     static constexpr uint8_t subtype         = uint8_t(TagEffectFxOscillatorMixerMode::SetParametersMode01);
 
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );

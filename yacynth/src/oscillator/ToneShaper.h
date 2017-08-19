@@ -36,106 +36,68 @@
 
 namespace yacynth {
 
-//
 // interpolated values for frequency dependent values
 // range is 8 octaves
 // dx => logaritmic
-// higher freq alwazs lower
 //
-struct InterpolatedDecreaseU16 {
-    inline int32_t get(void) const
+// TICK always decreases by frequency
+struct InterpolatedTick {
+    static constexpr uint16_t lowBaseLimit      = 5;       
+    static constexpr int8_t   curveSpeedLimit   = 3;
+    void clear(void)
+    {
+        lowBase       = 0u;
+        rate          = 0u;
+        curveSpeed    = 0;        
+    }
+
+    inline uint16_t get( const uint16_t dx ) const
+    {
+        return lowBase - uint16_t(( uint64_t(rate) * dx * lowBase ) >> 24 );
+    }
+
+    inline void setPar( uint16_t lb, uint8_t rt, int8_t speed )
+    {                
+        lowBase = lb;
+        rate    = rt;
+        if( speed <= -curveSpeedLimit )
+            curveSpeed = -curveSpeedLimit;
+        else if( speed >= curveSpeedLimit )
+            curveSpeed = curveSpeedLimit;
+        else 
+            curveSpeed = speed;            
+    }
+    uint16_t    lowBase;    // value at low frequencies
+    uint8_t     rate;       // value_high_frequencies
+    int8_t      curveSpeed;
+};
+
+// Decay always increases by frequency
+struct InterpolatedDecay {
+    void clear(void)
+    {
+        lowBase       = 0u;
+        rate          = 0u;
+    };
+
+    inline uint32_t get(void) const
     {
         return lowBase;
     }
-    // dx = 0..FFFF
-    inline int32_t get( const int16_t dx ) const
+
+    inline uint32_t get( const uint16_t dx ) const
     {
-        const int32_t tick = int32_t(lowBase) + ((int32_t(rate) * dx)>>15) ;
-//        std::cout << "-- tick " << tick << " dx " << dx << std::endl;
-        return tick;
+        return lowBase + ((uint32_t(rate) * dx)>>16);
     }
 
-    // for tick rate is always negative: time must decrease with freq
-    inline void setTickPar( int16_t lb, int16_t rt ) 
-    {        
-        constexpr int16_t maxLowBase    = 1<<13; // 8192*1.3 sec        
-        constexpr int16_t lowLimit      = 5; // 8192*1.3 sec        
-        lowBase = lb;
-        rate = rt;
-        if( lowBase <= 0 )
-            lowBase = 0;
-        if( lowBase > maxLowBase )
-            lowBase = maxLowBase;
-        if( lowBase < lowLimit || rt >= 0 ) { // too small or illegal
-            rate = 0;
-            return;
-        }
-        // result never will be negative -- we will see
-        if( lowBase < -rate ) { // this must be revised
-            rate = -lowBase;
-        } 
-    }
-    
     // for decay rate is always positive: must increase with freq
-    inline void setDecayPar( int16_t lb, int16_t rt ) 
+    inline void setPar( uint16_t lb, uint16_t rt ) 
     {
-        constexpr int16_t maxLowBase = 1<<14;  // check it
         lowBase = lb;
-        rate = rt;
-        if( lowBase <= 0 )
-            lowBase = 0;
-        if( lowBase > maxLowBase )
-            lowBase = maxLowBase;
-        if( lowBase <= 0 || rt <= 0 ) {
-            rate = 0;
-            return;
-        }          
-    }
-    
-    int16_t     lowBase;    // value at low frequencies - always positive (tick, decay)
-    // rate negative for tick positive for decay -- increase with freq
-    int16_t     rate;       // value_high_frequencies - value_low_frequencies
-};
-
-//
-// normally this increases with freq
-// result could be uint64_t -- velocity can be incorporated here ?
-//   ( velocity * static_cast<uint64_t>(currentEnvelopeKnot.targetValue.get() )) >> 8; 
-//
-struct InterpolatedAmplitudeU32 {
-    static constexpr int8_t   scaleUp = 14; // this must be optimized, probably 12..14
-#if 0
-    inline uint64_t get( uint16_t velocity ) const
-    {
-        // 16 * 16 -> 25 is needed ! down by 7
-        return uint64_t( uint32_t(lowBase) * velocity )<<6;
+        rate = std::min( rt, uint16_t(0x0FFFFU - lowBase) );
     }    
-#endif    
-    inline uint64_t get( uint16_t velocity, int16_t dx ) const
-    {
-        //                                    15 * 15 = 30 bit   *  15 = 45 - 8  = 37
-        return (((uint64_t(lowBase)<<15) + ((int32_t(rate) * dx))) * velocity ) >> 8;
-    }
-    
-    inline void setPar( uint16_t lb, int16_t rt ) 
-    {
-//        constexpr int16_t maxLowBase = 1<<14;  // check it
-        lowBase = lb;
-        rate = rt;
-#if 0
-        if( lowBase <= 0 )
-            lowBase = 0;
-        if( lowBase > maxLowBase )
-            lowBase = maxLowBase;
-        if( lowBase <= 0 || rt <= 0 ) {
-            rate = 0;
-            return;
-        }          
-#endif
-    }
-        
-    uint16_t    lowBase;    // value at low frequencies
-    int16_t     rate;       // value_high_frequencies - value_low_frequencies
+    uint16_t    lowBase;    // value at low frequencies - always positive (tick, decay)
+    uint16_t    rate;       // value_high_frequencies - value_low_frequencies
 };
 
 //
@@ -146,17 +108,13 @@ struct InterpolatedAmplitudeU32 {
 
 struct AmplitudeTransient  {
     static constexpr const char * const typeName = "AmplitudeTransient";        
-    static constexpr int8_t   curveSpeedLimit       = 3;
     static constexpr uint32_t tickLimit             = 10000;    // 13 sec
     static constexpr int8_t   amplEnvFreqDepRange   = 2;    // min max
 
     void clear(void)
     {
-        targetValue.lowBase = 0;
-        targetValue.rate    = 0x7FFF;
-        tickFrame.lowBase   = 0;
-        tickFrame.rate      = 0x7FFF;
-        curveSpeed          = 0;        
+        targetValue             = 0u;
+        tickFrame.clear();
     };
 
     bool check(void) const
@@ -169,61 +127,51 @@ struct AmplitudeTransient  {
         *this = val;
     };
     
-    void setCurveSpeed( int8_t val )
-    {
-        if( val <= -curveSpeedLimit )
-            curveSpeed = -curveSpeedLimit;
-        else if( val >= curveSpeedLimit )
-            curveSpeed = curveSpeedLimit;
-        else 
-            curveSpeed = val;            
-    };
-
-    //------- data ----------
     // target amplitude value at the end of period
-    InterpolatedAmplitudeU32    targetValue;
+    uint32_t            targetValue;
     // frame count for the given transient part
-    InterpolatedDecreaseU16     tickFrame;
-    // curve : convex concave : -3 ... +3
-    int8_t                      curveSpeed;
-    // padding
-    int8_t                      rfu1;
+    InterpolatedTick    tickFrame;
 };
 
 // --------------------------------------------------------------------
 struct AmplitudeSustain {
     static constexpr const char * const typeName = "AmplitudeSustain";    
-    enum {
-        MODTYPE_INPHASE = 0,
-        MODTYPE_RAND1,
-        MODTYPE_RAND2,
-        MODTYPE_RAND3,
-    };
     void clear(void)
     {
         *this = {0};
-    };
+    }
     bool check(void) const
     {
         return true;
-    };
+    }
     void update( const AmplitudeSustain& val )
     {
         *this = val;
-    };
-    //----------------------------------
-    // decayed sustain speed - interpolated by freq
-    InterpolatedDecreaseU16 decayCoeff;
-    // sustain integrating modulator parameters
-    uint16_t        sustainModPeriod;
-    uint8_t         sustainModDepth;    // modulation depth 0==disable -> sustainModDepth/256
-    uint8_t         sustainModType;
-    int8_t          sustainModDeltaFreq;    // speed up (+), slow down (-)
-    uint8_t         sustainModDeltaCount;   // how many cycles
+    }
+    void setModParam( uint16_t depth, uint16_t deltaPhase )
+    {
+        constexpr uint16_t maxExp = 11;
+        constexpr uint16_t maxDeltaPhase = 1<<maxExp;
+        constexpr uint16_t minDeltaPhase = 4;
+        constexpr uint16_t maxDepth = 1<<maxExp;
+        if(( 0==depth ) || ( 0==deltaPhase )) {
+            modDeltaPhase = 0;
+            modDepth = 0;
+            return;
+        }
+        if( depth > maxDepth ) {
+            depth = maxDepth;
+        }
+        modDeltaPhase   = std::max( minDeltaPhase, std::min( deltaPhase, maxDeltaPhase ));
+        modDepth        = ( depth * uint32_t(modDeltaPhase) ) >> (16-maxExp);
+    }
+
+    InterpolatedDecay   decayCoeff;
+    uint16_t            modDeltaPhase;
+    uint16_t            modDepth;
 };
 
 // --------------------------------------------------------------------
-//template< uint16_t transientKnotCountT >
 struct ToneShaper {
     static constexpr const char * const typeName = "ToneShaper";
     static constexpr uint32_t transientVectorSize = transientKnotCount;
@@ -246,26 +194,13 @@ struct ToneShaper {
     {
         return true;
     };
-
-    // no implicit padding 184 = 4 + 10*16 + 10 + 4 + 2 + 4
-    // pitch in ycent 
-    int32_t                     pitch;
-    // transient vector
-    AmplitudeTransient          transient[ transientVectorSize ];
-    // sustain parameters
-    AmplitudeSustain            sustain;      
-    // release frame - interpolated by frequency
-    InterpolatedDecreaseU16     tickFrameRelease; 
-    // special detune parameter -- amplitude dependent -
-    int16_t                     amplitudeDetune;   
-    // release curve convex concave : -3 .. +3
-    int8_t                      curveSpeedRelease;
-    // oscillator type : 0 = sine
-    uint8_t                     oscillatorType;
-    // output channel for the overtone - not implemented yet
-    uint8_t                     outChannel;         // TODO : which channel to write
-    // padding
-    uint8_t                     rfu1;   
+    int32_t             pitch;              // pitch in ycent +- ( 24+5 bit )
+    AmplitudeTransient  transient[ transientVectorSize ];
+    AmplitudeSustain    sustain;      
+    InterpolatedTick    tickFrameRelease;     
+    int16_t             amplitudeDetune;    // special detune parameter -- amplitude dependent -    
+    uint8_t             oscillatorType;     // oscillator type : 0 = sine    
+    uint8_t             outChannel;         // // output channel for the overtone - not implemented yet
 };
 // --------------------------------------------------------------------
 struct ToneShaperVector {

@@ -147,27 +147,47 @@ static void basicInit( Sysman  * sysman )
     FxFlanger  * fxFlanger  = new FxFlanger();
     constexpr int   EffectInstance_FxFlanger            = EffectInstance_Nil + 15;    
 
-    constexpr   int overToneCount = 4;
+    constexpr   int overToneCount = 1;
     
     ToneShaper ts;
     ts.clear();
-    for( auto vi=0u; vi < overToneCount; ++vi ) {
+    ts.pitch = relFreq2pitch( 1 );
+    ts.amplitudeDetune = 0;      
+    ts.sustain.decayCoeff.setPar( 0, 0 ); 
+    ts.sustain.modDepth  = 0;     // 100 / 256
+    ts.sustain.modDeltaPhase = 300;
+    ts.tickFrameRelease.setPar( 100, 0, 2 );    
+    ts.transient[ 2 ].tickFrame.setPar( 20, 0, 2 );
+    ts.transient[ 2 ].targetValue = uint32_t( 65534.0 * 65535.0 ); 
+    ts.transient[ 1 ].tickFrame.setPar( 300, 0, 1 );
+    ts.transient[ 1 ].targetValue = uint32_t( 20000.0 * 65535.0 ); 
+    ts.oscillatorType = Oscillator::OSC_PD03;
+//    ts.oscillatorType = Oscillator::OSC_NOISE_PEEK3;
+//    ts.oscillatorType = Oscillator::OSC_NOISE_BLUE;
+
+    msgBuffer.clear();
+    msgBuffer.setPar( 0, 0 );
+    msgBuffer.setTags( uint8_t(TagMain::ToneShaper), uint8_t(TagToneShaper::SetOvertone) );
+    msgBuffer.getTargetData( ts );        
+    sysman->evalMessage(msgBuffer);
+    if( msgBuffer.messageType != yaxp::MessageT::responseSetOK ) {
+        std::cout << "---- send TS error " << uint16_t(msgBuffer.messageType) << std::endl;
+        exit(-1);
+    }        
+    
+    for( auto vi=1u; vi < overToneCount; ++vi ) {
         const float onevi = 1.0f/float(vi+1);
         ts.pitch = relFreq2pitch( vi+1 );
         ts.amplitudeDetune = 0;      
-        ts.curveSpeedRelease = 2;
-        ts.sustain.decayCoeff.setDecayPar( 0, 0 ); 
-        ts.sustain.sustainModDepth  = 0;     // 100 / 256
-        ts.sustain.sustainModPeriod = 300;
-        ts.sustain.sustainModType   = 1;                
-        ts.tickFrameRelease.setTickPar( 100, 0 );    
-        ts.transient[ 2 ].tickFrame.setTickPar( 20, 0 );
-        ts.transient[ 2 ].curveSpeed    = 2;
-        ts.transient[ 2 ].targetValue.setPar( 65534 * onevi, 0 ); 
-        ts.transient[ 1 ].tickFrame.setTickPar( 300, 0 );
-        ts.transient[ 1 ].curveSpeed    = 1;  
-        ts.transient[ 1 ].targetValue.setPar( 20000 * onevi, 0 ); 
-        
+        ts.sustain.decayCoeff.setPar( 0, 0 ); 
+        ts.sustain.modDepth  = 0;     // 100 / 256
+        ts.sustain.modDeltaPhase = 300;
+        ts.tickFrameRelease.setPar( 100, 0, 2 );    
+        ts.transient[ 2 ].tickFrame.setPar( 20, 0, 2 );
+        ts.transient[ 2 ].targetValue = uint32_t( 65534.0 * 65535.0 * onevi ); 
+        ts.transient[ 1 ].tickFrame.setPar( 300, 0, 1 );
+        ts.transient[ 1 ].targetValue = uint32_t( 20000.0 * 65535.0 * onevi ); 
+        ts.oscillatorType = Oscillator::OSC_SIN;
         msgBuffer.clear();
         msgBuffer.setPar( 0, vi );
         msgBuffer.setTags( uint8_t(TagMain::ToneShaper), uint8_t(TagToneShaper::SetOvertone) );
@@ -289,30 +309,29 @@ static void basicInit( Sysman  * sysman )
 static void teststuff(void)
 {
     std::cout << std::dec
-        << "\nOscillatorArray size: "       << sizeof(OscillatorArray)
-        << "\nToneShaperMatrix size: "      << sizeof(ToneShaperMatrix)
-        << "\nToneShaperVector size: "      << sizeof(ToneShaperVector)
-        << "\nInnerController size: "       << sizeof(InnerController)
+        << "\nOscillatorArray size:     "   << sizeof(OscillatorArray)
+        << "\nOscillator size:          "   << sizeof(Oscillator)
+        << "\nToneShaperMatrix size:    "   << sizeof(ToneShaperMatrix)
+        << "\nToneShaperVector size:    "   << sizeof(ToneShaperVector)
+        << "\nInnerController size:     "   << sizeof(InnerController)
         << "\nMidiRangeController size: "   << sizeof(MidiController)
-        << "\nYax::Header size: "           << sizeof(yaxp::Header)
+        << "\nToneShaper size:          "   << sizeof(ToneShaper)
+        << "\nAmplitudeSustain size:    "   << sizeof(AmplitudeSustain)
+        << "\nAmplitudeTransient size:  "   << sizeof(AmplitudeTransient)
+        << "\nInterpolatedTick size:    "   << sizeof(InterpolatedTick)
+        << "\nInterpolatedDecay size:   "   << sizeof(InterpolatedDecay)
         << "\n--------------------"
-        << "\nsize: v4sf "                  << sizeof(v4sf)
+        << "\nrefA440ycent:             "   << refA440ycent
+        << "\nrefA440ycentDouble:       "   << uint64_t(refA440ycentDouble*10)
+        << "\nrefA440ycentDouble:       "   << refA440ycentDouble
+        << "\n--------------------"
         << std::hex
-        << "\nfreq2deltaPhase( 1.0 ) "      << freq2deltaPhase( 1.0 )
-        << "\nrefA440ycent:       "         << refA440ycent
-        << "\nrefA440ycentDouble: "         << uint64_t(std::llround(refA440ycentDouble))
+        << "\nfreq2deltaPhase( 1.0 )    "   << freq2deltaPhase( 1.0 )
+        << "\nrefA440ycent:             "   << refA440ycent
+        << "\nrefA440ycentDouble:       "   << uint64_t(std::llround(refA440ycentDouble))
         << "\n19990:"                       << ref19900ycent
         << "\n0.01:"                        << ref0_01ycent
         << std::dec
-        << "\n refA440ycent: "              << refA440ycent
-        << "\n refA440ycentDouble: "        << uint64_t(refA440ycentDouble*10)
-        << "\n refA440ycentDouble: "        << refA440ycentDouble
-        << "\n Header: "                  << sizeof(yaxp::Header)
-        << "\nToneShaper size:          " << sizeof(ToneShaper)
-        << "\nAmplitudeSustain size:    " << sizeof(AmplitudeSustain)
-        << "\nAmplitudeTransient size:  " << sizeof(AmplitudeTransient)
-        << "\nInterpolatedu32 size:     " << sizeof(InterpolatedAmplitudeU32)
-        << "\nInterpolatedu16 size:     " << sizeof(InterpolatedDecreaseU16)
         << "\n\n"
         << std::endl;
 #if 0
@@ -340,7 +359,6 @@ static void teststuff(void)
     exit(0);
 #endif
 
-
 }
 
 // --------------------------------------------------------------------
@@ -363,7 +381,7 @@ int main( int argc, char** argv )
     YaIoJack::getInstance();
     
     // OBSOLETE
-    LowOscillatorArray::getInstance().reset();
+    // LowOscillatorArray::getInstance().reset();
 
     YaIoInQueueVector&      queuein     = YaIoInQueueVector::getInstance();
     OscillatorOutVector&    oscOutVec   = OscillatorOutVector::getInstance();
@@ -386,14 +404,12 @@ int main( int argc, char** argv )
     teststuff();
 
     // inter thread communication
-
     OscillatorArray     *oscArray   = new OscillatorArray();
     SimpleMidiRouter    *midiRoute  = new SimpleMidiRouter();
 
     // threads
     IOThread            *iOThread   = new IOThread(      queuein, oscOutVec, *midiRoute );
     SynthFrontend       *synthFe    = new SynthFrontend( queuein, oscOutVec, oscArray );
-
     Sysman              *sysman     = new Sysman( *oscArray, *iOThread );
     Server              uiServer( *sysman, port );
     auto& fxRunner      = iOThread->getFxRunner();

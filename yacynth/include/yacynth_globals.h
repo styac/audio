@@ -151,7 +151,7 @@ constexpr uint32_t  refMinLfoycent      =   freq2ycentLfoDef(refLfoFreq / (1<<re
 
 //====================================================
 // amplitude normalisations ( >> N )
-constexpr int normAmplitudeOscillatorExp    = 32;
+constexpr int normAmplitudeOscillatorExp    = 20;
 // constexpr int normAmplitudePanmixExp        = 36; // looks optimal
 
 
