@@ -32,6 +32,7 @@
 #include    "../utils/FilterAllpass.h"
 #include    "../utils/FilterStateVariable.h"
 
+// TODO : BW : stage 0 (tan) - FREQ : STAGE 1 (cos)
 using namespace filter;
 
 namespace yacynth {

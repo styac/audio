@@ -27,7 +27,6 @@
 
 #include    "YaIoInQueue.h"
 #include    "../oscillator/OscillatorOutput.h"
-#include    "../oscillator/BaseOscillator.h"
 #include    "../message/Midi.h"
 #include    "../control/Controllers.h"
 #include    "../router/SimpleMidiRouter.h"

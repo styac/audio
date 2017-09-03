@@ -51,6 +51,8 @@ public:
     static constexpr double     PI = 3.141592653589793238462643383279502884197169399375105820974944592307816;
     static constexpr int        precMultExp = 60;
     static constexpr float      frange = 1.0f / (1LL<<precMultExp);
+    static constexpr uint32_t   ref19900ycent   = 0x1ebacfd9;
+    static constexpr uint32_t   ref0_01ycent    = 0x9ce2e7f;
 
     static inline const ExpTable& getInstance(void)
     {
@@ -62,7 +64,7 @@ public:
     {
         return exp2Table[index];
     }
-    static inline uint64_t exp2index1(     const uint16_t index ) 
+    static inline uint64_t exp2index1(     const uint16_t index )
     {
         return exp2Table[uint32_t(index)+1];
     }
@@ -111,8 +113,6 @@ public:
 
     static inline uint32_t ycent2deltafi( const uint32_t base )
     {
-        constexpr uint32_t  ref19900ycent   = 0x1ebacfd9;
-        constexpr uint32_t  ref0_01ycent    = 0x9ce2e7f;
         if( ( ref19900ycent < base ) || ( ref0_01ycent > base ) )
             return 0;   //  nuke the high and  low freqs
 
@@ -123,16 +123,14 @@ public:
         const uint64_t  dy = (( exp2Table[ ind + 1 ] - y1 ) * ( logv & 0x0FF )) >> 8;
         const uint64_t  rs = ( y1 + dy ) >> ( precMultExp - xpo );
         return rs ;
-    } // end ycent2deltafi    
+    } // end ycent2deltafi
 // --------------------------------------------------------------------
 // directly calculates deltaFi
 // kills too high and low frequencies result 0 -> stop oscillator
 
     static inline uint32_t ycent2deltafi( const uint32_t base,  int32_t delta )
     {
-        constexpr int32_t   maxDelta        = 0x08000000;
-        constexpr uint32_t  ref19900ycent   = 0x1ebacfd9;
-        constexpr uint32_t  ref0_01ycent    = 0x9ce2e7f;
+        constexpr int32_t   maxDelta = 0x0800000;
         if( ( ref19900ycent < base ) || ( ref0_01ycent > base ) )
             return 0;   //  nuke the high and  low freqs
 

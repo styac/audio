@@ -42,13 +42,13 @@ namespace yacynth {
 //
 // TICK always decreases by frequency
 struct InterpolatedTick {
-    static constexpr uint16_t lowBaseLimit      = 5;       
+    static constexpr uint16_t lowBaseLimit      = 5;
     static constexpr int8_t   curveSpeedLimit   = 3;
     void clear(void)
     {
         lowBase       = 0u;
         rate          = 0u;
-        curveSpeed    = 0;        
+        curveSpeed    = 0;
     }
 
     inline uint16_t get( const uint16_t dx ) const
@@ -57,15 +57,15 @@ struct InterpolatedTick {
     }
 
     inline void setPar( uint16_t lb, uint8_t rt, int8_t speed )
-    {                
+    {
         lowBase = lb;
         rate    = rt;
         if( speed <= -curveSpeedLimit )
             curveSpeed = -curveSpeedLimit;
         else if( speed >= curveSpeedLimit )
             curveSpeed = curveSpeedLimit;
-        else 
-            curveSpeed = speed;            
+        else
+            curveSpeed = speed;
     }
     uint16_t    lowBase;    // value at low frequencies
     uint8_t     rate;       // value_high_frequencies
@@ -91,11 +91,11 @@ struct InterpolatedDecay {
     }
 
     // for decay rate is always positive: must increase with freq
-    inline void setPar( uint16_t lb, uint16_t rt ) 
+    inline void setPar( uint16_t lb, uint16_t rt )
     {
         lowBase = lb;
         rate = std::min( rt, uint16_t(0x0FFFFU - lowBase) );
-    }    
+    }
     uint16_t    lowBase;    // value at low frequencies - always positive (tick, decay)
     uint16_t    rate;       // value_high_frequencies - value_low_frequencies
 };
@@ -107,7 +107,7 @@ struct InterpolatedDecay {
 //
 
 struct AmplitudeTransient  {
-    static constexpr const char * const typeName = "AmplitudeTransient";        
+    static constexpr const char * const typeName = "AmplitudeTransient";
     static constexpr uint32_t tickLimit             = 10000;    // 13 sec
     static constexpr int8_t   amplEnvFreqDepRange   = 2;    // min max
 
@@ -126,7 +126,7 @@ struct AmplitudeTransient  {
     {
         *this = val;
     };
-    
+
     // target amplitude value at the end of period
     uint32_t            targetValue;
     // frame count for the given transient part
@@ -135,7 +135,7 @@ struct AmplitudeTransient  {
 
 // --------------------------------------------------------------------
 struct AmplitudeSustain {
-    static constexpr const char * const typeName = "AmplitudeSustain";    
+    static constexpr const char * const typeName = "AmplitudeSustain";
     void clear(void)
     {
         *this = {0};
@@ -175,6 +175,85 @@ struct AmplitudeSustain {
 struct ToneShaper {
     static constexpr const char * const typeName = "ToneShaper";
     static constexpr uint32_t transientVectorSize = transientKnotCount;
+
+    enum OscType : uint8_t{
+        OSC_NONE,       // no sound
+        OSC_SIN,
+        OSC_SINSIN,     // waveSinTable[ uint16_t( waveSinTable[phase >>16] )]
+
+        OSC_PD00,       // phase distorsion0 waveSinTable[ uint16_t((waveSinTable[phase >>16]) + (phase >>16))]
+        OSC_PD01,       // phase distorsion1 waveSinTable[ uint16_t((waveSinTable[phase >>16]>>1) + (phase >>16))]
+        OSC_PD02,       // phase distorsion2 waveSinTable[ uint16_t((waveSinTable[phase >>16]>>2) + (phase >>16))]
+        OSC_PD03,       // phase distorsion3 waveSinTable[ uint16_t((waveSinTable[phase >>16]>>3) + (phase >>16))]
+
+        OSC_12OV0,      // tone 1 + 2 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>15)]));};
+        OSC_12OV1,      // tone 1 + 2 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>15)]>>1));};
+        OSC_12OV2,      // tone 1 + 2 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>15)]>>2));};
+
+        OSC_13OV0,      // tone 1 + 3 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>14)]));};
+        OSC_13OV1,      // tone 1 + 3 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>14)]>>1));};
+        OSC_13OV2,      // tone 1 + 3 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>14)]>>2));};
+        
+        // sounds bad
+        OSC_PDRED0,     // phase distorsion3 waveSinTable[ rednoise + (phase >>16))]
+        OSC_PDRED1,     // phase distorsion3 waveSinTable[ rednoise + (phase >>16))]
+        OSC_PDRED2,     // phase distorsion3 waveSinTable[ rednoise + (phase >>16))]
+        OSC_PDRED3,     // phase distorsion3 waveSinTable[ rednoise + (phase >>16))]
+        
+        // sounds bad
+        OSC_PDPURPLE0,  // phase distorsion3 waveSinTable[ purple + (phase >>16))]
+        OSC_PDPURPLE1,  // phase distorsion3 waveSinTable[ purple + (phase >>16))]
+        OSC_PDPURPLE2,  // phase distorsion3 waveSinTable[ purple + (phase >>16))]
+        OSC_PDPURPLE3,  // phase distorsion3 waveSinTable[ purple + (phase >>16))]
+
+
+        // wide noise
+        OSC_NOISE_WHITE   = 0x80,
+        OSC_NOISE_RED0,
+        OSC_NOISE_RED1,
+        OSC_NOISE_RED2,
+        OSC_NOISE_RED3,
+        OSC_NOISE_PURPLE0,
+        OSC_NOISE_PURPLE1,
+        OSC_NOISE_PURPLE2,
+        OSC_NOISE_PURPLE3,
+        OSC_NOISE_BLUE0,
+        OSC_NOISE_BLUE1,
+        OSC_NOISE_BLUE2,
+        OSC_NOISE_BLUE3,
+
+        // narrow noise - correlated (common input)
+        // 4x pole
+        OSC_NOISE_4Px1_PEEK,
+        OSC_NOISE_4Px2_PEEK,        
+        // allpass 
+        OSC_NOISE_APx1_PEEK,
+        OSC_NOISE_APx2_PEEK,
+        OSC_NOISE_APx3_PEEK,
+        OSC_NOISE_APx4_PEEK,
+        // state variable
+        OSC_NOISE_SV1x1_PEEK,
+        OSC_NOISE_SV2x1_PEEK,
+        OSC_NOISE_SV3x1_PEEK,
+
+        OSC_NOISE_SV1x2_PEEK,
+        OSC_NOISE_SV2x2_PEEK,
+        OSC_NOISE_SV3x2_PEEK,
+
+        OSC_NOISE_SV1x3_PEEK,
+        OSC_NOISE_SV2x3_PEEK,
+        OSC_NOISE_SV3x3_PEEK,
+
+        OSC_NOISE_SV1x4_PEEK,
+        OSC_NOISE_SV2x4_PEEK,
+        OSC_NOISE_SV3x4_PEEK,
+
+        OSC_NOISE_PEEK41,
+        
+        // check: experimental
+        OSC_SIN_MULT_RED_NOISE,
+    };
+
     void clear(void)
     {
         memset(this,0,sizeof(ToneShaper));
@@ -196,11 +275,13 @@ struct ToneShaper {
     };
     int32_t             pitch;              // pitch in ycent +- ( 24+5 bit )
     AmplitudeTransient  transient[ transientVectorSize ];
-    AmplitudeSustain    sustain;      
-    InterpolatedTick    tickFrameRelease;     
-    int16_t             amplitudeDetune;    // special detune parameter -- amplitude dependent -    
-    uint8_t             oscillatorType;     // oscillator type : 0 = sine    
-    uint8_t             outChannel;         // // output channel for the overtone - not implemented yet
+    AmplitudeSustain    sustain;
+    InterpolatedTick    tickFrameRelease;
+    int16_t             amplitudeDetune;    // special detune parameter -- amplitude dependent -
+    uint8_t             oscillatorType;     // oscillator type : 0 = sine
+    uint8_t             outChannel;         // output channel for the overtone - not implemented yet
+    uint8_t             filterBandwidth;    // allpass - uint8_t ok --> -int32_t(filterBw) << 23
+    uint8_t             rfu1; 
 };
 // --------------------------------------------------------------------
 struct ToneShaperVector {
@@ -225,9 +306,9 @@ struct ToneShaperVector {
         toneShaper[ index & overtoneCountOscDefMask ].update( val );
     };
 
-    
+
     ToneShaper  toneShaper[ toneShaperVectorSize ];
-    uint16_t    oscillatorCountUsed; 
+    uint16_t    oscillatorCountUsed;
 };
 // --------------------------------------------------------------------
 } // end namespace yacynth

@@ -30,6 +30,52 @@
 #include    <cstdint>
 #include    <cmath>
 
+
+/*
+ * https://en.wikipedia.org/wiki/Xorshift
+ * https://en.wikipedia.org/wiki/Well_equidistributed_long-period_linear
+ * http://www.iro.umontreal.ca/~panneton/WELLRNG.html
+ * 
+ * 
+ * https://en.wikipedia.org/wiki/Linear_congruential_generator
+ 
+ https://nuclear.llnl.gov/CNP/rng/rngman/node4.html
+ * 
+ * 
+ * https://stackoverflow.com/questions/19734365/64-bits-seeds-for-random-generators
+ * 
+ * https://stackoverflow.com/questions/19083566/what-are-the-better-pseudo-random-number-generator-than-the-lcg-for-lottery-sc/19083740#19083740
+ * 
+ * https://en.wikipedia.org/wiki/Multiply-with-carry
+ * 
+
+https://stackoverflow.com/questions/2325472/generate-random-numbers-following-a-normal-distribution-in-c-c
+
+https://github.com/miloyip/normaldist-benchmark
+
+https://en.wikipedia.org/wiki/Ziggurat_algorithm 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ 
+ https://software.intel.com/en-us/articles/fast-random-number-generator-on-the-intel-pentiumr-4-processor/
+  
+	inline void fast_srand( int seed )
+	{
+	g_seed = seed;
+	}
+	//fastrand routine returns one integer, similar output value range as C lib.
+
+  	inline int fastrand()
+	{
+            g_seed = (214013*g_seed+2531011);
+              return (g_seed>>16)&0x7FFF;
+	}
+ 
+ */
 //
 // https://users.ece.cmu.edu/~koopman/lfsr/
 //
@@ -195,7 +241,8 @@ class GaloisShifter {
 public:
     //                                      7766554433221100
 //  static constexpr uint64_t feedback  = 0xd19850abe0000001ULL;
-    static constexpr uint64_t feedback  = 0xd198000000000001ULL;
+    static constexpr uint64_t feedback  = 0xd198000000000001ULL; // original max length
+
     static constexpr int shdownWhite    = 24; // spectrum looks white noise in this slice
 
     GaloisShifter( const uint64_t seed = seedThreadEffect_noise ) // default should be deleted
@@ -251,8 +298,60 @@ public:
         inc();
         // +3dB at 10kHz
         res16[1] = lfsr8[6]^lfsr8[7];
-        res16[0] = lfsr16[3];
+        res16[0] = lfsr16[3]^lfsr16[2];
         return res;
+    };
+    
+    inline int32_t getWhite24shift(void)
+    {
+        static uint32_t x=123456789, y=362436069, z=521288629;
+ 
+        uint32_t t;
+        x ^= x << 16;
+        x ^= x >> 5;
+        x ^= x << 1;
+
+        t = x;
+        x = y;
+        y = z;
+        z = t ^ x ^ y;
+
+        return int32_t(z)>>8;
+    };
+    
+    inline int32_t getWhite24mult(void)
+    {
+        static int64_t g_seed = 0x87232937;
+        
+        g_seed = 214013 * g_seed + 2531011;
+
+        return int32_t(g_seed) >> 8;
+    };
+    
+    // good red noise -20 db / decade
+    inline int32_t getRed24(void)
+    {
+        static int64_t acc = 0;
+        
+        inc();
+        acc += lfsr32[1]>>8;
+        return acc >> 8;
+    };
+    
+    inline int32_t getWhite24Avg(void)
+    {
+        union {
+            int32_t  res;
+            int16_t  res16[2];
+        };
+        inc();
+        res16[1] = lfsr8[6];//^lfsr8[7];
+        res16[0] = lfsr16[3];//^lfsr16[2];
+        const int32_t r0 = res;
+        inc();
+        res16[1] = lfsr8[6];//^lfsr8[7];
+        res16[0] = lfsr16[3];//^lfsr16[2];
+        return r0 - res;
     };
 
     inline int32_t getWhiteRaw(void)

@@ -26,6 +26,10 @@
  */
 #include    "../utils/GaloisNoiser.h"
 
+
+// http://mc2method.org/white-noise/
+
+
 using namespace noiser;
 
 namespace yacynth {
@@ -86,7 +90,7 @@ public:
 
     NoiseFrame() = delete;
     NoiseFrame( GaloisShifter& gs )
-    :   galoisShifter(gs)
+    :   noise(gs)
     {};
 
     inline void clear(void)
@@ -101,7 +105,7 @@ public:
     {
         for( auto i=0u; i<sectionSize; ++i ) {
             const int32_t x0 = s[0];
-            s[0] = galoisShifter.getWhite24();
+            s[0] = noise.getWhite24();
             Tstore::channel[0][i] = s[0] + x0;
         }
     }
@@ -113,7 +117,7 @@ public:
         for( auto i=0u; i<sectionSize; ++i ) {
             const int32_t x0 = s[0];
             const int32_t x1 = s[1];
-            s[0] = galoisShifter.getWhite24();
+            s[0] = noise.getWhite24();
             s[1] += x0 - s[0] - ( s[1] >> poleExp );
             Tstore::channel[0][i] = s[1] + x1;
             if( 2 == channelCount ) {
@@ -123,21 +127,41 @@ public:
     };
 
     // for the peeking filter
-    inline void fillWhiteBlue( void )
+    inline void fillWhiteLowCut( void )
     {
-        constexpr uint8_t   poleExp  = 7;
+        constexpr uint8_t poleExp   = 8;
+        constexpr int32_t poleRound = 1<<(poleExp);      
         for( auto i=0u; i<sectionSize; ++i ) {
             const int32_t x0 = s[0];
             const int32_t x1 = s[1];
-            s[0] = galoisShifter.getWhite24();
-            s[1] += x0 - s[0] - ( s[1] >> poleExp );
-            Tstore::channel[0][i] = s[1] + x1;
+//            const int32_t x2 = s[2];
+            s[0] = noise.getWhite24Avg();
+            s[1] += x0 - s[0] - ( (s[1] + poleRound ) >> poleExp );
+            Tstore::channel[0][i] = (s[1] + x1)>>2; // avoid overflow in filter
+//            s[2] +=      s[1] - ( (s[2] + 1) >> 1 );
+//            Tstore::channel[0][i] = s[2] + x2;
             if( 2 == channelCount ) {
                 Tstore::channel[1][i] = Tstore::channel[0][i];
             }
         }
     };
 
+    inline void fillWhiteBlue1( void )
+    {
+        constexpr uint8_t   poleExp  = 8;
+        for( auto i=0u; i<sectionSize; ++i ) {
+            const int32_t x0 = s[0];
+            const int32_t x1 = s[1];
+            s[0] = noise.getWhite24();
+            s[1] += x0 - s[0] - ( (s[1] + (1 << (poleExp-1)) )>> poleExp );
+            Tstore::channel[0][i] = s[1] + x1;
+            if( 2 == channelCount ) {
+                Tstore::channel[1][i] = Tstore::channel[0][i];
+            }
+        }
+    };    
+
+    
     inline void fillWhiteStereo( void )
     {
         static_assert(channelCount>1, "no stereo -- channelCount < 2");
@@ -147,9 +171,9 @@ public:
             const int32_t x1 = s[1];
             const int32_t x2 = s[2];
             const int32_t x3 = s[3];
-            s[0] = galoisShifter.getWhite24();
+            s[0] = noise.getWhite24();
             s[1] += x0 - s[0] - ( s[1] >> poleExp );
-            s[2] = galoisShifter.getWhite24();
+            s[2] = noise.getWhite24();
             s[3] += x2 - s[2] - ( s[3] >> poleExp );
             Tstore::channel[0][i] = s[1] + x1;
             Tstore::channel[1][i] = s[3] + x3;
@@ -161,7 +185,7 @@ public:
     inline void fillRaw(void)
     {
         for( auto i=0u; i<sectionSize; ++i ) {
-            Tstore::channel[0][i] = galoisShifter.getWhite24()<<1;
+            Tstore::channel[0][i] = noise.getWhite24()<<1;
         }
     }
 
@@ -170,7 +194,7 @@ public:
         for( auto i=0u; i<sectionSize; ++i ) {
             const int32_t x0 = s[0];
             const int32_t x1 = s[1];
-            s[0] = galoisShifter.getWhite24();
+            s[0] = noise.getWhite24();
             s[1] = x0 - s[0];
             Tstore::channel[0][i] = s[1] + x1;
             if( 2 == channelCount ) {
@@ -185,7 +209,7 @@ public:
         for( auto i=0u; i<sectionSize; ++i ) {
             const int32_t x0 = s[0];
             const int32_t x2 = s[2];
-            s[0] = galoisShifter.getWhite24();
+            s[0] = noise.getWhite24();
             s[1] += x0 - s[0] - ( s[1] >> poleExp );
             s[2] += ( s[1] >> 5 ) - ( s[2] >> poleExp );
             Tstore::channel[0][i] = s[2] + x2;
@@ -201,7 +225,7 @@ public:
         for( auto i=0u; i<sectionSize; ++i ) {
             const int32_t x0 = s[0];
             const int32_t x3 = s[3];
-            s[0] = galoisShifter.getWhite24();
+            s[0] = noise.getWhite24();
             s[1] += x0 - s[0] - ( s[1] >> poleExp );
             s[2] += ( s[1] >> 5 ) - ( s[2] >> poleExp );
             s[3] += ( s[2] >> 7 ) - ( s[3] >> poleExp );
@@ -229,7 +253,7 @@ public:
         for( auto i=0u; i<sectionSize; ++i ) {
             const int32_t x0 = s[0];
             const int32_t x2 = s[2];
-            s[0] = galoisShifter.getWhiteRaw() >> 4;
+            s[0] = noise.getWhiteRaw() >> 4;
             s[1] += x0 - s[0] - ( s[1] >> s[sSize-1] );
             s[2] += ( s[1] >> cf1 ) + ( s[1] >> cf2 ) - ( s[2] >> s[sSize-1] );
             Tstore::channel[0][i] = s[2] + x2;
@@ -247,7 +271,7 @@ public:
         for( auto i=0u; i<sectionSize; ++i ) {
             const int32_t x0 = s[0];
             const int32_t x2 = s[2];
-            s[0] = galoisShifter.getWhiteRaw() >> 4;
+            s[0] = noise.getWhiteRaw() >> 4;
             s[1] += x0 - s[0] - ( s[1] >> pole );
             s[2] += ( s[1] >> cf1 ) + ( s[1] >> cf2 ) - ( s[2] >> pole );
             Tstore::channel[0][i] = s[2] + x2;
@@ -268,7 +292,7 @@ public:
         for( auto i=0u; i<sectionSize; ++i ) {
             const int32_t x0 = s[0];
             const int32_t x3 = s[3];
-            s[0] = galoisShifter.getWhiteRaw() >> 4;
+            s[0] = noise.getWhiteRaw() >> 4;
             s[1] += x0 - s[0] - ( s[1] >> pole );
             s[2] += ( s[1] >> cf1 ) + ( s[1] >> cf2 ) - ( s[2] >> pole );
             s[3] += ( s[2] >> cf3 ) - ( s[3] >> pole );
@@ -288,7 +312,7 @@ public:
         for( auto i=0u; i<sectionSize; ++i ) {
             const int32_t x0 = s[0];
             const int32_t x3 = s[3];
-            s[0] = galoisShifter.getWhiteRaw() >> 4;
+            s[0] = noise.getWhiteRaw() >> 4;
             s[1] += x0 - s[0] - ( s[1] >> s[sSize-1] );
             s[2] += ( s[1] >> cf1 ) + ( s[1] >> cf2 ) - ( s[2] >> s[sSize-1] );
             s[3] += ( s[2] >> cf3 ) - ( s[3] >> s[sSize-1] );
@@ -313,15 +337,15 @@ public:
         int32_t x0 = s[0] + s[1] + s[2] + s[3] + s[4];
         for( auto i=0u; i<sectionSize; ++i ) {
             // 14.9358 Hz
-            s[0] += ( galoisShifter.getWhiteRaw() >> ( p - 0 + 0 + g ) ) - ( s[0]>>(p-0) );
+            s[0] += ( noise.getWhiteRaw() >> ( p - 0 + 0 + g ) ) - ( s[0]>>(p-0) );
             // 59.9192 Hz
-            s[1] += ( galoisShifter.getWhiteRaw() >> ( p - 2 + 1 + g ) ) - ( s[1]>>(p-2) );
+            s[1] += ( noise.getWhiteRaw() >> ( p - 2 + 1 + g ) ) - ( s[1]>>(p-2) );
             // 242.549 Hz
-            s[2] += ( galoisShifter.getWhiteRaw() >> ( p - 4 + 2 + g ) ) - ( s[2]>>(p-4) );
+            s[2] += ( noise.getWhiteRaw() >> ( p - 4 + 2 + g ) ) - ( s[2]>>(p-4) );
             // 1020.13 Hz
-            s[3] += ( galoisShifter.getWhiteRaw() >> ( p - 6 + 3 + g ) ) - ( s[3]>>(p-6) );
+            s[3] += ( noise.getWhiteRaw() >> ( p - 6 + 3 + g ) ) - ( s[3]>>(p-6) );
             // 5295.41 Hz
-            s[4] += ( galoisShifter.getWhiteRaw() >> ( p - 8 + 4 + g ) ) - ( s[4]>>(p-8) );
+            s[4] += ( noise.getWhiteRaw() >> ( p - 8 + 4 + g ) ) - ( s[4]>>(p-8) );
             const int32_t x1 = s[0] + s[1] + s[2] + s[3] + s[4];
             const int32_t x2 = s[5];
             // dc cut
@@ -342,11 +366,11 @@ public:
         constexpr int p = 15;
         int32_t x0 = s[0] + s[1] + s[2] + s[3] + s[4];
         for( auto i=0u; i<sectionSize; ++i ) {
-            s[0] += ( galoisShifter.getWhiteRaw() >> ( p - 0 + 0 + g ) ) - ( s[0]>>(p-0) );
-            s[1] += ( galoisShifter.getWhiteRaw() >> ( p - 2 + 1 + g ) ) - ( s[1]>>(p-2) );
-            s[2] += ( galoisShifter.getWhiteRaw() >> ( p - 4 + 2 + g ) ) - ( s[2]>>(p-4) );
-            s[3] += ( galoisShifter.getWhiteRaw() >> ( p - 6 + 3 + g ) ) - ( s[3]>>(p-6) );
-            s[4] += ( galoisShifter.getWhiteRaw() >> ( p - 8 + 4 + g ) ) - ( s[4]>>(p-8) );
+            s[0] += ( noise.getWhiteRaw() >> ( p - 0 + 0 + g ) ) - ( s[0]>>(p-0) );
+            s[1] += ( noise.getWhiteRaw() >> ( p - 2 + 1 + g ) ) - ( s[1]>>(p-2) );
+            s[2] += ( noise.getWhiteRaw() >> ( p - 4 + 2 + g ) ) - ( s[2]>>(p-4) );
+            s[3] += ( noise.getWhiteRaw() >> ( p - 6 + 3 + g ) ) - ( s[3]>>(p-6) );
+            s[4] += ( noise.getWhiteRaw() >> ( p - 8 + 4 + g ) ) - ( s[4]>>(p-8) );
             const int32_t x1 = s[0] + s[1] + s[2] + s[3] + s[4];
             const int32_t x2 = s[5];
             // dc cut
@@ -371,13 +395,13 @@ public:
 
 private:
     int32_t s[sSize];
-    GaloisShifter&  galoisShifter;
+    GaloisShifter&  noise;
 };
 
 } // end namespace yacynth
 
 /*
- k 1 f 5295.41
+k 1 f 5295.41
 k 2 f 2197.79
 k 3 f 1020.13 -- 1323
 k 4 f 493.053

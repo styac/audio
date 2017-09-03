@@ -43,6 +43,13 @@ typedef float v4sf __attribute__((mode(SF)))  __attribute__ ((vector_size(16),al
 
 namespace filter {
 
+// TODO review
+//
+// 2nd order allpass
+// kFf = - cos omega --- k1  -- back 2nd stage
+// kBw =( 1 - tan fi ) / ( 1 + tan fi )  --- k2 -- front 1st stage
+// omega = 2pi * fc
+// 
 //
 //  filterCount     : filter / channel
 //  channelCount    : mono=1, stereo=2

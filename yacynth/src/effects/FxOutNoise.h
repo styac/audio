@@ -178,7 +178,7 @@ private:
     static void sprocess_03( void * thp )
     {
         constexpr float gain = 1.0f/(1<<26);
-        static_cast< MyType * >(thp)->fillWhiteBlue();
+        static_cast< MyType * >(thp)->fillWhiteLowCut();
         static_cast< MyType * >(thp)->mult(gain);
     }
     static void sprocess_04( void * thp )

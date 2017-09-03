@@ -100,7 +100,7 @@ using namespace TagEffectFxFlangerModeLevel_03;
 
 #include    "../control/global.h"
 // --------------------------------------------------------------------
-// 
+//
 // this is not the normal stop method
 //
 static void signal_handler( int sig )
@@ -115,11 +115,11 @@ static void signal_handler( int sig )
 
 static int32_t relFreq2pitch( double relf ) {
     return std::round( std::log2( relf ) * (1<<24) );
-}; 
+};
 
 static void basicInit( Sysman  * sysman )
 {
-    yaxp::Message msgBuffer;    
+    yaxp::Message msgBuffer;
     // sequence important !!
     constexpr int   EffectInstance_Nil                  = 0;
     constexpr int   EffectInstance_Mixer4               = EffectInstance_Nil + 1;
@@ -145,60 +145,65 @@ static void basicInit( Sysman  * sysman )
     FxChorus  * fxchorus  = new FxChorus();
     constexpr int   EffectInstance_FxChorus             = EffectInstance_Nil + 14;
     FxFlanger  * fxFlanger  = new FxFlanger();
-    constexpr int   EffectInstance_FxFlanger            = EffectInstance_Nil + 15;    
+    constexpr int   EffectInstance_FxFlanger            = EffectInstance_Nil + 15;
 
     constexpr   int overToneCount = 1;
-    
+
     ToneShaper ts;
     ts.clear();
-    ts.pitch = relFreq2pitch( 1 );
-    ts.amplitudeDetune = 0;      
-    ts.sustain.decayCoeff.setPar( 0, 0 ); 
+    ts.pitch = 0;
+    ts.amplitudeDetune = 0;
+    ts.sustain.decayCoeff.setPar( 0, 0 );
     ts.sustain.modDepth  = 0;     // 100 / 256
     ts.sustain.modDeltaPhase = 300;
-    ts.tickFrameRelease.setPar( 100, 0, 2 );    
+    ts.tickFrameRelease.setPar( 100, 0, 2 );
     ts.transient[ 2 ].tickFrame.setPar( 20, 0, 2 );
-    ts.transient[ 2 ].targetValue = uint32_t( 65534.0 * 65535.0 ); 
+    ts.transient[ 2 ].targetValue = uint32_t( 65534.0 * 65535.0 );
     ts.transient[ 1 ].tickFrame.setPar( 300, 0, 1 );
-    ts.transient[ 1 ].targetValue = uint32_t( 20000.0 * 65535.0 ); 
-    ts.oscillatorType = Oscillator::OSC_PD03;
-//    ts.oscillatorType = Oscillator::OSC_NOISE_PEEK3;
-//    ts.oscillatorType = Oscillator::OSC_NOISE_BLUE;
-
+    ts.transient[ 1 ].targetValue = uint32_t( 20000.0 * 65535.0 );
+    
+    // filter test
+    ts.oscillatorType = ToneShaper::OSC_NOISE_SV3x4_PEEK;
+    ts.filterBandwidth = 0x60;
+    
+    
     msgBuffer.clear();
     msgBuffer.setPar( 0, 0 );
     msgBuffer.setTags( uint8_t(TagMain::ToneShaper), uint8_t(TagToneShaper::SetOvertone) );
-    msgBuffer.getTargetData( ts );        
+    msgBuffer.getTargetData( ts );
     sysman->evalMessage(msgBuffer);
     if( msgBuffer.messageType != yaxp::MessageT::responseSetOK ) {
         std::cout << "---- send TS error " << uint16_t(msgBuffer.messageType) << std::endl;
         exit(-1);
-    }        
-    
+    }
+
     for( auto vi=1u; vi < overToneCount; ++vi ) {
-        const float onevi = 1.0f/float(vi+1);
-        ts.pitch = relFreq2pitch( vi+1 );
-        ts.amplitudeDetune = 0;      
-        ts.sustain.decayCoeff.setPar( 0, 0 ); 
+//        const float onevi = 1.0f/float(vi+1);
+//        ts.pitch = relFreq2pitch( vi+1 );
+        const float onevi = 1.0f/float( vi );
+        ts.pitch = 0;
+//        ts.pitch = relFreq2pitch( vi );
+        ts.amplitudeDetune = 0;
+        ts.sustain.decayCoeff.setPar( 0, 0 );
         ts.sustain.modDepth  = 0;     // 100 / 256
         ts.sustain.modDeltaPhase = 300;
-        ts.tickFrameRelease.setPar( 100, 0, 2 );    
+        ts.tickFrameRelease.setPar( 100, 0, 2 );
         ts.transient[ 2 ].tickFrame.setPar( 20, 0, 2 );
-        ts.transient[ 2 ].targetValue = uint32_t( 65534.0 * 65535.0 * onevi ); 
+        ts.transient[ 2 ].targetValue = uint32_t( 65534.0 * 65535.0 * onevi );
         ts.transient[ 1 ].tickFrame.setPar( 300, 0, 1 );
-        ts.transient[ 1 ].targetValue = uint32_t( 20000.0 * 65535.0 * onevi ); 
-        ts.oscillatorType = Oscillator::OSC_SIN;
+        ts.transient[ 1 ].targetValue = uint32_t( 20000.0 * 65535.0 * onevi );
+        ts.oscillatorType = ToneShaper::OSC_SIN;
         msgBuffer.clear();
         msgBuffer.setPar( 0, vi );
         msgBuffer.setTags( uint8_t(TagMain::ToneShaper), uint8_t(TagToneShaper::SetOvertone) );
-        msgBuffer.getTargetData( ts );        
+        msgBuffer.getTargetData( ts );
         sysman->evalMessage(msgBuffer);
         if( msgBuffer.messageType != yaxp::MessageT::responseSetOK ) {
             std::cout << "---- send TS error " << uint16_t(msgBuffer.messageType) << std::endl;
             exit(-1);
-        }        
+        }
     }
-    
+
     msgBuffer.clear();
     msgBuffer.setPar( 0, overToneCount );
     msgBuffer.setTags( uint8_t(TagMain::ToneShaper), uint8_t(TagToneShaper::SetOvertoneCount) );
@@ -207,7 +212,7 @@ static void basicInit( Sysman  * sysman )
         std::cout << "---- send TS count ok error " << uint16_t(msgBuffer.messageType) << std::endl;
         exit(-1);
     }
-        
+
     EffectRunnerSetConnections  effectRunnerSetConnections[] = {
         { EffectInstance_OscillatorMixer, 0, 0 },     // audio osc out to output mixer
     };
@@ -228,7 +233,7 @@ static void basicInit( Sysman  * sysman )
     msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
                     ,   uint8_t( TagEffectCollector::SetProcessingMode )
                     );
-    msgBuffer.setPar( 1,1 ); 
+    msgBuffer.setPar( 1,1 );
     sysman->evalMessage(msgBuffer);
     if( msgBuffer.messageType != yaxp::MessageT::responseSetOK  ) {
         std::cout << "---- set mode : mixer error " <<uint16_t(msgBuffer.messageType) << std::endl;
@@ -263,7 +268,7 @@ static void basicInit( Sysman  * sysman )
     sysman->evalMessage(msgBuffer);
     if( msgBuffer.messageType != yaxp::MessageT::responseSetOK ) {
         std::cout << "---- Volume control range0 error " <<uint16_t(msgBuffer.messageType) << std::endl;
-    }    
+    }
 
     msgBuffer.clear();
     msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
@@ -302,7 +307,7 @@ static void basicInit( Sysman  * sysman )
     sysman->evalMessage(msgBuffer);
     if( msgBuffer.messageType != yaxp::MessageT::responseSetOK ) {
         std::cout << "---- Volume control range0 error " <<uint16_t(msgBuffer.messageType) << std::endl;
-    }    
+    }
 }
 // --------------------------------------------------------------------
 
@@ -366,7 +371,7 @@ static void teststuff(void)
 // --------------------------------------------------------------------
 int main( int argc, char** argv )
 {
-    // init singletons    
+    // init singletons
     GaloisShifterSingle<seedThreadEffect_noise>& gs0        = GaloisShifterSingle<seedThreadEffect_noise>::getInstance();
     GaloisShifterSingle<seedThreadOscillator_noise>& gs1    = GaloisShifterSingle<seedThreadOscillator_noise>::getInstance();
     GaloisShifterSingle<seedThreadEffect_random>& gs2       = GaloisShifterSingle<seedThreadEffect_random>::getInstance();
@@ -379,7 +384,7 @@ int main( int argc, char** argv )
     SinTable::table();
 
     YaIoJack::getInstance();
-    
+
     // OBSOLETE
     // LowOscillatorArray::getInstance().reset();
 
@@ -388,15 +393,15 @@ int main( int argc, char** argv )
     InnerController&        controller  = InnerController::getInstance();
     FxCollector::getInstance();
 
-    
+
     struct sigaction sigact;
     memset( &sigact, 0, sizeof(sigact) );
     sigfillset( &sigact.sa_mask );
     sigact.sa_handler = signal_handler;
 	sigaction( SIGTERM, &sigact, NULL );
     sigaction( SIGINT, &sigact, NULL );
-    
-    
+
+
     uint16_t   port( yaxp::defaultPort ); // from param
 
     const char *homedir = getenv("HOME");
@@ -421,7 +426,7 @@ int main( int argc, char** argv )
     // open $HOME/.yacynth/.yaxp.seed
     // read and uiServer.setAuthSeed( );
     //
-    
+
     try {
         basicInit( sysman );
         //-------------------------
