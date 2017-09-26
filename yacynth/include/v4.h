@@ -140,6 +140,7 @@ struct V4size {
     static constexpr std::size_t varraySizeExp  = v4Exp;
     static constexpr std::size_t varraySize     = 1<<varraySizeExp;
     static constexpr std::size_t varraySizeMask = varraySize-1;
+
     static constexpr std::size_t arraySizeExp   = varraySizeExp+2;
     static constexpr std::size_t arraySize      = 1<<arraySizeExp;
     static constexpr std::size_t arraySizeMask  = arraySize-1;

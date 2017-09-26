@@ -38,15 +38,15 @@ using namespace TagEffectFxOutOscillatorModeLevel_03;
 class FxOutOscillatorParam {
 public:
     // mandatory fields
-    static constexpr char const * const name    = "Oscillator4x"; // 1 main + 3 slave
+    static constexpr char const * const name    = "SimpleOscillator"; // 1 main + 3 slave
     static constexpr TagEffectType  type        = TagEffectType::FxOutOscillator;
     static constexpr std::size_t maxMode        = 13; // 0 is always exist> 0,1,2
     static constexpr std::size_t inputCount     = 0;
     static constexpr std::size_t slaveCount     = 3; // 0-base signal 1-modulation
-    static constexpr char const * const slavename = " ^OscillatorSlave";
+    static constexpr char const * const slavename = "^";
 
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
-    
+
     struct Mode01 {
         static constexpr uint8_t subtype         = uint8_t(TagEffectFxOutOscillatorMode::SetParametersMode01);
 

@@ -34,7 +34,7 @@ namespace yacynth {
 YaIoJack::YaIoJack()
 :   client(0)
 ,   jackOptions(JackNoStartServer)
-,   midiInPort(     "midi",         JACK_DEFAULT_MIDI_TYPE,     JackPortIsInput|JackPortIsTerminal)
+,   midiInPort(     "midi_in_1",    JACK_DEFAULT_MIDI_TYPE,     JackPortIsInput|JackPortIsTerminal)
 ,   audioOutPort1(  "audio_out_1",  JACK_DEFAULT_AUDIO_TYPE,    JackPortIsOutput|JackPortIsTerminal)
 ,   audioOutPort2(  "audio_out_2",  JACK_DEFAULT_AUDIO_TYPE,    JackPortIsOutput|JackPortIsTerminal)
 ,   audioInPort1(   "audio_in_1",   JACK_DEFAULT_AUDIO_TYPE,    JackPortIsInput|JackPortIsTerminal)
@@ -65,7 +65,7 @@ void YaIoJack::shutdown( void )
 
 bool YaIoJack::initialize( void )
 {
-    if( nullptr == userData || nullptr == midiInProcesing || nullptr == audioOutProcesing ) {
+    if( nullptr == userData || nullptr == processMidiCommand || nullptr == audioOutProcesing ) {
         errorString   += ":nullptr";
         return false;
     }
@@ -134,15 +134,13 @@ bool YaIoJack::run( void )
 int YaIoJack::processCB( jack_nframes_t nframes, void *arg )
 {
     YaIoJack& thp  = * static_cast<YaIoJack *> ( arg) ;
+    thp.nframes = nframes;
     void * midiIn = thp.midiInPort.getBuffer( nframes );
-	jack_default_audio_sample_t *audioOut1 = (jack_default_audio_sample_t *) thp.audioOutPort1.getBuffer( nframes );
-	jack_default_audio_sample_t *audioOut2 = (jack_default_audio_sample_t *) thp.audioOutPort2.getBuffer( nframes );
-	jack_midi_event_t in_event;
-	jack_nframes_t event_count = jack_midi_get_event_count( midiIn );
-    for( auto i=0; i < event_count; ++i ) {
-        jack_midi_event_get( &in_event, midiIn , i );
-        thp.midiInProcesing( thp.userData, in_event.buffer, in_event.size, ( event_count-1 ) == i );
-    }    
+    jack_default_audio_sample_t *audioOut1 = (jack_default_audio_sample_t *) thp.audioOutPort1.getBuffer( nframes );
+    jack_default_audio_sample_t *audioOut2 = (jack_default_audio_sample_t *) thp.audioOutPort2.getBuffer( nframes );
+        
+// TODO : do midi processing at inner frame level to reduce latency?
+    thp.processJackMidiIn();
     if( thp.muted ) {
         for( auto i=0; i < nframes; ++i ) {
             *audioOut1++ = 0.0f;

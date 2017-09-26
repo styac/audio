@@ -30,6 +30,7 @@
 #include    <array>
 #include    <atomic>
 #include    <cstring>
+#include    <map>
 
 #define TAG_DEBUG_ON 1
 
@@ -47,7 +48,6 @@ std::cout \
 #define TAG_DEBUG( tagname, tag, tagc, comment );
 #endif
 
-
 namespace yacynth {
 
 struct EffectListEntry
@@ -59,8 +59,10 @@ struct EffectListEntry
     static constexpr const char * const fxMaxModeName = "fxMaxMode";
     static constexpr const char * const inputCountName = "inputCount";
     static constexpr const char * const masterIdName = "masterId";
+    static constexpr const char * const instanceIndexName = "instanceIndex";
     static constexpr const char * const nameIdName = "name";
-    
+    static constexpr const char * const fullNameIdName = "fullName";
+
     static constexpr uint8_t nameLength = 32;
     uint8_t fxIndex;
     uint8_t id;
@@ -68,8 +70,14 @@ struct EffectListEntry
     uint8_t fxMaxMode;
     uint8_t inputCount;
     uint8_t masterId;
+    uint8_t instanceIndex;
     char    name[nameLength];
+    char    fullName[nameLength+8];
 };
+
+// fullName, EffectListEntry
+typedef std::map<std::string, uint8_t> EffectMap;
+
 
 // level 0
 
@@ -122,22 +130,23 @@ namespace TagEffectRunnerLevel_01 {
         Fill,
         SetConnections,
         GetEffectList,
+        Preset0,
     };
 
     // parameter structures
     struct EffectRunnerFill
     {
-        static constexpr const char * const typeName = "EffectRunnerFill";        
-        static constexpr const char * const fxIdOfFxCollectorName = "fxIdOfFxCollector";        
+        static constexpr const char * const typeName = "EffectRunnerFill";
+        static constexpr const char * const fxIdOfFxCollectorName = "fxIdOfFxCollector";
         uint8_t fxIdOfFxCollector;
     };
 
     struct EffectRunnerSetConnections
     {
-        static constexpr const char * const typeName = "EffectRunnerSetConnections";        
-        static constexpr const char * const fxIdOfFxCollectorOutputName = "fxIdOfFxCollectorOutput";        
-        static constexpr const char * const fxIdOfFxRunnerInputName = "fxIdOfFxRunnerInput";        
-        static constexpr const char * const inputIdName = "inputId";        
+        static constexpr const char * const typeName = "EffectRunnerSetConnections";
+        static constexpr const char * const fxIdOfFxCollectorOutputName = "fxIdOfFxCollectorOutput";
+        static constexpr const char * const fxIdOfFxRunnerInputName = "fxIdOfFxRunnerInput";
+        static constexpr const char * const inputIdName = "inputId";
         uint8_t fxIdOfFxCollectorOutput;
         uint8_t fxIdOfFxRunnerInput;
         uint8_t inputId;
@@ -157,12 +166,12 @@ namespace TagMidiControllerLevel_01 {
 
     struct MidiControllerSetting
     {
-        static constexpr const char * const typeName = "MidiControllerSetting";         
-        static constexpr const char * const initValueName = "initValue";         
-        static constexpr const char * const channelName = "channel";         
-        static constexpr const char * const midiCCName = "midiCC";         
-        static constexpr const char * const midiModeName = "midiMode";         
-        static constexpr const char * const innerIndexName = "innerIndex";         
+        static constexpr const char * const typeName = "MidiControllerSetting";
+        static constexpr const char * const initValueName = "initValue";
+        static constexpr const char * const channelName = "channel";
+        static constexpr const char * const midiCCName = "midiCC";
+        static constexpr const char * const midiModeName = "midiMode";
+        static constexpr const char * const innerIndexName = "innerIndex";
         int32_t initValue;
         uint8_t channel;
         uint8_t midiCC;
@@ -230,6 +239,7 @@ namespace TagEffectTypeLevel_02 {
         FxSlave,
         FxMixer,
         FxOscillatorMixer,
+        FxInput,
         FxModulator,
         FxOutNoise,
         FxOutOscillator,
@@ -264,11 +274,25 @@ namespace TagEffectFxMixerModeLevel_03 {
         SetParametersMode01,        // all param - must be implemented
         SetVolumeControllerIndex,
         SetVolumeRange,
+        SetChannelVolumes,          // through controllers ? 0..127
+        SetChannelCount,            // effective channel count
+        Preset0,
     };
 } // end namespace
 
 namespace TagEffectFxOscillatorMixerModeLevel_03 {
     enum class TagEffectFxOscillatorMixerMode : uint8_t {
+        Nop,
+        Clear,                      // clear all
+        GetFeatures,
+        SetParametersMode01,        // set all gains
+        SetChannelVolume,           // set volume of 1 channel - no InnerC
+        Preset0,
+    };
+} // end namespace
+
+namespace TagEffectFxInputModeLevel_03 {
+    enum class TagEffectFxInputMode : uint8_t {
         Nop,
         Clear,                      // clear all
         GetFeatures,

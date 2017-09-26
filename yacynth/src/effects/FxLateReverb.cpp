@@ -151,6 +151,7 @@ void FxLateReverb::sprocess_03( void * thp )
 //    static_cast< MyType * >(thp)->process();
 }
 
+
 } // end namespace yacynth
 
 

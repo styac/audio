@@ -153,6 +153,7 @@ void FxChorus::sprocess_02( void * thp )
     static_cast< MyType * >(thp)->process_02_testTriangle();
 }
 
+
 } // end namespace yacynth
 
 

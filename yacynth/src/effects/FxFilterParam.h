@@ -148,13 +148,12 @@ public:
 
         ControllerIndex         feedbackGainIndex;  // to set the feedback gain
         ControllerIndex         wetDryGainIndex;       // to set the wet/dry gain -- which ???
-
         ControllerIndex         bandWidhthIndex;    // to set the bandwith of the filters (K1) - here all the same
         // LFO
         ControllerIndex         deltaPhaseControlIndex;    // to set the freq - phase ch0
         ControllerIndex         phaseDiff00ControlIndex;   // to set the phase diff ch1 to ch0
 
-        // oscillator freq and phase diff
+        // oscillator freq and phase diff -- diff is  not needed - 1 osc 
         ControllerIndex         deltaPhaseIndex;    // to set the freq - phase ch0
         ControllerIndex         phaseDiff00Index;   // to set the phase diff ch1 to ch0
         // oscillator phase values

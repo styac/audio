@@ -61,7 +61,9 @@ struct  RouteIn {
 
 class AbstractRouter {
 public:
-
+    
+// http://xenharmonic.wikispaces.com/
+    
     enum    tuned_t {
         PARTCH43,
         TET15,

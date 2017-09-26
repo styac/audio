@@ -40,7 +40,7 @@ using namespace TagEffectFxFlangerModeLevel_03;
 class FxFlangerParam {
 public:
     // mandatory fields
-    static constexpr char const * const name        = "FxFlanger";
+    static constexpr char const * const name        = "Flanger";
     static constexpr TagEffectType  type            = TagEffectType::FxFlanger;
     static constexpr std::size_t maxMode            = 4;
     static constexpr std::size_t inputCount         = 1;

@@ -35,7 +35,8 @@
 namespace yacynth {
 
 // TODO : reduce and test
-constexpr   uint64_t bufCountExp    = 3;
+// TODO : sync mode must be made first currently 4 is the minimum if external/internal framesize = 4
+constexpr   uint64_t bufCountExp    = 2;
 constexpr   uint64_t bufCount       = (1LL<<bufCountExp);
 constexpr   uint64_t bufCountMask   = bufCount-1LL;
 
@@ -45,14 +46,10 @@ public:
         { clear(); };
     void clear(void)
         {
-            memset(layer, 0, sizeof(layer));
-            overtoneCount   = 0;
-            amplitudeSumm   = 0;
+            memset(this, 0, sizeof(OscillatorOut));
         };
-    int64_t     layer[ overtoneCountOscDef ][ oscillatorOutSampleCount ];
-    int64_t     amplitudeSumm;  // collect the summ for the given period for the compressor
-    int16_t     overtoneCount;
-    int16_t     pad[3];
+    int64_t     layer[ oscOutputChannelCount ][ oscillatorFrameSize ];
+    int64_t     amplitudeSumm[ oscOutputChannelCount ];  // collect the summ for the given period for the compressor
 };
 
 class OscillatorOutVector {
@@ -63,8 +60,8 @@ public:
         return instance;
     };
 
-    uint16_t    getReadIndex(void)      { return readPtr  & bufCountMask;  };
-    uint16_t    peekReadIndexNext(void) { return ( readPtr + 1 ) & bufCountMask;  };
+    uint16_t    getReadIndex(void)      { return readPtr & bufCountMask;  };
+    //uint16_t    peekReadIndexNext(void) { return ( readPtr + 1 ) & bufCountMask;  };
     uint16_t    getWriteIndex(void)     { return writePtr & bufCountMask;  };
     uint16_t    getFullCount(void)      { return  ( writePtr - readPtr ); };
     bool        isFull(void)            { return bufCount  <= ( writePtr - readPtr ); };

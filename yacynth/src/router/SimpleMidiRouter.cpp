@@ -40,15 +40,15 @@ bool SimpleMidiRouter::parameter( yaxp::Message& message, uint8_t tagIndex, uint
 //        TAG_DEBUG(TagMidiController::ClearChannelVector, tagIndex, paramIndex, " " );
 //        return true;
 //    }
-    
+
     switch( TagRouter( tag ) ) {
     case TagRouter::Clear:
         return true;
     }
-            
+
     message.setStatus( yaxp::MessageT::illegalTag );
     return false;
-    
+
 }
 
 // --------------------------------------------------------------------
@@ -66,23 +66,23 @@ Yamsgrt SimpleMidiRouter::translate( const RouteIn& in )
     switch( in.op ) {
 
 /*
- 
+
 #ifdef OSCILLATOR_VELOCITY_RANDOMIZER
     velocity = in.velocity + ( gRandom.getRaw() & 0x0FFFF );
 #else
     velocity = in.velocity;
 #endif
 
- 
- 
- */        
 
-    case MIDI_NOTE_OFF:        
+
+ */
+
+    case MIDI_NOTE_OFF:
         out.voiceRelease.opcode         = YAMOP_VOICE_RELEASE;
         out.voiceRelease.oscNr          = in.note_cc_val;
         out.voiceRelease.tickRelease    = 0;    // ?
         break;
-        
+
     case MIDI_NOTE_ON:
         if( 0 == in.velocity_val ) {
             out.voiceRelease.opcode         = YAMOP_VOICE_RELEASE;
@@ -92,10 +92,10 @@ Yamsgrt SimpleMidiRouter::translate( const RouteIn& in )
         }
         out.voiceSet.oscNr          = in.note_cc_val;
         out.voiceSet.toneBank       = 0;
-        out.voiceSet.velocity15bit  = in.velocity_val << 8; // 15 bit
+        out.voiceSet.velocity       = in.velocity_val * 2;  // 8 bit
         out.voiceSet.pitch          = getPitch( in.note_cc_val, 0 );
         break;
-        
+
     case MIDI_PLY_AFTCH:
 //        out.setVoice.opcode = YAMOP_CHNGVOICE_NOTE;
 //        out.setVoice.oscNr      = in.note_cc_val;
@@ -103,14 +103,14 @@ Yamsgrt SimpleMidiRouter::translate( const RouteIn& in )
 //        out.setVoice.pitch      = 0;    // OFF
         break;
 
-    case MIDI_CONTR_CHNG: {        
+    case MIDI_CONTR_CHNG: {
         MidiController::ControlData cdt =
             midiController.getControlData( in.chn, in.note_cc_val );
-        
+
         switch( cdt.mode ) {
         case MidiController::CM_DISABLE :
             break;
-            
+
         case MidiController::CM_RANGE : // range page 0..255
             InnerController::getInstance().setMidi( cdt.index, in.velocity_val );
             break;
@@ -126,11 +126,11 @@ Yamsgrt SimpleMidiRouter::translate( const RouteIn& in )
         case MidiController::CM_SET : // set value: same as setMidi on the switch page
             InnerController::getInstance().setMidiSwitch( cdt.index, in.velocity_val );
             break;
-            
+
         default: // set value: should be 0..127 - not checked here -- radio button -- value == cdt.mode
-            InnerController::getInstance().setMidiSwitch( cdt.index, cdt.mode );            
+            InnerController::getInstance().setMidiSwitch( cdt.index, cdt.mode );
             break;
-            
+
         }
         break;
     }

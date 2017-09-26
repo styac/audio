@@ -163,6 +163,7 @@ void FxFlanger::sprocess_04( void * thp )
     static_cast< MyType * >(thp)->processFeedback();
 }
 
+        
 } // end namespace yacynth
 
 

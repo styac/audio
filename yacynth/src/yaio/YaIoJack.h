@@ -43,8 +43,8 @@ public:
     bool initialize(    void );
     void shutdown(      void );
     bool run(           void );
-    void mute(   void ) { muted = true; };
-    void unmute( void ) { muted = false; };
+    void mute(   void ) { muted = true; };      // obsolete : EndMixer.setMode(0)
+    void unmute( void ) { muted = false; };     // obsolete : EndMixer.setMode(1)
     
     // process
     // static JackProcessCallback             processCB;
@@ -67,6 +67,17 @@ public:
     }
     
 protected:
+    inline void processJackMidiIn()
+    {
+        void * midiIn = midiInPort.getBuffer( nframes );
+        jack_midi_event_t in_event;
+        jack_nframes_t event_count = jack_midi_get_event_count( midiIn );
+        for( auto i=0; i < event_count; ++i ) {
+            jack_midi_event_get( &in_event, midiIn , i );
+            processMidiCommand( userData, in_event.buffer, in_event.size, ( event_count-1 ) == i );
+        }    
+    }
+    
     jack_client_t   *client;
     jack_options_t  jackOptions;
     jack_status_t   jackStatus;
@@ -75,6 +86,7 @@ protected:
     YaIoJackPort    audioOutPort2;
     YaIoJackPort    audioInPort1;
     YaIoJackPort    audioInPort2;
+    jack_nframes_t  nframes;
     bool            muted;        
 
 private:

@@ -40,26 +40,36 @@ using namespace TagEffectFxOscillatorMixerModeLevel_03;
 class FxOscillatorMixerParam {
 public:
     FxOscillatorMixerParam()
-    : gain(gainref)
     {};
     // mandatory fields
-    static constexpr char const * const name = "OscillatorMixer";
-    static constexpr TagEffectType  type     = TagEffectType::FxOscillatorMixer;
-    static constexpr std::size_t maxMode     = 1; //
-    static constexpr std::size_t inputCount  = 0; // input is oscillator thread out
-
-    // temp
-    static constexpr   float   gainref = 1.0f/(1L<<24);
-    static constexpr uint8_t subtype         = uint8_t(TagEffectFxOscillatorMixerMode::SetParametersMode01);
+    static constexpr char const * const name      = "OscillatorMixer";
+    static constexpr TagEffectType  type          = TagEffectType::FxOscillatorMixer;
+    static constexpr std::size_t maxMode          = 1; //
+    static constexpr std::size_t inputCount       = 0; // input is oscillator thread out
+    static constexpr std::size_t slaveCount       = layerCount - 1; // 0-base signal 1-modulation
+    static constexpr char const * const slavename = "^";
+    static constexpr float gainref    = 1.0f/(1L<<24);
+    static constexpr uint8_t subtype    = uint8_t(TagEffectFxOscillatorMixerMode::SetParametersMode01);
 
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
-    // optional fields
-    float gain;
+    void clear()
+    {
+        
+    }
+    
+    bool check()
+    {
+        
+    }
+    
+    union {
+        float       gain[ oscOutputChannelCount ] = { gainref, gainref };
+        uint64_t    zeroGain[ oscOutputChannelCount / 2 ];
+    };
 
     // index to put the amplitudeSumm
-    // interface to controller
-    ControllerIndex     amplitudeSummIndex;
+    ControllerIndex     amplitudeSummIndex; // [ layerCount ] - agree with InnerController
 };
 
 

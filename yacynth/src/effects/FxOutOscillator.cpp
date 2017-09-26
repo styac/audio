@@ -243,6 +243,7 @@ void FxSlave<FxOutOscillatorParam>::clearTransient()
 };
 
 
+
 } // end namespace yacynth
 
 

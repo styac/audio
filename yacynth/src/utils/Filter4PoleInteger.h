@@ -1,5 +1,5 @@
 #pragma once
-
+#if 0
 /*
  * Copyright (C) 2016 Istvan Simon -- stevens37 at gmail dot com
  *
@@ -159,3 +159,4 @@ protected:
 
 } // end namespace filter
 
+#endif

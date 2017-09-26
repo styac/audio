@@ -85,6 +85,7 @@ public:
 
 
 private:
+    void getFullName( const FxBase &fxmaster, const FxBase &fxcurr, char * name, size_t nameLength );
     FxCollector()
     :   nodes()
     {
@@ -132,14 +133,16 @@ public:
     ,   maxMode(maxM)
     ,   masterId(0)
     ,   myType(type)
+    ,   myInstance(0)
     {
         FxCollector::getInstance().put(*this);
     };
 
-
+    
     inline const FxBase& get(void) const { return *this; };
     inline const std::string& name(void) const { return myName; };
     inline uint16_t id(void) const { return myId; };
+    inline uint16_t myInstanceIndex(void) const { return myInstance; };
     inline uint16_t getInputCount(void) const { return inCount; };
     inline uint16_t getMasterId(void) const { return masterId; };
     inline uint16_t getMaxMode(void) const { return maxMode; };
@@ -182,9 +185,10 @@ protected:
     const uint8_t       inCount;
     const TagEffectType myType;
     const uint8_t       maxMode;
-          uint8_t       masterId;   // 0 - master , 0 < slave -- value is the id of master
-    uint8_t             procMode;   // might go up the base
-    FadePhase           fadePhase;  // might go  up the base
+    uint8_t             masterId;       // 0 - master , 0 < slave -- value is the id of master
+    uint8_t             myInstance;     // 
+    uint8_t             procMode;       // might go up the base
+    FadePhase           fadePhase;      // might go  up the base
 
 
     // add some statistics counters here (conditional)
@@ -219,9 +223,14 @@ public:
     :   FxBase(Tparam::slavename, 0, 0, TagEffectType::FxSlave )
     {}
 
-    inline void setMasterId( uint8_t mid )
+    inline void setMasterId( uint8_t val )
     {
-        masterId = mid;
+        masterId = val;
+    }
+
+    inline void setInstanceIndex( uint8_t val )
+    {
+        myInstance = val;
     }
 
     virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override;
@@ -434,23 +443,14 @@ private:
 template< typename Tparam  >
 class Fx : public FxBase {
 public:
-
     Fx()
     :   FxBase( Tparam::name, Tparam::maxMode, Tparam::inputCount, Tparam::type )
     ,   param()
     {
         for( auto& ip : inpFx )     ip = &fxNil;
         for( auto& ip : sprocessv ) ip = sprocessNop;
+        myInstance = instanceCount++;
     }
-
-    // obsolate
-    inline Tparam& getParam(void) // ????? -- serialize
-    {
-        return param;
-    }
-
-//    virtual bool parameter( Yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override;
-//    virtual void clearTransient()  override;
 
 private:
     Fx(Fx const &)              = delete;
@@ -491,7 +491,13 @@ protected:
         static_assert( n<Tparam::inputCount, "inp: non existent input" );
         return *static_cast<const EIObuffer *>(inpFx[n]);
     }
-
+    
+    // n nott checked
+    inline const EIObuffer& inp( uint8_t n ) const
+    {
+        return *static_cast<const EIObuffer *>(inpFx[n]);
+    }
+    
     inline void processCopy0(void)
     {
         static_assert( 0<Tparam::inputCount, "sprocessCopy0: non existent input" );
@@ -503,9 +509,12 @@ protected:
     const FxBase      * inpFx[Tparam::inputCount];
     SpfT                sprocessv[Tparam::maxMode+1];
     Tparam              param;
+    static uint16_t     instanceCount;      // static counter to make unique id
 };
 
+template< typename Tparam  > uint16_t Fx< Tparam  >::instanceCount = 0;
 
+// --------------------------------------------------------------------
 // transient:
 //  setProcMode ->
 //      sprocessp = sprocessTransient
@@ -526,15 +535,6 @@ protected:
 //          mult fade in
 //          set sprocessp = sprocessp
 //          set procModeCurr = procModeNext
-//
-//
-//
-//
-
-
-// --------------------------------------------------------------------
-
-
 // --------------------------------------------------------------------
 } // end namespace yacynth
 

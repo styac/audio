@@ -28,26 +28,6 @@
 namespace yacynth {
 using namespace TagEffectFxOscillatorMixerModeLevel_03;
 
-void FxOscillatorMixer::process( const OscillatorOut& inp )
-{
-    AddVector  addbuff;
-    // index to put the amplitudeSumm
-    // interface to controller
-
-    // param.amplitudeSummIndex.setInnerValue( static_cast<float>( inp.amplitudeSumm ) );
-
-    for( uint16_t si = 0u; si < oscillatorOutSampleCount; ++si ) {
-        addbuff.v[si] = inp.layer[0][si] + inp.layer[1][si];
-    }
-
-    for( uint16_t ovi = 2u; ovi < inp.overtoneCount; ++ovi ) {
-        for( uint16_t si = 0u; si < oscillatorOutSampleCount; ++si ) {
-            addbuff.v[si] += inp.layer[ovi][si];
-        }
-    }
-    out().copyMono2Stereo( addbuff.v, param.gain );
-}
-
 bool FxOscillatorMixerParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     const uint8_t tag = message.getTag(tagIndex);
@@ -56,15 +36,29 @@ bool FxOscillatorMixerParam::parameter( yaxp::Message& message, uint8_t tagIndex
 //        TAG_DEBUG(TagMidiController::ClearChannelVector, tagIndex, paramIndex, " " );
 //        return true;
 //    }
-//    
+//
     switch( TagEffectFxOscillatorMixerMode( tag ) ) {
     case TagEffectFxOscillatorMixerMode::Clear :
+        for( auto& g : gain ) {
+            g = 0.0f;
+        }
+        return true;
+
+    case TagEffectFxOscillatorMixerMode::Preset0 :
+        for( auto& g : gain ) {
+            g = gainref;
+        }
+        return true;
+
+    case TagEffectFxOscillatorMixerMode::SetParametersMode01 :  // set all volumes
+        return true;
+
+    case TagEffectFxOscillatorMixerMode::SetChannelVolume :     // set 1 volume
         return true;
     }
-            
+
     message.setStatus( yaxp::MessageT::illegalTag );
     return false;
-    
 }
 
 
@@ -73,23 +67,50 @@ void FxOscillatorMixer::clearTransient()
     EIObuffer::clear();
 }
 
+
 bool FxOscillatorMixer::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     // 1st tag is tag effect type
-    const uint8_t tagType = message.getTag(tagIndex);    
+    const uint8_t tagType = message.getTag(tagIndex);
     if( uint8_t(param.type) != tagType ) {
         message.setStatus( yaxp::MessageT::illegalTagEffectType );
         TAG_DEBUG(yaxp::MessageT::illegalTagEffectType, uint8_t(param.type), tagType, "FxOscillatorMixer" );
-        return false;        
+        return false;
     }
     // 2nd tag is tag operation
     const uint8_t tag = message.getTag(++tagIndex);
-    if( uint8_t(TagEffectFxOscillatorMixerMode::Clear) == tag ) {
+    switch( TagEffectFxOscillatorMixerMode( tag ) ) {
+    case TagEffectFxOscillatorMixerMode::Clear:
         clearTransient(); // this must be called to cleanup
+        break;
     }
     // forward to param
-    return param.parameter( message, tagIndex, paramIndex ); 
+    return param.parameter( message, tagIndex, paramIndex );
 }
+
+template<>
+bool FxSlave<FxOscillatorMixerParam>::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+{
+    // 1st tag is tag effect type
+    const uint8_t tagType = message.getTag(tagIndex);
+    if( uint8_t(TagEffectType::FxSlave) != tagType ) {
+        message.setStatus( yaxp::MessageT::illegalTagEffectType );
+        return false;
+    }
+    // 2nd tag is tag operation
+    const uint8_t tag = message.getTag(++tagIndex);
+//    if( uint8_t(TagEffectFxFilterMode::Clear) == tag ) {
+//        clearTransient(); // this must be called to cleanup
+//    }
+    // forward to param
+    return true;
+};
+
+template<>
+void FxSlave<FxOscillatorMixerParam>::clearTransient()
+{
+};
+
 
 } // end namespace yacynth
 

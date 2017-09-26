@@ -28,13 +28,17 @@
 #include    <cstdint>
 #include    <cmath>
 #include    <algorithm>
+#include    <iostream>
+
 
 namespace tables {
 
 constexpr uint32_t   expTableSize = 1<<16;
+constexpr uint32_t   velocityBoostTableSize = 1<<8;
+
 extern float    expMinus2PI[ expTableSize + 1 ];
 extern uint64_t exp2Table[   expTableSize + 1 ];
-
+extern uint8_t  velocityBoostTable[];
 
 template< typename Tdata, int64_t limit>
 inline Tdata saturate ( const Tdata x )
@@ -68,14 +72,17 @@ public:
     {
         return exp2Table[uint32_t(index)+1];
     }
+    // probably not needed
     static inline float expMinus2PIindex0( const uint16_t index )
     {
         return expMinus2PI[index];
     }
+    // probably not needed
     static inline float expMinus2PIindex1( const uint16_t index )
     {
         return expMinus2PI[uint32_t(index)+1];
     }
+    // probably not needed
     static inline const auto& expMinus2PIRef(void)
     {
         return expMinus2PI;
@@ -156,6 +163,7 @@ public:
     };
 
     // MUST BE TESTED
+    // probably not needed
     static inline uint32_t fastexpMinus2PI( const uint32_t x )
     {
         constexpr   uint32_t rangeExp = 31;
@@ -183,6 +191,8 @@ protected:
         constexpr double dexp   = 1.0L / double(expTableSize);
         constexpr uint64_t norm = 1LL << precMultExp;
         for( uint32_t i = 0u; i <= expTableSize; ++i ) {
+
+            // probably not needed
             // exp( -2 * PI *x ) ; x = 0 .. 0.5
             expMinus2PI[ i ]    = std::exp( delta * i );
             // exp2 x = 1..2
@@ -190,5 +200,39 @@ protected:
         }
     };
 };
+
+
+class VelocityBoostTable {
+public:
+    
+    static inline const VelocityBoostTable& getInstance(void)
+    {
+        static VelocityBoostTable instance;
+        return instance;
+    }
+    
+    static inline uint16_t getBoost( uint8_t velocity, uint8_t booster ) 
+    {
+        return uint16_t(velocityBoostTable[ velocity ]) * booster;
+    }
+    
+private:
+// plot2d(  [ "x", "(x-(exp(log(2)*x/32)-1) ) ", "x - 0.6 * (x-(exp(log(2)*x/32)-1) )" ], 0, 256 ,color=4:5:6  )
+    VelocityBoostTable() {
+        for( uint32_t i = 0u; i < velocityBoostTableSize; ++i ) {
+            const double di = i;
+            const double diexp = std::exp2(di/32.0 ) - 1.0;
+            velocityBoostTable[ i ] = std::round( di - diexp );
+#if 0
+            std::cout << std::dec
+                << "i: " << di
+                << " exp: " << diexp
+                << " bo: " << uint16_t(velocityBoostTable[ i ]) 
+                << std::endl;
+#endif
+        }        
+    }
+};
+
 } // end namespace tables
 

@@ -41,10 +41,11 @@ IOThread:: IOThread(
 ,   cycleNoise(0)
 ,   fxEndMixer()
 ,   fxOscillatorMixer()
+,   fxInput()
 ,   fxRunner(fxEndMixer)
 
 {
-    fxEndMixer.setProcMode(1); // TODO > endMixed mode
+    fxEndMixer.setProcMode(1); // TODO > endMixed mode -- muted function
 };
 // --------------------------------------------------------------------
 
@@ -106,6 +107,7 @@ void IOThread::audioOutCB( void *data, uint32_t nframes, float *outp1, float *ou
     timeval tv; // profiling
     IOThread& thp = *static_cast<IOThread *>(data);
 
+    // TODO> relax this condition and make sync mode to reduce latency
     if( thp.queueOut.getFullCount() < bufferSizeMult ) {
         // synth thread doesn't run
         for( auto i=0u; i < nframes; ++i ) {
@@ -133,7 +135,7 @@ void IOThread::audioOutCB( void *data, uint32_t nframes, float *outp1, float *ou
         // dev state: 64 sample internal, 256 external
         // one frame cycle
         
-        // check here the MIDI? to educe the avg latency
+        // check here the MIDI? to reduce the avg latency
         
         InnerController::getInstance().incrementFrameLFOscillatorPhases();
         const int ri = thp.queueOut.getReadIndex();

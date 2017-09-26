@@ -144,6 +144,7 @@ void FxFilter::sprocess_09( void * thp )
     static_cast< MyType * >(thp)->process_01_ap4x();
 }
 
+
 } // end namespace yacynth
 
 

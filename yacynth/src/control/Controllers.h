@@ -47,21 +47,20 @@ namespace yacynth {
 // page 2 - filtered ??
 // page 3 - switch
 // page 4 - extended sw ( GUI+OSC )
+// controller 0x40 -- const 0
+// controller 0x41 -- const 127 (max MIDI value)
 
 
-constexpr   std::size_t controllerPageExp   = 5; // 4 * 256
-constexpr   std::size_t controllerCountExp  = controllerPageExp + 8; // 512 -- midi -> low 256
-
+constexpr   std::size_t controllerPageExp   = 8+3; // 8 * 256
 
 // internal controllers
-
 // TODO
 // class InnerSetController     -- bitmap -- 1/0
 // class InnerBiController      -- logical true - false
 // class InnerMultiController   -- multivalue --> bank select
 
 // range 0 .. +N
-class InnerController : public V4size<controllerCountExp> {
+class InnerController : public V4size<controllerPageExp-2> {
 
 public:
 
@@ -85,7 +84,8 @@ public:
     static constexpr std::size_t midiStepMask       = midiStep-1;
 
     enum  {
-        CC_NULL                         = 0, // never set -- must be zero
+        CC_NULL                         = 0, // never set -- must be zero -- will be 0x40
+        CC_127                          = 1, // never set -- must be zero -- will be 0x41
         CC_MAINVOLUME,
         CC_PITCHBEND,
         CC_CHANNEL_AFTERTOUCH,
@@ -116,24 +116,29 @@ public:
         CC_AMPLITUDE                    = 1<<8,       // internal -- amplitude summ
         // ------------- internal range end
         // ------------- LFO range begin
-        CC_LFO_MASTER_PHASE_BEGIN       = 260,
+        CC_LFO_MASTER_PHASE_BEGIN       = 260, // TODO 256
         CC_LFO_SLAVE_PHASE_BEGIN        = CC_LFO_MASTER_PHASE_BEGIN + lfoMasterCount,
         CC_LFO_MASTER_DELTA_PHASE_BEGIN = CC_LFO_SLAVE_PHASE_BEGIN + lfoMasterCount * lfoSlaveSetCount,
         CC_LFO_SLAVE_DELTA_PHASE_BEGIN  = CC_LFO_MASTER_DELTA_PHASE_BEGIN + lfoMasterCount,
         CC_LFO_DELTA_PHASE_END          = CC_LFO_SLAVE_DELTA_PHASE_BEGIN + lfoMasterCount * lfoSlaveSetCount,
         // ------------- LFO range end
         // ------------- filtered range begin
-        CC_BEGIN_FILTERED               = 516,
+        CC_BEGIN_FILTERED               = 2*(1<<8),
         CC_END_FILTERED                 = CC_BEGIN_FILTERED + filteredRange,
         // ------------- filtered range end
         // switch controllers
         CC_BEGIN_SWITCH                 = 3*(1<<8),
         // software controllers
         CC_BEGIN_SW                     = 4*(1<<8),
-        CC_END                          = 5*(1<<8)
-    };
+//        CC_NULL,              // never set -- must be zero -- will be 0x40
+//        CC_127,               // never set -- must be zero -- will be 0x41
+//        CC_AMPLITUDE,         // internal -- amplitude summ x 16 - for each  channel
 
-    static_assert( CC_END < arraySize, "array is too small" );
+        CC_RFU1                         = 5*(1<<8),
+        CC_RFU2                         = 6*(1<<8),
+        CC_RFU3                         = 7*(1<<8),
+        CC_END                          = 8*(1<<8)
+    };
 
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
@@ -164,9 +169,9 @@ public:
 
     inline void clear(void)
     {
+        static_assert( CC_END == maxIndex, "controller size mismatch" );
         value.clear();
-//        for( auto i = 0u; i<arraySize ; ++i )
-//            shiftleft[i] = norm-7;
+        value.v[ CC_127 ] = 127; // max MIDI
     }
     /*
 k 1 f 5295.41
@@ -333,13 +338,10 @@ k 9 f 14.9358  -- 20.6
 private:
     InnerController();
     V4array<int32_t,arraySizeExp>   value;
-    // uint8_t                         shiftleft[arraySize]; // obsolate -- must be eliminated
-
     // volume control characteristic
-    static float expFuncTable[midiStep];
-
+    static float expFuncTable[ midiStep ];
     // lfo phase control 0 .. PI
-    static uint32_t phaseFuncTable[midiStep];
+    static uint32_t phaseFuncTable[ midiStep ];
 };
 
 
@@ -468,7 +470,7 @@ public:
 
     // set the mapping between the midi controllers and the innercontroller
     void set( uint8_t channel, uint8_t controller, uint8_t ind = InnerController::CC_SINK, CMode mode = CMode::CM_RANGE )
-    {            
+    {
         if( ind == 0 ) {
             ind = InnerController::CC_SINK;
         }
@@ -520,7 +522,7 @@ struct ControllerIndex {
     {
         return InnerController::getInstance().getExpValueFloat( 127 - InnerController::getInstance().getValueI32( index ));
     }
-    
+
     inline float getExpValueFloat() const
     {
         return InnerController::getInstance().getExpValueFloat( InnerController::getInstance().getValueI32( index ));
@@ -566,7 +568,7 @@ struct ControllerIndex {
         const int32_t tmp = (int32_t(InnerController::getInstance().getValueI32( index ))>>15);
         return ((tmp>>16) ^ tmp );
     }
-    
+
     inline int32_t getLfoTriangleI32() const
     {
         const int32_t tmp = (int32_t(InnerController::getInstance().getValueI32( index ))>>1);
@@ -586,25 +588,25 @@ struct ControllerCache {
     ControllerCache()
     :   value(0) // irreal value to enforce an update
     {}
-    
+
     int32_t     value;
-    
+
     // will be needed for parameter update
     //  in other thread to make a recalculation the control
     //  values : probably value must be atomic
-    
+
     void reset()
     {
-        
+
     }
-    
+
     inline bool update( const ControllerIndex ind )
     {
         const auto tmp = value;
         value = InnerController::getInstance().getValueI32( ind.index );
         return tmp != value;
     }
-    
+
     inline float getExpValueFloat(void) const
     {
         return InnerController::getInstance().getExpValueFloat( value );
@@ -619,7 +621,7 @@ struct ControllerCache {
     {
         return InnerController::getInstance().getPhaseValueU32( value );
     }
-    
+
     inline int32_t getValueI32(void) const
     {
         return value;
@@ -661,7 +663,7 @@ struct ControllerCache {
     {
         return ( int32_t(tables::waveSinTable[ uint16_t(value>>16) ]) << 15 ) + 0x3FFF0000;
     }
-    
+
     inline int32_t getLfoTriangleI32() const
     {
         const int32_t tmp = value>>1;
@@ -672,7 +674,7 @@ struct ControllerCache {
     {
         const int32_t tmp = value>>1;
         return ((tmp>>30) ^ tmp );
-    }    
+    }
 };
 
 // always adds only a fraction of the change to the value
@@ -692,11 +694,11 @@ struct ControllerCacheRate : public ControllerCache {
 // special for pitchbend
 struct ControllerPitchBend {
     int32_t     range;
-    static constexpr  int16_t   middleValueExp      = 13;        
-    static constexpr  int16_t   middleValue         = 1<<middleValueExp;        
-    static constexpr  float     octaveResolution    = 1<<24;        
+    static constexpr  int16_t   middleValueExp      = 13;
+    static constexpr  int16_t   middleValue         = 1<<middleValueExp;
+    static constexpr  float     octaveResolution    = 1<<24;
     static constexpr  float     pitch2Semitone      = octaveResolution / 6.0;
-    
+
     // val = 1.0 -> +,- 1 semitone
     // scaling must be checked with MIDI RPN settings
     inline void setRange( float val = 1.0f )
@@ -707,7 +709,7 @@ struct ControllerPitchBend {
             val = 12.0f;
         range = int32_t(pitch2Semitone * val);
     }
-        
+
     inline int32_t getPitchYcent( int16_t controllerValue )
     {
         const int64_t offs = controllerValue - middleValue;
@@ -728,14 +730,14 @@ struct ControllerMapLinear {
 
     static constexpr uint8_t    offsetCount = acount;
     static constexpr int32_t    maxMult     = 1<<24;   // min input 7 bit
-    static constexpr int32_t    maxOffs     = 1<<29;    
-    static constexpr uint32_t   maxShift    = 48;    
+    static constexpr int32_t    maxOffs     = 1<<29;
+    static constexpr uint32_t   maxShift    = 48;
 
     inline int32_t getScaled( int32_t val ) const
     {
         return (int64_t(slope) * val) >> shift;
     }
-    
+
     inline int32_t getOffseted( int32_t val ) const
     {
         static_assert( acount>0,"not usable" );
@@ -758,7 +760,7 @@ struct ControllerMapLinear {
 //            std::cout << "  ControllerMapLinear err shift " << mult << std::endl;
             return false;
         }
-        
+
         for( auto &y : y0 ) {
             const int32_t aby = std::abs(y);
             if( aby > maxOffs ) {

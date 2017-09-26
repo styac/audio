@@ -37,7 +37,7 @@ using namespace TagEffectFxLateReverbModeLevel_03;
 class FxLateReverbParam {
 public:
     // mandatory fields
-    static constexpr char const * const name    = "FxLateReverb";
+    static constexpr char const * const name    = "LateReverb";
     static constexpr TagEffectType  type        = TagEffectType::FxLateReverb;
     static constexpr std::size_t maxMode        = 3;    // 0 is always exist> 0,1,2
     static constexpr std::size_t inputCount     = 1;

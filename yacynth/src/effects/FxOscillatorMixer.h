@@ -27,11 +27,9 @@
 
 #include    "yacynth_globals.h"
 #include    "../effects/FxBase.h"
-
 #include    "v4.h"
 #include    "FxOscillatorMixerParam.h"
 #include    "../oscillator/OscillatorOutput.h"
-
 
 namespace yacynth {
 class FxOscillatorMixer : public Fx<FxOscillatorMixerParam>  {
@@ -40,33 +38,52 @@ public:
     FxOscillatorMixer()
     :   Fx<FxOscillatorMixerParam>()
     {
-//        fillSprocessv<0>(sprocess_00);
-//        fillSprocessv<1>(sprocess_01);
-//        fillSprocessv<2>(sprocess_02);
-//        fillSprocessv<3>(sprocess_03);
-//        fillSprocessv<4>(sprocess_04);
-//        fillSprocessv<5>(sprocess_05);
-
+        for( auto& si : slaves ) si.setMasterId(id());
     }
 
     virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override;
 
     virtual void clearTransient() override;
-
-    // real process
-    void process( const OscillatorOut& inp );
+    
     virtual bool connect( const FxBase * v, uint16_t ind ) override
     {
-        doConnect(v,ind);
+        doConnect( v, ind );
     };
 
+    void process( const OscillatorOut& inp )
+    {
+        // main output
+        if( inp.amplitudeSumm[ 1 ] ) {
+            // stereo
+            for( uint16_t si = 0u; si < oscillatorFrameSize; ++si ) {
+                out().channel[ chA ][ si ] = inp.layer[ 0 ][ si ] * param.gain[ 0 ];
+                out().channel[ chB ][ si ] = inp.layer[ 1 ][ si ] * param.gain[ 1 ];
+            }            
+        } else {
+            // mono
+            for( uint16_t si = 0u; si < oscillatorFrameSize; ++si ) {
+                out().channel[ chA ][ si ] = out().channel[ chB ][ si ] = inp.layer[0][si] * param.gain[0];
+            }            
+        }
+
+        // TODO
+        for( uint16_t ci = 1u; ci < layerCount; ++ci ) {
+            const uint16_t ci2 = ci<<1;
+            if( param.zeroGain[ ci ] ) {
+                if( inp.amplitudeSumm[ ci2+1 ] ) {
+                    // stereo
+                } else {
+                    // mono
+                }                
+            } else {
+                // clear output
+            }
+        }
+    }
+
 private:
-    struct alignas(16) AddVector {
-        union {
-            v2di    i[oscillatorOutSampleCount/2];
-            int64_t v[oscillatorOutSampleCount];
-        };
-    };
+    // 16 layers: 1 base + 15 slaves
+    FxSlave<FxOscillatorMixerParam>   slaves[ FxOscillatorMixerParam::slaveCount ];
 
 };
 

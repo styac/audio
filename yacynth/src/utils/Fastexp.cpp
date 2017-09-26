@@ -26,9 +26,12 @@
 #include "Fastexp.h"
 
 namespace tables {
-float       expMinus2PI[ expTableSize + 1 ];
+
+float       expMinus2PI[ expTableSize + 1 ]; // probably not needed
 uint64_t    exp2Table[   expTableSize + 1 ];
-const ExpTable& expTable = ExpTable::getInstance();
+uint8_t     velocityBoostTable[ velocityBoostTableSize ];
+        
+//const ExpTable& expTable = ExpTable::getInstance();
 } // end namespace tables
 
 

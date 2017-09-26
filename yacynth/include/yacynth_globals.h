@@ -25,13 +25,9 @@
  * Created on January 26, 2016, 11:35 PM
  */
 
-// this will go from here
-
-
 #include    <cstdint>
 #include    <cmath>
 #include    <algorithm>
-
 
 #define NON_COPYABLE_NOR_MOVABLE(T) \
       T(T const &) = delete; \
@@ -40,65 +36,62 @@
 
 #define YAC_DEBUG    1
 
-// global namespace
-
 namespace yacynth {
 
 #define cArrayElementCount(T)    (sizeof(T) / sizeof(T[0]))
 
-constexpr   uint16_t    cacheLineSize               = 64;
+constexpr uint16_t  cacheLineSize               = 64;
 
-constexpr   double      PI  = 3.141592653589793238462643383279502884197169399375105820974944592307816406286;
-constexpr   double      PI2 = PI * 2.0;
+constexpr double    PI  = 3.141592653589793238462643383279502884197169399375105820974944592307816406286;
+constexpr double    PI2 = PI * 2.0;
 
-constexpr   uint16_t    overtoneCountOscDefExp      = 8;         // 256 overtones
-constexpr   uint16_t    overtoneCountOscDef         = 1<<overtoneCountOscDefExp;
-constexpr   uint16_t    overtoneCountOscDefMask     = overtoneCountOscDef-1;
+constexpr uint16_t  overtoneCountOscDefExp      = 8;         // 256 overtones
+constexpr uint16_t  overtoneCountOscDef         = 1<<overtoneCountOscDefExp;
+constexpr uint16_t  overtoneCountOscDefMask     = overtoneCountOscDef-1;
 
-constexpr   uint16_t    voiceCount                  = 1<<7;         // 128 x poliphony
-constexpr   uint16_t    lfoCount                    = 16;
+constexpr uint16_t  voiceCount                  = 1<<7;         // 128 x poliphony
+constexpr uint16_t  lfoCount                    = 16;
 //
 // for different sets like: Spectrum, Envelope, ....
 //
-constexpr   uint16_t    settingVectorSize           = 16;
+constexpr uint16_t  settingVectorSize           = 16;
 
-//  down count !
-// point 0  : delay (with 0 - or very lazy curve )
-// point 15 : sustain - can be decay for plucked instruments
+constexpr uint16_t  envelopeVectorSize          = 1<<8;
+constexpr uint16_t  transientKnotCount          = 1<<4;     // 16 point
+constexpr uint16_t  envelopeKnotRelease         = 0x7F;     // new> own var for release
+constexpr uint16_t  envelopeKnotSteady          = -1;
+
+constexpr uint16_t  sytemOutChannel             = 2;    // mono = mono/2 stereo
+constexpr double    samplingFrequency           = 48000.0;
+
+constexpr uint16_t  scalePhaseIndexExp          = 1<<4;
+constexpr uint64_t  scalePhaseIndex             = 1LL << scalePhaseIndexExp;
 //
-constexpr   uint16_t    envelopeVectorSize          = 1<<8;
-constexpr   uint16_t    transientKnotCount          = 1<<4;     // 16 point
-constexpr   uint16_t    envelopeKnotRelease         = 0x7F;     // new> own var for release
-// constexpr   uint16_t    envelopeKnotUp              = transientKnotCount-1;
-constexpr   uint16_t    envelopeKnotSteady          = -1;
+constexpr int       waveTableSize               = 1 << 16;
+constexpr int       velocityTableSize           = 1 << 8;
+constexpr uint16_t  oscillatorFrameSizeExp      = 6;        // 64 sample
+constexpr uint16_t  oscillatorFrameSize         = 1<<oscillatorFrameSizeExp;
+constexpr uint16_t  effectChannelCount          = 16;
 
-constexpr   uint16_t    sytemOutChannel             = 2;    // mono = mono/2 stereo
-constexpr   double      samplingFrequency           = 48000.0;
+constexpr uint16_t  effectFrameSizeExp          = oscillatorFrameSizeExp;        // 64 sample
+constexpr uint16_t  effectFrameSize             = 1<<effectFrameSizeExp;        // 64 sample
 
-constexpr   uint16_t    normFactorPhaseIndexExp     = 1<<4;
-constexpr   uint64_t    normFactorPhaseIndexVal     = 1LL << normFactorPhaseIndexExp;
-//
-// 64k - tricky addressing - only for pitch oscillator
-//
-constexpr   int         waveTableSize               = 1 << 16;
-constexpr   int         velocityTableSize           = 1 << 8;
-constexpr   uint16_t    oscillatorOutSampleCountExp = 6;        // 64 sample
-constexpr   uint16_t    oscillatorOutSampleCount    = 1<<oscillatorOutSampleCountExp;
-constexpr   uint16_t    effectChannelCount          = 16;
+constexpr uint8_t   oscOutputChannelCountExp          = 5; // 16 x 2  
+constexpr uint8_t   oscOutputChannelCount             = 1<<oscOutputChannelCountExp;
+constexpr uint8_t   oscOutputChannelCountMsk          = oscOutputChannelCount-1;
+constexpr uint8_t   layerCount                        = oscOutputChannelCount / 2; // 2 ch
 
-constexpr   uint16_t    effectFrameSizeExp          = oscillatorOutSampleCountExp;        // 64 sample
-constexpr   uint16_t    effectFrameSize             = 1<<effectFrameSizeExp;        // 64 sample
 //
 // ------------------------------------------------------------
 //  lowest 8 bit: linear interpolation
 //  next 16 bit: index into the exp2 table
 //
-constexpr   uint32_t    ycentNormIntExp         = 24;
-constexpr   uint32_t    ycentNormInt            = 1<<ycentNormIntExp;
-constexpr   double      ycentNorm               = 65536.0 * 256.0;
+constexpr uint32_t  ycentNormIntExp         = 24;
+constexpr uint32_t  ycentNormInt            = 1<<ycentNormIntExp;
+constexpr double    ycentNorm               = 65536.0 * 256.0;
 
-constexpr   double      deltaPhaseScalerBase    =
-    double( normFactorPhaseIndexVal * waveTableSize ) / samplingFrequency;
+constexpr double    deltaPhaseScalerBase    =
+    double( scalePhaseIndex * waveTableSize ) / samplingFrequency;
 
 constexpr inline uint64_t freq2deltaPhase( double freq )
     { return uint64_t( std::llround(  deltaPhaseScalerBase * freq )); };
@@ -139,7 +132,6 @@ constexpr uint32_t  ref19900ycent       =   freq2ycentDef(19900.0);
 constexpr uint32_t  ref0_01ycent        =   freq2ycentDef(0.01);
 
 // LFO limits
-
 constexpr uint32_t  refLfoycentRange    =   5; // octave up and down
 constexpr double    refLfoFreq          =   1.0; // Hz
 
@@ -148,10 +140,9 @@ constexpr uint32_t  refMaxLfoycent      =   freq2ycentLfoDef(refLfoFreq * (1<<re
 constexpr uint32_t  refMinLfoycent      =   freq2ycentLfoDef(refLfoFreq / (1<<refLfoycentRange) );
 // middle : 2 *20 = 40 2/20 = 0.1
 
-
 //====================================================
 // amplitude normalisations ( >> N )
-constexpr int normAmplitudeOscillatorExp    = 20;
+constexpr int scaleAmplitudeOscExp    = 20;
 // constexpr int normAmplitudePanmixExp        = 36; // looks optimal
 
 
@@ -225,7 +216,6 @@ constexpr inline double fc_sinPi2_F( const double fc )
 {
     return std::sin( PI2 * fc );
 }
-
 
 
 } // end namespace yacynth

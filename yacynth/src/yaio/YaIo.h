@@ -55,22 +55,22 @@ public:
     ,   bufferSizeMin(64)
     ,   bufferSizeMax(256)
     ,   userData(nullptr)
-    ,   midiInProcesing(nullptr)
+    ,   processMidiCommand(nullptr)
     ,   audioOutProcesing(nullptr)
     ,   errorString("err: ")
     {};
     NON_COPYABLE_NOR_MOVABLE(YaIo)
     virtual ~YaIo() = default;
-    virtual bool initialize(    void ) = 0;
-    virtual bool run(           void ) = 0;
-    virtual void shutdown(      void ) = 0;
-    void setProcessCB(      void* userDataP,
-        void (midiInCB)(    void *data, uint8_t *eventp, uint32_t eventSize, bool lastEvent ),
-        void (audioOutCB)(  void *data, uint32_t nframes, float *outp1, float *outp2, int16_t bufferSizeMult ) )
+    virtual bool initialize( void ) = 0;
+    virtual bool run(        void ) = 0;
+    virtual void shutdown(   void ) = 0;
+    void setProcessCB(  void* userDataP,
+    void (midiInCB)(    void *data, uint8_t *eventp, uint32_t eventSize, bool lastEvent ),
+    void (audioOutCB)(  void *data, uint32_t nframes, float *outp1, float *outp2, int16_t bufferSizeMult ) )
     {
         userData            = userDataP;
-        midiInProcesing     = midiInCB;
-        audioOutProcesing   = audioOutCB;
+        processMidiCommand  = midiInCB;     // TODO : remove
+        audioOutProcesing   = audioOutCB;   // TODO : remove
     };
     void                setMyName( const std::string& name ) { nameClient = name; };
     const std::string   getMyName( void )       { return nameClient; };
@@ -90,8 +90,8 @@ protected:
     int32_t         errorCode;
     std::string     errorString;
     void          * userData;
-    void         (* midiInProcesing)(   void *data, uint8_t *eventp, uint32_t eventSize, bool lastEvent );
-    void         (* audioOutProcesing)( void *data, uint32_t nframes, float *outp1, float *outp2, int16_t bufferSizeMult );
+    void         (* processMidiCommand)( void *data, uint8_t *eventp, uint32_t eventSize, bool lastEvent );
+    void         (* audioOutProcesing)(  void *data, uint32_t nframes, float *outp1, float *outp2, int16_t bufferSizeMult );
 };
 
 } // end namespace yacynth

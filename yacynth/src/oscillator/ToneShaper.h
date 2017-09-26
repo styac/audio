@@ -193,19 +193,6 @@ struct ToneShaper {
         OSC_13OV0,      // tone 1 + 3 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>14)]));};
         OSC_13OV1,      // tone 1 + 3 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>14)]>>1));};
         OSC_13OV2,      // tone 1 + 3 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>14)]>>2));};
-        
-        // sounds bad
-        OSC_PDRED0,     // phase distorsion3 waveSinTable[ rednoise + (phase >>16))]
-        OSC_PDRED1,     // phase distorsion3 waveSinTable[ rednoise + (phase >>16))]
-        OSC_PDRED2,     // phase distorsion3 waveSinTable[ rednoise + (phase >>16))]
-        OSC_PDRED3,     // phase distorsion3 waveSinTable[ rednoise + (phase >>16))]
-        
-        // sounds bad
-        OSC_PDPURPLE0,  // phase distorsion3 waveSinTable[ purple + (phase >>16))]
-        OSC_PDPURPLE1,  // phase distorsion3 waveSinTable[ purple + (phase >>16))]
-        OSC_PDPURPLE2,  // phase distorsion3 waveSinTable[ purple + (phase >>16))]
-        OSC_PDPURPLE3,  // phase distorsion3 waveSinTable[ purple + (phase >>16))]
-
 
         // wide noise
         OSC_NOISE_WHITE   = 0x80,
@@ -225,8 +212,8 @@ struct ToneShaper {
         // narrow noise - correlated (common input)
         // 4x pole
         OSC_NOISE_4Px1_PEEK,
-        OSC_NOISE_4Px2_PEEK,        
-        // allpass 
+        OSC_NOISE_4Px2_PEEK,
+        // allpass
         OSC_NOISE_APx1_PEEK,
         OSC_NOISE_APx2_PEEK,
         OSC_NOISE_APx3_PEEK,
@@ -248,10 +235,20 @@ struct ToneShaper {
         OSC_NOISE_SV2x4_PEEK,
         OSC_NOISE_SV3x4_PEEK,
 
-        OSC_NOISE_PEEK41,
-        
         // check: experimental
         OSC_SIN_MULT_RED_NOISE,
+        // sounds bad  TODO recheck
+        OSC_PDRED0,     // phase distorsion3 waveSinTable[ rednoise + (phase >>16))]
+        OSC_PDRED1,     // phase distorsion3 waveSinTable[ rednoise + (phase >>16))]
+        OSC_PDRED2,     // phase distorsion3 waveSinTable[ rednoise + (phase >>16))]
+        OSC_PDRED3,     // phase distorsion3 waveSinTable[ rednoise + (phase >>16))]
+
+        // sounds bad  TODO recheck
+        OSC_PDPURPLE0,  // phase distorsion3 waveSinTable[ purple + (phase >>16))]
+        OSC_PDPURPLE1,  // phase distorsion3 waveSinTable[ purple + (phase >>16))]
+        OSC_PDPURPLE2,  // phase distorsion3 waveSinTable[ purple + (phase >>16))]
+        OSC_PDPURPLE3,  // phase distorsion3 waveSinTable[ purple + (phase >>16))]
+
     };
 
     void clear(void)
@@ -281,7 +278,9 @@ struct ToneShaper {
     uint8_t             oscillatorType;     // oscillator type : 0 = sine
     uint8_t             outChannel;         // output channel for the overtone - not implemented yet
     uint8_t             filterBandwidth;    // allpass - uint8_t ok --> -int32_t(filterBw) << 23
-    uint8_t             rfu1; 
+    uint8_t             veloBoost;
+    uint8_t             rfu1;
+    uint8_t             rfu2;
 };
 // --------------------------------------------------------------------
 struct ToneShaperVector {

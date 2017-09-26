@@ -52,14 +52,14 @@ namespace yacynth {
 //  FF      7       chn     0       0       0       VH      VL
 //                                  diffH   diffL
 //
-//=============================================================================    
+//=============================================================================
 // redesign:
 //  bit7 = 0
 //    YAMOP_SETVOICE_NOTE     = 0
-//  velocity(u15)   oscNr  TS select --- pitch (u32) -------------    
+//  velocity(u15)   oscNr  TS select --- pitch (u32) -------------
 //  velocity: 15 bit cannot be 0 ! - highest bit = 0
 // TS select 8 bit
-// oscNr 8 bit    
+// oscNr 8 bit
 
 //YAMOP_VOICE_SET
 //=============================================================================
@@ -67,7 +67,7 @@ namespace yacynth {
 //------------------------------------------------------------------------
 //------------------------------------------------------------------------
 //  velocity(u15)  TSVector  oscNr  --- pitch (u32) -------------
-// 
+//
 
 
 //=============================================================================
@@ -77,8 +77,8 @@ namespace yacynth {
 //  0x8x   subcode  -- maxOvertone-    ------ rfu ----------------
 
 // mode 0 - no control
-// mode 1 - velocity   dependent index 0..127 
-// mode 2 - controller dependent index 0..127 
+// mode 1 - velocity   dependent index 0..127
+// mode 2 - controller dependent index 0..127
 
 // array<uint8_t,127> -- for each TS ? -- probably enough for 32..64
 
@@ -86,7 +86,7 @@ enum YAMOP : uint8_t {
     YAMOP_VOICE_RELEASE = 0x80,
     YAMOP_VOICE_CHANGE,
     YAMOP_SET_OVERTONECOUNT,
-    
+
     // last range
     YAMOP_GLOBAL = 0xFF
 };
@@ -166,8 +166,10 @@ struct YformVoiceSet {
     uint32_t    pitch;
     uint8_t     oscNr;
     uint8_t     toneBank;
-    uint16_t    velocity15bit; // 15 bit
+    uint8_t     velocity;
+    int8_t      rfu;
 };
+
 
 struct YformVoiceChange {
     uint32_t    pitch;
@@ -200,7 +202,7 @@ union Yamsgrt {
     Yform2              f2;
 //    YformSV             setVoiceOld;
     YformCC             setController;
-    
+
     // NEW
     YformVoiceChange    voiceChange;
     YformVoiceRelease   voiceRelease;

@@ -37,8 +37,8 @@ using namespace TagEffectFxChorusModeLevel_03;
 class FxChorusParam {
 public:
     // mandatory fields
-    static constexpr const char * const typeName    = "FxChorusParam";        
-    static constexpr char const * const name        = "FxChorus";
+    static constexpr const char * const typeName    = "FxChorusParam";
+    static constexpr char const * const name        = "Chorus";
     static constexpr TagEffectType  type            = TagEffectType::FxChorus;
     static constexpr std::size_t maxMode            = 2;
     static constexpr std::size_t inputCount         = 1;

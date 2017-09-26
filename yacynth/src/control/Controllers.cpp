@@ -98,6 +98,7 @@ MidiController::MidiController()
     // test setup
     // novation impulse 49 -- basic
     // channel 0 -- slide 9
+    // TODO -- OBSOLATE
     cdt[0][0x29].index = InnerController::CC_SINK;      // 0
     cdt[0][0x2A].index = InnerController::CC_SINK;
     cdt[0][0x2B].index = InnerController::CC_SINK;
@@ -119,8 +120,8 @@ MidiController::MidiController()
     cdt[0][0x1B].index = InnerController::CC_SINK;
     cdt[0][0x1C].index = InnerController::CC_SINK;
 
-    cdt[0][controllerPolyAftertouch].index  = InnerController::CC_CHANNEL_AFTERTOUCH;
-    cdt[0][controllerPitchbend].index   = InnerController::CC_PITCHBEND;
+    cdt[0][controllerPolyAftertouch].index  = InnerController::CC_CHANNEL_AFTERTOUCH; // TO CLEAR
+    cdt[0][controllerPitchbend].index   = InnerController::CC_PITCHBEND;  // TO CLEAR
 }
 
 // needs 3 param:

@@ -57,7 +57,7 @@ enum class MessageT : uint8_t {
 
     // full messages
     validLength = 0x40, // the length field is valid from this
-    
+
     authRequest,    // authentication request from server to client
     authResponse,   // authentication response from client to server
     authError,      // authentication response from client to server
@@ -111,7 +111,7 @@ struct alignas(16) Header
     {
         messageType = MessageT::responseGetOK;
         if( val ) {
-            length  = val;            
+            length  = val;
         }
     }
 
@@ -219,7 +219,11 @@ struct alignas(16) Header
     MessageT    messageType;    // tag (-1 :-)
     uint8_t     tags[ maxTagCount ];
     union {
-        uint64_t        smsg;
+        uint64_t        shortmsg;       // single 8 byte message
+        struct {
+            uint16_t    saddr[ 2 ];    // set a single param with max 2 addresses
+            float       sparam;
+        };
         struct {
             uint16_t    params[ maxParCount ];
             uint16_t    length;

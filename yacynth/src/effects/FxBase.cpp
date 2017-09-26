@@ -36,6 +36,8 @@ using namespace TagEffectCollectorLevel_01;
 
 FxBase      fxNil("Nil",0,0,TagEffectType::FxNil);
 uint16_t    FxBase::count = -1;
+// template <typename T>  uint16_t S<T>::something_relevant = 0;
+
 
 FxNode::FxNode()
 :   thp(&fxNil)
@@ -71,6 +73,39 @@ bool FxBase::setProcMode( uint16_t ind )
          << std::endl;
     return false;
 }; // might be non virtual
+
+
+// create a fullname : name + '.' + outputIndex ':' + instanceIndex
+void FxCollector::getFullName( const FxBase &fxmaster, const FxBase &fxcurr, char * fullName, size_t nameLength )
+{
+    std::string resname(fxmaster.name());
+    switch( fxcurr.id() ) {
+    case 0:
+        resname = "Nil";
+        break;
+    case 1:
+        resname = "EndMixer";
+        break;
+    default:
+        if( fxcurr.getMasterId() == 0 ) {
+            resname += ".00:";
+        } else {
+            // slave
+            resname += ".";
+            int slaveOut = fxcurr.id() - fxmaster.id();
+            if( slaveOut < 10 ) {
+                resname += "0";
+            }
+            resname += std::to_string( slaveOut );
+            resname += ":";
+        }
+        if( fxmaster.myInstanceIndex() < 10 ) {
+            resname += "0";
+        }
+        resname += std::to_string(fxmaster.myInstanceIndex() );
+    }
+    strncpy( fullName, resname.data(), nameLength-1 );
+}
 
 // chop the 1st parameter as index in FxCollector
 
@@ -114,6 +149,7 @@ bool FxCollector::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t p
             }
             message.params[0] = count();
             EffectListEntry *data = static_cast<EffectListEntry *>((void *)(message.data));
+            int lastMaster = 0;
             for( uint16_t ind = 0; ind < count(); ++ind, ++data ) {
                 data->fxIndex       = ind;
                 data->id            = nodes[ind]->id();
@@ -121,8 +157,15 @@ bool FxCollector::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t p
                 data->fxMaxMode     = nodes[ind]->getMaxMode();
                 data->inputCount    = nodes[ind]->getInputCount();
                 data->masterId      = nodes[ind]->getMasterId();
-                std::memset( data->name,'\0',data->nameLength);
+                data->instanceIndex = nodes[ind]->myInstanceIndex();
+                std::memset( data->name,0,data->nameLength );
                 std::strncpy( data->name, nodes[ind]->name().data(), data->nameLength-1);
+                if( nodes[ind]->getMasterId() == 0 ) {
+                    getFullName( *nodes[ind], *nodes[ind], data->fullName, sizeof(data->fullName) );
+                    lastMaster = ind;
+                } else {
+                    getFullName( *nodes[lastMaster], *nodes[ind], data->fullName, sizeof(data->fullName) );
+                }
             }
             message.setStatusGetOk(listLength);
         }
@@ -154,6 +197,7 @@ bool FxRunner::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t para
             message.setStatusSetOk();
             return true;
         }
+        
         case TagEffectRunner::Fill : {
             TAG_DEBUG(TagEffectRunner::Fill, tagIndex, paramIndex, "FxRunner" );
             if( !message.checkParamIndex(paramIndex) )
@@ -183,6 +227,7 @@ bool FxRunner::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t para
             message.setStatusSetOk();
             return true;
         }
+
         case TagEffectRunner::SetConnections : {
             TAG_DEBUG(TagEffectRunner::SetConnections, tagIndex, paramIndex, "FxRunner" );
             if( !message.checkParamIndex(paramIndex) )
@@ -208,6 +253,7 @@ bool FxRunner::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t para
             message.setStatusSetOk();
             return true;
         }
+
     case TagEffectRunner::GetEffectList : {
             TAG_DEBUG(TagEffectRunner::GetEffectList, tagIndex, paramIndex, "FxRunner" );
             const uint16_t listLength = count() * sizeof(EffectListEntry);
@@ -224,10 +270,20 @@ bool FxRunner::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t para
                 data->fxMaxMode     = nodes[ind].thp->getMaxMode();
                 data->inputCount    = nodes[ind].thp->getInputCount();
                 data->masterId      = nodes[ind].thp->getMasterId();
+                data->instanceIndex = nodes[ind].thp->myInstanceIndex();
                 std::memset( data->name,'\0',data->nameLength);
                 std::strncpy( data->name,nodes[ind].thp->name().data() ,data->nameLength-1);
             }
             message.setStatusGetOk(listLength);
+            return true;
+        }
+
+    case TagEffectRunner::Preset0 : {
+            TAG_DEBUG(TagEffectRunner::Preset0, tagIndex, paramIndex, "FxRunner" );
+            clearConnections();
+            connect( 2, 0, 0 ); // oscillatormixer.00:00 to endmixer.00:00
+            message.setStatusSetOk();
+            return true;
         }
         return true;
     }

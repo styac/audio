@@ -70,12 +70,12 @@ struct OscillatorInChange {
     {};
 
     uint32_t    pitch;
-    uint16_t    velocity;           // linear velocity
     uint16_t    tickFrameRelease;   // for Release for direct input
-    uint16_t    toneShaperSelect; // select the envelope table
+    uint16_t    toneShaperSelect;   // select the envelope table
     uint16_t    delay;              // set delay
     uint16_t    oscillatorCountUsed;
     uint8_t     outputChannel;      // considering to change the current solution apply diff effects
+    uint8_t     velocity;           // linear velocity
 };
 // --------------------------------------------------------------------
 struct SustainModulator {
@@ -124,9 +124,11 @@ struct alignas(int64_t) OscillatorState { // or cacheLineSize ?
 
     int64_t             amplitudoOsc;                   // must be signed to handle underflows can be i32
     int64_t             envelopeTargetValueVelocity;    // can be i32
+    OscillatorNoise     noiseNarrow;                    // 1x overtone ?
     uint32_t            phase;
     int32_t             tickFrame;  // int16_t ???
     int32_t             amplitudeDetunePitch;
+    uint16_t            velocityBoosted;
     uint8_t             envelopDeltaDividerExp;
     int8_t              envelopePhase;
     SustainModulator    sustainModulator;
@@ -135,7 +137,6 @@ struct alignas(int64_t) OscillatorState { // or cacheLineSize ?
 class alignas(16) Oscillator {
 public:
     static constexpr int32_t minPitchDep = 0x16000000;  // j 30 freq2ycent 155b2c3e
-
 
     enum voice_state_t : uint8_t {
         VOICE_DOWN,
@@ -161,8 +162,29 @@ public:
         whiteNoiseFrame.fillWhiteLowCut();
     }
 
+    inline void setGlissando( int32_t targetPitchP, int16_t deltaTick )
+    {
+        if( deltaTick > 0 ) {
+            glissandoTick = deltaTick;
+            targetPitch = targetPitchP;
+            deltaPitch  = ( targetPitchP - basePitch  ) / deltaTick;
+            return;
+        }
+        glissandoTick = 0;
+    }
+#if 0
+    // plot2d(  [ "x * 256", "x * 256 + (( (x-128) * (x-128) - 16384 ) * 255) / 256 " ],  1, 255 ,color=4:5  )
+    // velocity = 2 * midi velocity
+    // booster from TS
+    // TODO try with exp function
+    static inline uint16_t getVelocityBoostXX( uint8_t velocity, uint8_t booster )
+    {
+        const int32_t v1 = int32_t(velocity) - (1<<7);
+        return - ((( v1 * v1 - (1<<14) ) * booster ) >> 8 );
+    }
+#endif
+    
 private:
-
     inline void setPitchDependency(void)
     {
         // pitch:
@@ -197,9 +219,12 @@ private:
     const ToneShaperVector        * toneShaperVecCurr;
     OscillatorState                 state[ overtoneCountOscDef ];
     NoiseSample                     noiseWide;          // only 1 for a voice
-    NoiseSample                     noisePhaseMode;     // only 1 for a voice
-    OscillatorNoise                 noiseNarrow;        // only 1 for a voice
+    NoiseSample                     noisePhaseMode;     // only 1 for a voice -- TODO recheck
+    OscillatorNoise                 noiseNarrow;        // only 1 for a voice -- or 1x overtone -- TODO 
     int32_t                         basePitch;
+    int32_t                         targetPitch;        // for glissando
+    int32_t                         deltaPitch;         // for glissando
+    uint16_t                        glissandoTick;
     uint16_t                        velocity;
     uint16_t                        delay;
     uint16_t                        toneShaperSelect;
@@ -207,7 +232,7 @@ private:
     uint16_t                        pitchDepDx;
     voice_state_t                   voiceState;
     // common for all voices - correlated narrow band parallel filters by noiseNarrow
-    static NoiseFrame<FrameInt<oscillatorOutSampleCountExp>>
+    static NoiseFrame<FrameInt<oscillatorFrameSizeExp>>
                                     whiteNoiseFrame;
     static const ToneShaperMatrix   toneShaperMatrix;
 }; // end class Oscillator

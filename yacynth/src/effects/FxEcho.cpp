@@ -208,6 +208,7 @@ void FxEcho::sprocess_02( void * thp )
     static_cast< MyType * >(thp)->process_echo_wet();
 }
 
+
 } // end namespace yacynth
 
 

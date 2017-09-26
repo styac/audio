@@ -77,12 +77,16 @@ void OscillatorArray::generate( OscillatorOut& out, Statistics& stat )
     }
 } // OscillatorArray::generate
 // --------------------------------------------------------
-void OscillatorArray::voiceRun(  uint16_t oscNr,  uint32_t pitch,  uint16_t velocity, uint16_t toneBank )
+void OscillatorArray::voiceRun(  uint16_t oscNr,  uint32_t pitch,  uint8_t velocity, uint16_t toneBank )
 {
-    if( oscNr >= voiceCount ) 
+    if( oscNr >= voiceCount )
         return;
-    
-    std::cout << "voiceUp oscNr:" << oscNr << " pitch:" << oscillatorParamChange.pitch << " toneBank:" << toneBank << std::endl;
+
+    std::cout 
+        << "voiceUp oscNr:" << oscNr 
+        << " velo:" << uint16_t(oscillatorParamChange.velocity ) 
+        << " pitch:" << oscillatorParamChange.pitch 
+        << " toneBank:" << toneBank << std::endl;
     oscillatorParamChange.pitch             = pitch;
     oscillatorParamChange.velocity          = velocity;
     oscillatorParamChange.toneShaperSelect  = toneBank;
@@ -91,7 +95,7 @@ void OscillatorArray::voiceRun(  uint16_t oscNr,  uint32_t pitch,  uint16_t velo
 // --------------------------------------------------------
 void OscillatorArray::voiceRelease( uint16_t oscNr )
 {
-    if( oscNr >= voiceCount ) 
+    if( oscNr >= voiceCount )
         return;
 
     std::cout << "new voiceChange voice: " << oscNr << std::endl;

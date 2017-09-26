@@ -127,6 +127,7 @@ public:
     };
 
     // for the peeking filter
+    // TODO check 2x,3x,4x oversampling and avg 
     inline void fillWhiteLowCut( void )
     {
         constexpr uint8_t poleExp   = 8;

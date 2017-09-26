@@ -82,12 +82,14 @@ struct EbufferPar {
 };
 
 // --------------------------------------------------------------------
+// TODO > fadev4Add with ( float * inCH0 float * inCH1 .... )
+// TODO > multAdd with ( float * inCH0 float * inCH1 .... )
+// --------------------------------------------------------------------
 // Effect stage IO buffer
 struct FadeBufferTag { FadeBufferTag(int){} };
 
 struct EIObuffer : public EbufferPar {
     static constexpr std::size_t channelCount       = 2;
-    typedef std::array<float,channelCount> elementSetType;
 
     EIObuffer()
     { clear(); };
@@ -146,7 +148,7 @@ struct EIObuffer : public EbufferPar {
             vchannel[chB][i] = vchannel[chA][i] = inp.vchannel[chA][i];
         }
     }
-    
+
     // do vectorizing - check
     inline void copy( const EIObuffer& inp )
     {
@@ -163,7 +165,7 @@ struct EIObuffer : public EbufferPar {
             vchannel[CH][i] = inp.vchannel[CH][i];
         }
     }
-    
+
     inline void add( const EIObuffer& inp )
     {
         for( auto i=0u; i < vsectionSize; ++i ) {
@@ -195,7 +197,15 @@ struct EIObuffer : public EbufferPar {
             vchannel[chB][i] = inp.vchannel[chB][i] * gain1;
         }
     }
-
+    
+    inline void multSet( const EIObuffer& inp, float gain0, float gain1 )
+    {
+        for( auto i=0u; i < vsectionSize; ++i ) {
+            vchannel[ chA ][ i ] = inp.vchannel[ chA ][ i ] * gain0;
+            vchannel[ chB ][ i ] = inp.vchannel[ chB ][ i ] * gain1;
+        }
+    }
+    
     inline void mult( const EIObuffer& inp0, const EIObuffer& inp1,
                       float gain0, float gain1 )
     {
@@ -265,7 +275,7 @@ struct EIObuffer : public EbufferPar {
             vchannel[chB][i] = ( vchannel[chB][i] - inp0.vchannel[chB][i] )  * gain + inp0.vchannel[chB][i];
         }
     }
-    
+
     inline void fade( const EIObuffer& inp, float& gain, float dgain )
     {
         static constexpr float fadeGain     =  (1.0f/(1<<6));
@@ -292,94 +302,44 @@ struct EIObuffer : public EbufferPar {
         gain = gaini;
     }
 
-    inline void fadeV4( const EIObuffer& inp0, const EIObuffer& inp1,
-        float& gain0, float& gain1,
-        float dgain0, float dgain1 )
+    inline void fadeAdd( const EIObuffer& inp, float& gain0, float& gain1, float dgain0, float dgain1 )
+    {
+        constexpr float fadeGainV4   =  (1.0f/(1<<6));
+        dgain0 *= fadeGainV4;
+        dgain1 *= fadeGainV4;
+        float gaintmp0 = gain0;
+        for( auto i=0u; i < sectionSize; ++i ) {
+            gaintmp0 += dgain0;
+            channel[chA][i] = inp.channel[chA][i] * gaintmp0;
+        }
+        float gaintmp1 = gain1;
+        for( auto i=0u; i < sectionSize; ++i ) {
+            gaintmp1 += dgain1;
+            channel[chB][i] = inp.channel[chB][i] * gaintmp1;
+        }
+        gain0 = gaintmp0;
+        gain1 = gaintmp1;
+    }
+    
+    inline void fadeAddV4( const EIObuffer& inp, float& gain0, float& gain1, float dgain0, float dgain1 )
     {
         constexpr float fadeGainV4   =  (1.0f/(1<<4));
         dgain0 *= fadeGainV4;
         dgain1 *= fadeGainV4;
-        float gaini0 = gain0;
-        float gaini1 = gain1;
-        dgain0 *= fadeGainV4;
-        dgain1 *= fadeGainV4;
+        float gaintmp0 = gain0;
         for( auto i=0u; i < vsectionSize; ++i ) {
-            gaini0 += dgain0;
-            gaini1 += dgain1;
-            vchannel[chA][i] =
-                    inp0.vchannel[chA][i] * gain0
-                  + inp1.vchannel[chA][i] * gain1;
-            vchannel[chB][i] =
-                    inp0.vchannel[chB][i] * gain0
-                  + inp1.vchannel[chB][i] * gain1;
+            gaintmp0 += dgain0;
+            vchannel[chA][i] = inp.vchannel[chA][i] * gaintmp0;
         }
-        gain0 = gaini0;
-        gain1 = gaini1;
-    }
-
-    inline void fadeV4( const EIObuffer& inp0, const EIObuffer& inp1, const EIObuffer& inp2,
-        float& gain0, float& gain1, float& gain2,
-        float dgain0, float dgain1, float dgain2 )
-    {
-        constexpr float fadeGainV4   =  (1.0f/(1<<4));
-        dgain0 *= fadeGainV4;
-        dgain1 *= fadeGainV4;
-        dgain2 *= fadeGainV4;
-        float gaini0 = gain0;
-        float gaini1 = gain1;
-        float gaini2 = gain2;
+        float gaintmp1 = gain1;
         for( auto i=0u; i < vsectionSize; ++i ) {
-            gaini0 += dgain0;
-            gaini1 += dgain1;
-            gaini2 += dgain2;
-            vchannel[chA][i] =
-                    inp0.vchannel[chA][i] * gain0
-                  + inp1.vchannel[chA][i] * gain1
-                  + inp2.vchannel[chA][i] * gain2;
-            vchannel[chB][i] =
-                    inp0.vchannel[chB][i] * gain0
-                  + inp1.vchannel[chB][i] * gain1
-                  + inp2.vchannel[chB][i] * gain2;
+            gaintmp1 += dgain1;
+            vchannel[chB][i] = inp.vchannel[chB][i] * gaintmp1;
         }
-        gain0 = gaini0;
-        gain1 = gaini1;
-        gain2 = gaini2;
+        gain0 = gaintmp0;
+        gain1 = gaintmp1;
     }
-
-    inline void fadeV4( const EIObuffer& inp0, const EIObuffer& inp1, const EIObuffer& inp2, const EIObuffer& inp3,
-        float& gain0, float& gain1, float& gain2, float& gain3,
-        float dgain0, float dgain1, float dgain2, float dgain3 )
-    {
-        constexpr float fadeGainV4   =  (1.0f/(1<<4));
-        dgain0 *= fadeGainV4;
-        dgain1 *= fadeGainV4;
-        dgain2 *= fadeGainV4;
-        dgain3 *= fadeGainV4;
-        float gaini0 = gain0;
-        float gaini1 = gain1;
-        float gaini2 = gain2;
-        float gaini3 = gain3;
-        for( auto i=0u; i < vsectionSize; ++i ) {
-            gaini0 += dgain0;
-            gaini1 += dgain1;
-            gaini2 += dgain2;
-            vchannel[chA][i] =
-                    inp0.vchannel[chA][i] * gain0
-                  + inp1.vchannel[chA][i] * gain1
-                  + inp2.vchannel[chA][i] * gain2
-                  + inp3.vchannel[chA][i] * gain3;
-            vchannel[chB][i] =
-                    inp0.vchannel[chB][i] * gain0
-                  + inp1.vchannel[chB][i] * gain1
-                  + inp2.vchannel[chB][i] * gain2
-                  + inp3.vchannel[chB][i] * gain3;
-        }
-        gain0 = gaini0;
-        gain1 = gaini1;
-        gain2 = gaini2;
-        gain3 = gaini3;
-    }
-
+        
     inline void mult( const EIObuffer& inp1, const EIObuffer& inp2  )
     {
         for( auto i=0u; i < vsectionSize; ++i ) {
@@ -576,7 +536,7 @@ struct EDelayLine : public EbufferPar {
             *pA++ = *iA++;
             *pB++ = *iB++;
         }
-        
+
         uint32_t cind = getIndex(delay);
         for( uint32_t ind = 0u; ind < sectionSize; ++ind ) {
             channel[ chA ][ index + ind ] += channel[ chA ][ cind ] * coeff;
@@ -585,7 +545,7 @@ struct EDelayLine : public EbufferPar {
         }
         incIndexBySectionSize();
     };
-    
+
     //
     // ----------------------------------------------------------------------
     // different utility functions
@@ -765,8 +725,8 @@ struct EDelayLine : public EbufferPar {
         { return index & bufferSizeMask & ( ~sectionSizeMask ); };
 
     inline void incIndexBySectionSize( void )
-        { 
-            index = ( index + sectionSize ) & ( bufferSizeMask & ~sectionSizeMask ); 
+        {
+            index = ( index + sectionSize ) & ( bufferSizeMask & ~sectionSizeMask );
         };
 
     // ----------------------------------------------------------------------

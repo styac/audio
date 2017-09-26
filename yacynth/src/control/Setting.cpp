@@ -16,7 +16,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-/* 
+/*
  * File:   Setting.cpp
  * Author: Istvan Simon -- stevens37 at gmail dot com
  *
@@ -26,6 +26,16 @@
 #include "Setting.h"
 
 namespace yacynth {
+
+Setting::Setting()
+:   homeDir(".")
+{
+    const char *hdp = getenv("HOME");
+    if( hdp != nullptr) {
+        homeDir = hdp;
+    }
+}
+
 
 } // end namespace yacynth
 

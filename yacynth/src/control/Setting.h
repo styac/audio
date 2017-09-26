@@ -33,19 +33,26 @@
 
 namespace yacynth {
 
-struct Setting {
+class Setting {
+public:
+    static constexpr const char * const configDirName = "/.yacconfig/";
+    static constexpr const char * const authKeyName = "yyauth.key";
 
+    Setting();
 
+    std::string getHomeDir() const
+    { return homeDir; };
+
+    std::string getConfDir() const
+    { return homeDir + configDirName; };
+
+    std::string getAuthKey() const
+    { return homeDir + configDirName + authKeyName; };
+
+private:
+    std::string homeDir;
 };
 
-//
-// replaces active, passive parameter set
-// on the fly can be selected one from 16
-//
-
-struct SettingVector {
-    std::array<Setting, settingVectorSize>    settingVector;
-};
 
 } // end namespace yacynth
 

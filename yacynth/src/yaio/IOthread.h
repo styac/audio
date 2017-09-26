@@ -33,6 +33,7 @@
 #include    "../utils/GaloisNoiser.h"
 #include    "../effects/FxMixer.h"
 #include    "../effects/FxOscillatorMixer.h"
+#include    "../effects/FxInput.h"
 
 #include    <cstddef>
 #include    <cstdint>
@@ -70,8 +71,8 @@ private:
     AbstractRouter&                 midiRouter;
     FxMixer                         fxEndMixer;
     FxOscillatorMixer               fxOscillatorMixer;
+    FxInput                         fxInput;
     FxRunner                        fxRunner;
-
     // profiling
     uint64_t    timer;
     int64_t     count;

@@ -89,6 +89,7 @@ public:
     inline void setK( float v, std::size_t index=0 )
     {
         if( ZD0 == CD ) {
+            // for AP2 direct set BW > -0.5 .. -0.9xxx
             km3[CD][ index & filterCountMask ][CH] = v;
         } else if( ZD1 == CD ) {
             km3[CD][ index & filterCountMask ][CH] = v;
@@ -96,7 +97,21 @@ public:
             static_assert(CD==0 || CD==1,"illegal parameter");
         }
     }
-
+#if 0
+    // like setYcentAll
+    template< std::size_t CD >
+    inline void setKAll( float v )
+    {
+        if( ZD0 == CD ) {
+            // for AP2 direct set BW > -0.5 .. -0.9xxx
+            km3[CD][ index & filterCountMask ][CH] = v;
+        } else if( ZD1 == CD ) {
+            km3[CD][ index & filterCountMask ][CH] = v;
+        } else {
+            static_assert(CD==0 || CD==1,"illegal parameter");
+        }
+    }
+#endif
     // parameter set with frequency -- only for testing -- slow
     template< std::size_t CH, std::size_t CD >
     inline void setFreq( float fc, std::size_t index=0 )
@@ -115,8 +130,10 @@ public:
     inline void setYcent( int32_t ycent, std::size_t index=0 )
     {
         if( ZD0 == CD ) {
+            // TODO should be < -0.5 .. -0.99xx - bandwidth for AP2
             km3[CD][ index & filterCountMask ][CH] = FilterTableSinCosPi2::getInstance().getFloat( ycent );
         } else if( ZD1 == CD ) {
+            // TODO only this make sense - f control AP2
             km3[CD][ index & filterCountMask ][CH] = FilterTableCos2Pi::getInstance().getFloat( ycent );
         } else {
             static_assert(CD==0 || CD==1,"illegal parameter");
@@ -129,8 +146,10 @@ public:
     {
         static_assert(sizeof(km2) == sizeof(km3), "different sizes");
         if( ZD0 == CD ) {
+            // TODO should be < -0.5 .. -0.99xx - bandwidth AP2
             km2[CD][ index & allFilterCountMask ] = FilterTableSinCosPi2::getInstance().getFloat( ycent );
         } else if( ZD1 == CD ) {
+            // TODO only this make sense - f control Ap2
             km2[CD][ index & allFilterCountMask ] = FilterTableCos2Pi::getInstance().getFloat( ycent );
         } else {
             static_assert(CD==0 || CD==1,"illegal parameter");

@@ -37,7 +37,7 @@ using namespace TagEffectFxEarlyReflectionModeLevel_03;
 class FxEarlyReflectionParam {
 public:
     // mandatory fields
-    static constexpr char const * const name        = "FxEarlyReflection";
+    static constexpr char const * const name        = "EarlyReflection";
     static constexpr TagEffectType  type            = TagEffectType::FxEarlyReflection;
     static constexpr std::size_t maxMode            = 4; // 0 is always exist> 0,1,2
     static constexpr std::size_t inputCount         = 1;

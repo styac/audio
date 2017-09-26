@@ -63,13 +63,13 @@ bool SynthFrontend::evalMEssage( void )
     while( msg.store = queuein.queueOscillator.get() ) {
         std::cout << std::hex << " msg:" << msg.store << " cpu:"<< sched_getcpu()  << std::endl;
         if( int64_t(msg.store) > 0 ) {
-            oscArray->voiceRun( msg.voiceSet.oscNr, msg.voiceSet.pitch, msg.voiceSet.velocity15bit, msg.voiceSet.toneBank );
+            oscArray->voiceRun( msg.voiceSet.oscNr, msg.voiceSet.pitch, msg.voiceSet.velocity, msg.voiceSet.toneBank );
             if( 0 == ++cycleNoise ) { // reset after 2^32 cycles
                 GaloisShifterSingle<seedThreadOscillator_noise>::getInstance().reset();
                 GaloisShifterSingle<seedThreadOscillator_random>::getInstance().reset();
             }
             continue;
-        } 
+        }
         switch( msg.voiceChange.opcode ) {
         case YAMOP_VOICE_RELEASE :
             oscArray->voiceRelease( msg.voiceRelease.oscNr );
@@ -80,7 +80,7 @@ bool SynthFrontend::evalMEssage( void )
             if( int64_t(msg.store) == -1LL ) {
                 return false;
             }
-        }        
+        }
     }
     return true;
 } // end SynthFrontend::evalMEssage
@@ -88,6 +88,8 @@ bool SynthFrontend::evalMEssage( void )
 // --------------------------------------------------------------------
 bool SynthFrontend::generate( void )
 {
+    // there should be 0,1 full buffer not more 
+    // if( outVector.getFullCount() < 2 ) { // min buffer count == 2
     if( ! outVector.isFull() ) {
         const int wi = outVector.getWriteIndex();
         oscArray->generate( outVector.out[ wi ], statistics );
@@ -97,6 +99,8 @@ bool SynthFrontend::generate( void )
     return false;
 } // end SynthFrontend::generate
 // --------------------------------------------------------------------
+
+// main oscillator loop
 bool SynthFrontend::run( void )
 {
 //    GaloisShifterSingle& gs1         = GaloisShifterSingle::getInstance();

@@ -25,8 +25,6 @@
  * Created on May 20, 2017, 8:13 PM
  */
 
-
-
 #include    "protocol.h"
 #include    "Tags.h"
 #include    "../control/Controllers.h"
@@ -37,28 +35,61 @@ namespace yacynth {
 using namespace TagEffectTypeLevel_02;
 using namespace TagEffectFxMixerModeLevel_03;
 // --------------------------------------------------------------------
-
+// template< uint8_t ccount > -- mixer rework
 class FxMixerParam {
 public:
-    static constexpr char const * const name    = "Mixer4";
+    static constexpr char const * const name    = "Mixer16x";
     static constexpr TagEffectType  type        = TagEffectType::FxMixer;
-    static constexpr std::size_t maxMode        = 4;
-    static constexpr std::size_t inputCount     = 4;
+    static constexpr std::size_t maxMode        = 1;
+    static constexpr std::size_t inputCount     = 16;
 
-    static constexpr uint8_t subtype         = uint8_t(TagEffectFxMixerMode::SetParametersMode01);
-
-    inline void clear()
-    {
-        for( auto &p : gainIndex ) {
-            p.setIndex( InnerController::CC_NULL );
-        }
-    }
+    static constexpr uint8_t subtype            = uint8_t(TagEffectFxMixerMode::SetParametersMode01);
 
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
-    float               gainRange[ inputCount ] = {0.5f, 0.5f, 0.5f, 0.5f };
-    ControllerIndex     gainIndex[inputCount];
-     // range : n * -6 dB step
+    inline bool check()
+    {
+        if( effectiveInputCount > inputCount) {
+            return false;
+        }
+        
+        // check the gainRange <= 1.0
+        // check the gainIndex valid
+        
+        return true;
+    }
+    
+    inline void clear()
+    {
+        effectiveInputCount = 1;
+        for( auto &p : gainIndex ) {
+            p.setIndex( InnerController::CC_NULL );
+        }
+        for( auto &p : gainZero ) {
+            p = 0;
+        }
+    }
+
+    inline void preset0()
+    {
+        effectiveInputCount = 1;
+        for( auto &p : gainIndex ) {
+            p.setIndex( InnerController::CC_127 );
+        }
+        for( auto &p : gainZero ) {
+            p = 0;
+        }
+        gainRange[ 0 ][ 0 ] = gainRange[ 0 ][ 1 ] = 0.5f;
+    }
+
+
+    union {
+        float       gainRange[ inputCount ][ 2 ];  // for each stereo channel
+        uint64_t    gainZero[ inputCount ]; // to set,test if zero        
+    };
+
+    ControllerIndex gainIndex[ inputCount ];    // default: CC_127
+    uint8_t         effectiveInputCount;    // 1..inputCount
 };
 
 

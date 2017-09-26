@@ -199,29 +199,33 @@ private:
             th.fadeIn();
             return;
         }
-
     }
 
     // ------------------------------------------------------------
     // processors
     
     // 2nd order allpass 2x channel 4x filter -- phaser
+    // TODO retest with stage 0 - BW stage 1 freq
     void process_01_ap4x(void)
     {
         for( auto si=0u; si < sectionSize; ++si ) {
             filterAllpass.allpass2x8(
-                inp<0>().channel[0][si],inp<0>().channel[1][si],
-                   out().channel[0][si],   out().channel[1][si] );
+                inp<0>().channel[0][si], inp<0>().channel[1][si],
+                   out().channel[0][si],    out().channel[1][si] );
                     // out().channel[1][si] = cval_masterLfo.getValue() * (1.0f/(1<<16));         
                     // check the param change
                     // out().channel[1][si] = filterAllpass.km3[0][0][0];
         }
         out().wetDryBalance( inp<0>(), wetDryGain );
 //        const auto sinv         = param.mode_2ch_x4ap_phaser_mode01.oscMasterIndex.getLfoTriangleI16();// .getLfoSinI16();
+        
+        // use 8 offset instead of setYcentAll : settable the distance : Barks
+        
         const auto sinv         = param.modeAP01.oscMasterIndex.getLfoSinI16();
         const auto sinvScaled   = param.modeAP01.notchMapper.getScaled(sinv);
         const auto sinvYcent    = param.modeAP01.notchMapper.getOffseted(sinvScaled);        
-        filterAllpass.setYcentAll<0>(sinvYcent, 1<<23);
+        filterAllpass.setYcentAll<1>(sinvYcent, 1<<23); // freq is stage 2
+//        filterAllpass.setYcentAll<0>(sinvYcent, 1<<23);
                         
         // std::cout << "old " << ycentKA << " new " << sinvYcent << std::endl;
                 
@@ -240,7 +244,10 @@ private:
             const auto bwCVal   = bandWidhthCache.getValueI32();
             const auto bwScaled = param.modeAP01.bandwidthMapper.getScaled( bwCVal );
             const auto bw       = param.modeAP01.bandwidthMapper.getOffseted( bwScaled );
-            filterAllpass.setYcentAll<1>(bw, 0);
+//            filterAllpass.setYcentAll<1>(bw, 0);
+            // TODO direct set by K  -- should be -0.5 .. -0.9999xx check sign !!
+            // setKAll<0>( bw ) > see OscillatorNoiseInt> 0.75 ... 0.99999 --- CC 0..127 
+            filterAllpass.setYcentAll<0>(bw, 0);
         }
 
         if( deltaPhaseControlCache.update( param.modeAP01.deltaPhaseControlIndex ) ) {
@@ -254,6 +261,7 @@ private:
         }        
     }
 
+    // ------------------------------------------------------------
     void process_02_svf_1x(void)
     {
         for( auto si=0u; si < sectionSize; ++si ) {
@@ -273,6 +281,8 @@ private:
             filterStateVariable.set_Q( qControlCache.getExpValueFloat_127() );
         }        
     }
+    // ------------------------------------------------------------
+    
     void process_03_pole4_1x(void)
     {
         for( auto si=0u; si < sectionSize; ++si ) {
@@ -305,13 +315,11 @@ private:
     ControllerCache             deltaPhaseControlCache;        
     ControllerCache             phaseDiff00ControlCache;        
     float                       wetDryGain;
-    
    
     // manual control
     ControllerCacheRate<5>      fControlCache;
     ControllerCacheRate<5>      qControlCache;
     //ControllerCache     
-
 };
 
 } // end namespace yacynth

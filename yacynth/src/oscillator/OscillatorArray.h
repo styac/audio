@@ -43,10 +43,11 @@ public:
     static ToneShaperMatrix& getToneShaperMatrix(void) 
         { return Oscillator::getToneShaperMatrix(); };
         
-    void        generate(       OscillatorOut& out, Statistics& stat );
-    void        voiceRun(       uint16_t oscNr,  uint32_t pitch,  uint16_t velocity, uint16_t toneBank = 0 );
-    void        voiceRelease(   uint16_t oscNr );
-    void        voiceChange(    uint16_t oscNr );
+    void    generate( OscillatorOut& out, Statistics& stat );
+    void    voiceRun( uint16_t oscNr,  uint32_t pitch,  uint8_t velocity, uint16_t toneBank );
+    
+    void    voiceRelease( uint16_t oscNr );
+    void    voiceChange(  uint16_t oscNr );
 
     inline void getPitch() 
     {
