@@ -61,7 +61,7 @@ bool FxChorusParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t
 
 void FxChorus::clearTransient()
 {
-    EIObuffer::clear();
+    out().clear();    
 }
 
 bool FxChorus::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )

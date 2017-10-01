@@ -53,7 +53,8 @@ struct YaIoJackPort {
 
     bool reg(       jack_client_t *client );
     bool unreg(     jack_client_t *client );
-    void *getBuffer( jack_nframes_t nframes ) {
+    inline void *getBuffer( jack_nframes_t nframes ) 
+    {
         return jack_port_get_buffer( jackPort, nframes );
     };
 

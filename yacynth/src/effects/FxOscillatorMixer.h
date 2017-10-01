@@ -55,29 +55,40 @@ public:
         // main output
         if( inp.amplitudeSumm[ 1 ] ) {
             // stereo
+            // setAmplitudeSumm( ci, inp.amplitudeSumm[ 0 ] + inp.amplitudeSumm[ 1 ] );
             for( uint16_t si = 0u; si < oscillatorFrameSize; ++si ) {
                 out().channel[ chA ][ si ] = inp.layer[ 0 ][ si ] * param.gain[ 0 ];
                 out().channel[ chB ][ si ] = inp.layer[ 1 ][ si ] * param.gain[ 1 ];
             }            
         } else {
             // mono
+            // setAmplitudeSumm( ci, inp.amplitudeSumm[ 0 ] << 1 );
             for( uint16_t si = 0u; si < oscillatorFrameSize; ++si ) {
                 out().channel[ chA ][ si ] = out().channel[ chB ][ si ] = inp.layer[0][si] * param.gain[0];
             }            
         }
 
-        // TODO
-        for( uint16_t ci = 1u; ci < layerCount; ++ci ) {
-            const uint16_t ci2 = ci<<1;
-            if( param.zeroGain[ ci ] ) {
-                if( inp.amplitudeSumm[ ci2+1 ] ) {
-                    // stereo
-                } else {
-                    // mono
-                }                
-            } else {
-                // clear output
+        for( uint16_t ci = 0u; ci < FxOscillatorMixerParam::slaveCount; ++ci ) {
+            const uint16_t ci2_0 = (ci+1)<<1;
+            const uint16_t ci2_1 = ci2_0 + 1;
+            if( param.gainZero[ ci ] == 0 ) {
+                // clearAmplitudeSumm( ci );
+                continue;
             }
+            if( inp.amplitudeSumm[ ci2_1 ] ) {
+                // setAmplitudeSumm( ci, inp.amplitudeSumm[ ci2_0 ] + inp.amplitudeSumm[ ci2_1 ] );
+                // stereo
+                for( uint16_t si = 0u; si < oscillatorFrameSize; ++si ) {
+                    slaves[ ci ].out().channel[ chA ][ si ] = inp.layer[ ci2_0 ][ si ] * param.gain[ ci2_0 ];
+                    slaves[ ci ].out().channel[ chB ][ si ] = inp.layer[ ci2_1 ][ si ] * param.gain[ ci2_1 ];
+                }            
+            } else {
+                // setAmplitudeSumm( ci, inp.amplitudeSumm[ ci2_0 ] << 1 );
+                // mono
+                for( uint16_t si = 0u; si < oscillatorFrameSize; ++si ) {
+                    slaves[ ci ].out().channel[ chA ][ si ] = slaves[ ci ].out().channel[ chB ][ si ] = inp.layer[ ci2_0 ][si] * param.gain[ ci2_0 ];
+                }            
+            }                
         }
     }
 

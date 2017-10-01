@@ -53,10 +53,16 @@ namespace yacynth {
 //
 //
 struct  RouteIn {
-    uint8_t op;
-    uint8_t chn;
-    uint8_t note_cc_val;
-    uint8_t velocity_val;
+    RouteIn() : all(0) {};
+    union {
+        uint32_t  all;
+        struct {
+            uint8_t op;
+            uint8_t channel;
+            uint8_t note_cc_val;
+            uint8_t velocity_val;            
+        };
+    };
 };
 
 class AbstractRouter {

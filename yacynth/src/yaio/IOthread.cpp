@@ -24,7 +24,6 @@
  */
 
 #include    "../yaio/IOthread.h"
-
 #include    <sys/time.h>
 #include    <ctime>
 #include    <atomic>
@@ -43,72 +42,46 @@ IOThread:: IOThread(
 ,   fxOscillatorMixer()
 ,   fxInput()
 ,   fxRunner(fxEndMixer)
+,   toClearFxInput(true)
 
 {
     fxEndMixer.setProcMode(1); // TODO > endMixed mode -- muted function
 };
-// --------------------------------------------------------------------
-
-void IOThread::printEvent( uint8_t *eventp, uint32_t eventSize, bool lastEvent)
-{
-    std::cout << "ev: " << std::hex;
-    for( auto i=0; i< eventSize; ++i, ++eventp ){
-        const uint16_t val = *eventp;
-        std::cout << " " <<  val ;
-    }
-    if( lastEvent ) {
-        std::cout << " ****";
-    }
-    std::cout << std::endl;
-} // end IOThread::printEvent
 
 // --------------------------------------------------------------------
-// TODO what about the routing ??
-// is it possible to be called 4x 64 / sample ?
 
-void IOThread::midiInCB( void *data, uint8_t *eventp, uint32_t eventSize, bool lastEvent )
+void IOThread::midiInCB( void *data, uint8_t *eventp, uint32_t eventSize )
 {
     bool res;
     IOThread& thp = *static_cast<IOThread *>(data);
-
-// diag
-    thp.printEvent( eventp, eventSize, lastEvent );
-// diag
-
-    Yamsgrt     ymsg;
-    RouteIn     midi;
-    midi.op             = ( *eventp ) >> 4;
-    midi.chn            = ( *eventp ) & 0x0F;
-    midi.note_cc_val    = ( 1 < eventSize ) ? *(eventp+1) : 0;
-    midi.velocity_val   = ( 2 < eventSize ) ? *(eventp+2) : 0;
-    
-    /*
-     switch( eventSize ) {
-     case 0:
-        return;
-     case 1:
-        break;
-     default:
-        break;
-     */
-
-    ymsg = thp.midiRouter.translate( midi );
+    RouteIn  midi;
+    midi.op                 = ( *eventp ) >> 4;
+    midi.channel            = ( *eventp ) & 0x0F;
+    if( 2 < eventSize ) {
+        midi.velocity_val   = *(eventp+2);
+        midi.note_cc_val    = *(eventp+1);        
+    } else if ( 1 < eventSize ) {
+        midi.note_cc_val    = *(eventp+1);                
+    }
+        
+    Yamsgrt ymsg = thp.midiRouter.translate( midi );
     if( 0 == ymsg.store )
         return;
     res     = thp.queueIn.queueOscillator.put( ymsg.store );
-    return;
-
 } // end IOThread::midiInCB
 
 // --------------------------------------------------------------------
 
-void IOThread::audioOutCB( void *data, uint32_t nframes, float *outp1, float *outp2, int16_t bufferSizeMult )
+void IOThread::audioInOutCB( void *data, uint32_t nframes, float *outp1, float *outp2, float *inp1, float *inp2 )
 {
-    timeval tv; // profiling
+    // ------------------- profiling
+    timeval tv;
     IOThread& thp = *static_cast<IOThread *>(data);
+    // ------------------- profiling
 
     // TODO> relax this condition and make sync mode to reduce latency
-    if( thp.queueOut.getFullCount() < bufferSizeMult ) {
+    if( thp.queueOut.getFullCount() < thp.bufferSizeRate ) {
+        // wait for a short time with nanosleep
         // synth thread doesn't run
         for( auto i=0u; i < nframes; ++i ) {
             outp1[i] = 0.0f;
@@ -117,38 +90,31 @@ void IOThread::audioOutCB( void *data, uint32_t nframes, float *outp1, float *ou
         return;
     }
 
-    // looks ok
-    // gains are not complete
+    // ------------------- profiling
     const int64_t  maxC = 1000;
     if( --thp.count < 0 ) {
-        std::cout << std::dec << " ---new  iothread " << ( thp.timer / bufferSizeMult ) << " cpu:"<< sched_getcpu() << std::endl;
+        std::cout << std::dec << " ---new in-out  iothread " << ( thp.timer / thp.bufferSizeRate ) << " cpu:"<< sched_getcpu() << std::endl;
         thp.count = maxC;
         thp.timer = 0;
     }
-
-    // profiling
     gettimeofday(&tv,NULL);
     const uint64_t begint   = tv.tv_sec*1000000ULL + tv.tv_usec;
+    // ------------------- profiling
 
-    for( auto fi=0u; fi < bufferSizeMult; ++fi ) {
-        // main cycle for the effect stage -- called according to the frames rate:
-        // dev state: 64 sample internal, 256 external
-        // one frame cycle
-        
-        // check here the MIDI? to reduce the avg latency
-        
+    for( auto fi=0u; fi < thp.bufferSizeRate; ++fi ) {
+        thp.fxInput.process( inp1, inp2 );
+        inp1 += thp.fxEndMixer.sectionSize;
+        inp2 += thp.fxEndMixer.sectionSize;
         InnerController::getInstance().incrementFrameLFOscillatorPhases();
+//        if( thp.queueOut.getFullCount() < 1 ) {   
+//          wait 1 microsec        
+//        }
         const int ri = thp.queueOut.getReadIndex();
-        thp.fxOscillatorMixer.process( thp.queueOut.out[ri] ); // this has a special interface
+        thp.fxOscillatorMixer.process( thp.queueOut.out[ri] );
         thp.queueOut.readOk();
         thp.fxRunner.run();
-
-        // TODO > in 1 step - mix direct to the output
-        // dump should call exec() ?
-        // or dump set the pointers and a use special endMixer type
-
-        thp.fxEndMixer.exec();  // must be the last
-        thp.fxEndMixer.dump( outp1, outp2 ); // get the result
+        thp.fxEndMixer.exec();                  // must be the last
+        thp.fxEndMixer.dump( outp1, outp2 );    // get the result
         outp1 += thp.fxEndMixer.sectionSize;
         outp2 += thp.fxEndMixer.sectionSize;
     }
@@ -157,10 +123,73 @@ void IOThread::audioOutCB( void *data, uint32_t nframes, float *outp1, float *ou
         GaloisShifterSingle<seedThreadEffect_noise>::getInstance().reset();
         GaloisShifterSingle<seedThreadEffect_random>::getInstance().reset();
     }
-    // profiling
+
+    // ------------------- profiling
     gettimeofday(&tv,NULL);
     thp.timer += tv.tv_sec*1000000ULL + tv.tv_usec - begint;
+    // ------------------- profiling
+}
 
+// --------------------------------------------------------------------
+
+void IOThread::audioOutCB( void *data, uint32_t nframes, float *outp1, float *outp2 )
+{
+    // ------------------- profiling
+    timeval tv;
+    IOThread& thp = *static_cast<IOThread *>(data);
+    // ------------------- profiling
+
+    // TODO> relax this condition and make sync mode to reduce latency
+    if( thp.queueOut.getFullCount() < thp.bufferSizeRate ) {
+        // wait for a short time with nanosleep
+        // synth thread doesn't run
+        for( auto i=0u; i < nframes; ++i ) {
+            outp1[i] = 0.0f;
+            outp2[i] = 0.0f;
+        }
+        return;
+    }
+
+    // ------------------- profiling
+    const int64_t  maxC = 1000;
+    if( --thp.count < 0 ) {
+        std::cout << std::dec << " ---new out iothread " << ( thp.timer / thp.bufferSizeRate ) << " cpu:"<< sched_getcpu() << std::endl;
+        thp.count = maxC;
+        thp.timer = 0;
+    }
+    gettimeofday(&tv,NULL);
+    const uint64_t begint   = tv.tv_sec*1000000ULL + tv.tv_usec;
+    // ------------------- profiling
+    // if muted was changed from unmuted -- create var
+    if( thp.toClearFxInput ) {
+        thp.fxInput.clearTransient();
+        thp.toClearFxInput = false;
+    }
+
+    for( auto fi=0u; fi < thp.bufferSizeRate; ++fi ) {
+        InnerController::getInstance().incrementFrameLFOscillatorPhases();
+//        if( thp.queueOut.getFullCount() < 1 ) {   
+//          wait 1 microsec        
+//        }
+        const int ri = thp.queueOut.getReadIndex();
+        thp.fxOscillatorMixer.process( thp.queueOut.out[ri] );
+        thp.queueOut.readOk();
+        thp.fxRunner.run();
+        thp.fxEndMixer.exec();                  // must be the last
+        thp.fxEndMixer.dump( outp1, outp2 );    // get the result
+        outp1 += thp.fxEndMixer.sectionSize;
+        outp2 += thp.fxEndMixer.sectionSize;
+    }
+
+    if( 0 == ++thp.cycleNoise ) { // reset after 2^32 cycles
+        GaloisShifterSingle<seedThreadEffect_noise>::getInstance().reset();
+        GaloisShifterSingle<seedThreadEffect_random>::getInstance().reset();
+    }
+
+    // ------------------- profiling
+    gettimeofday(&tv,NULL);
+    thp.timer += tv.tv_sec*1000000ULL + tv.tv_usec - begint;
+    // ------------------- profiling
 } // end IOThread::audioOutCB
 
 // --------------------------------------------------------------------

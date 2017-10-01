@@ -48,31 +48,36 @@ using namespace noiser;
 
 namespace yacynth {
 
-// actually this is runnnig in the jack callback
-
 class IOThread {
 public:
-    static constexpr  uint16_t  mixerChannelCount   = 2;
-
     IOThread()  = delete;
     IOThread(   YaIoInQueueVector&      in,
                 OscillatorOutVector&    out,
                 AbstractRouter&         router );
 
-    static void midiInCB(   void *data, uint8_t *eventp, uint32_t eventSize, bool lastEvent );
-    static void audioOutCB( void *data, uint32_t nframes, float *outp1, float *outp2, int16_t bufferSizeMult );
-    inline FxRunner&        getFxRunner(void) { return fxRunner; }
-    inline AbstractRouter&  getRouter(void) { return midiRouter; }
+    static void midiInCB(       void *data, uint8_t *eventp, uint32_t eventSize );
+    static void audioOutCB(     void *data, uint32_t nframes, float *outp1, float *outp2 );
+    static void audioInOutCB(   void *data, uint32_t nframes, float *outp1, float *outp2, float *inp1, float *inp2 );
+    inline FxRunner&        getFxRunner(void) 
+        { return fxRunner; }
+    inline AbstractRouter&  getRouter(void) 
+        { return midiRouter; }
+    inline void setBufferSizeRate( int16_t val )
+        { bufferSizeRate = val; }
+    inline void clearFxInput()
+        { toClearFxInput = true; }
 
 private:
-    void    printEvent( uint8_t *eventp, uint32_t eventSize, bool lastEvent);
-    YaIoInQueueVector&              queueIn;
-    OscillatorOutVector&            queueOut;
-    AbstractRouter&                 midiRouter;
-    FxMixer                         fxEndMixer;
-    FxOscillatorMixer               fxOscillatorMixer;
-    FxInput                         fxInput;
-    FxRunner                        fxRunner;
+    YaIoInQueueVector&      queueIn;
+    OscillatorOutVector&    queueOut;
+    AbstractRouter&         midiRouter;
+    FxMixer                 fxEndMixer;
+    FxOscillatorMixer       fxOscillatorMixer;
+    FxInput                 fxInput;
+    FxRunner                fxRunner;
+    int16_t                 bufferSizeRate; // get it from IO interface external / internal frame size 
+    bool                    toClearFxInput; 
+
     // profiling
     uint64_t    timer;
     int64_t     count;

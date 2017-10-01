@@ -45,7 +45,7 @@ bool FxOutNoiseParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8
 
 void FxOutNoise::clearTransient()
 {
-    EIObuffer::clear();
+    out().clear();        
 }
 
 bool FxOutNoise::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
@@ -59,8 +59,15 @@ bool FxOutNoise::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t pa
     }
     // 2nd tag is tag operation
     const uint8_t tag = message.getTag(++tagIndex);
-    if( uint8_t(TagEffectFxOutNoiseMode::Clear) == tag ) {
+    switch( TagEffectFxOutNoiseMode( tag ) ) {
+    case TagEffectFxOutNoiseMode::ClearState:
         clearTransient(); // this must be called to cleanup
+        message.setStatusSetOk();
+        return true;
+        
+    case TagEffectFxOutNoiseMode::Clear:
+        clearTransient(); // this must be called to cleanup
+        break;
     }
     // forward to param
     return param.parameter( message, tagIndex, paramIndex );

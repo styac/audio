@@ -30,7 +30,6 @@
 #include    <array>
 #include    <string>
 
-
 namespace yacynth {
 
 class Setting {
@@ -41,16 +40,28 @@ public:
     Setting();
 
     std::string getHomeDir() const
-    { return homeDir; };
+    { 
+        return homeDir; 
+    }
 
     std::string getConfDir() const
-    { return homeDir + configDirName; };
+    { 
+        return homeDir + configDirName; 
+    }
 
     std::string getAuthKey() const
-    { return homeDir + configDirName + authKeyName; };
+    { 
+        return homeDir + configDirName + authKeyName; 
+    }
 
+    bool isOk() const
+    {
+        return ok;
+    }
+    
 private:
     std::string homeDir;
+    bool    ok;
 };
 
 

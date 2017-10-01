@@ -35,7 +35,7 @@ bool FxOutOscillatorParam::parameter( yaxp::Message& message, uint8_t tagIndex, 
 {
     const uint8_t tag = message.getTag(tagIndex);
     switch( TagEffectFxOutOscillatorMode( tag ) ) {
-    case TagEffectFxOutOscillatorMode::Clear :
+    case TagEffectFxOutOscillatorMode::Clear:
         TAG_DEBUG(TagEffectFxOutOscillatorMode::Clear, tagIndex, paramIndex, "TagEffectFxOutOscillatorMode" );
         message.setStatusSetOk();
         return true;
@@ -61,7 +61,7 @@ bool FxOutOscillatorParam::parameter( yaxp::Message& message, uint8_t tagIndex, 
 
 void FxOutOscillator::clearTransient()
 {
-    EIObuffer::clear();
+    out().clear();        
 }
 
 bool FxOutOscillator::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
@@ -75,8 +75,15 @@ bool FxOutOscillator::parameter( yaxp::Message& message, uint8_t tagIndex, uint8
     }
     // 2nd tag is tag operation
     const uint8_t tag = message.getTag(++tagIndex);
-    if( uint8_t(TagEffectFxOutOscillatorMode::Clear) == tag ) {
+    switch( TagEffectFxOutOscillatorMode( tag ) ) {
+    case TagEffectFxOutOscillatorMode::ClearState:
         clearTransient(); // this must be called to cleanup
+        message.setStatusSetOk();
+        return true;
+        
+    case TagEffectFxOutOscillatorMode::Clear:
+        clearTransient(); // this must be called to cleanup
+        break;
     }
     // forward to param
     return param.parameter( message, tagIndex, paramIndex );
@@ -219,6 +226,7 @@ void FxOutOscillator::sprocess_13( void * thp )
     static_cast< MyType * >(thp)->processTestSine20000();
 }
 
+#if 0
 template<>
 bool FxSlave<FxOutOscillatorParam>::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
@@ -242,7 +250,7 @@ void FxSlave<FxOutOscillatorParam>::clearTransient()
 {
 };
 
-
+#endif
 
 } // end namespace yacynth
 

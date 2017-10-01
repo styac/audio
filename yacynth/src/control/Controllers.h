@@ -113,7 +113,7 @@ public:
         // instead of SINK - CM DISABLE
         CC_SINK                         = 255,  // never get -- all unused controllers go here - obsolete
         // ------------- internal range begin
-        CC_AMPLITUDE                    = 1<<8,       // internal -- amplitude summ
+        // CC_AMPLITUDE                    = 1<<8,       // internal -- amplitude summ
         // ------------- internal range end
         // ------------- LFO range begin
         CC_LFO_MASTER_PHASE_BEGIN       = 260, // TODO 256
@@ -130,10 +130,13 @@ public:
         CC_BEGIN_SWITCH                 = 3*(1<<8),
         // software controllers
         CC_BEGIN_SW                     = 4*(1<<8),
-//        CC_NULL,              // never set -- must be zero -- will be 0x40
-//        CC_127,               // never set -- must be zero -- will be 0x41
-//        CC_AMPLITUDE,         // internal -- amplitude summ x 16 - for each  channel
+        
+        // separate for each layer
+        CC_AMPLITUDE_BEGIN,             // internal -- amplitude summ x 16 - for each  channel
+        CC_AMPLITUDE_END = CC_AMPLITUDE_BEGIN + layerCount,             // internal -- amplitude summ x 16 - for each  channel
 
+//        CC_NULL,              // never set -- must be zero -- will be 0x4FE
+//        CC_127,               // never set -- must be zero -- will be 0x4FF
         CC_RFU1                         = 5*(1<<8),
         CC_RFU2                         = 6*(1<<8),
         CC_RFU3                         = 7*(1<<8),
@@ -205,7 +208,7 @@ k 9 f 14.9358  -- 20.6
 #endif
     // mainly for setAmplitudeSumm
     // index is full: 2 x range
-    inline void setLog( uint16_t ind, uint64_t v )
+    inline void setAmplitudeSumm( uint16_t ind, uint64_t v )
     {
         // 23 bit mantissa + 6 bit exponent (1<<63)
         constexpr std::size_t maxLog = 23+6;
@@ -213,13 +216,18 @@ k 9 f 14.9358  -- 20.6
             value.v[ ( ind & arraySizeMask ) ] = 0;
         }
         const float x = static_cast<float>(v);
-        value.v[ ( ind & arraySizeMask ) ] = ( uint32_t(x) - (127<<23) ) >> (maxLog-norm);
+        value.v[ CC_AMPLITUDE_BEGIN + ( ind & ( layerCount - 1) ) ] = ( uint32_t(x) - (127<<23) ) >> (maxLog-norm);
     }
-
-    inline void setAmplitudeSumm( uint64_t v )
+    
+    inline void clearAmplitudeSumm( uint16_t ind )
     {
-        setLog(CC_AMPLITUDE,v);
+        value.v[ CC_AMPLITUDE_BEGIN + ( ind & ( layerCount - 1) ) ] = 0;
     }
+    
+//    inline void setAmplitudeSumm( uint64_t v )
+//    {
+//        setLog(CC_AMPLITUDE,v);
+//    }
 
     // eliminate shift
     inline void setMidi( uint8_t ind, uint8_t v )

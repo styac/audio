@@ -32,14 +32,14 @@ namespace yacynth {
 
 // --------------------------------------------------------------------
 YaIoJack::YaIoJack()
-:   client(0)
+:   YaIo()
+,   client(0)
 ,   jackOptions(JackNoStartServer)
 ,   midiInPort(     "midi_in_1",    JACK_DEFAULT_MIDI_TYPE,     JackPortIsInput|JackPortIsTerminal)
 ,   audioOutPort1(  "audio_out_1",  JACK_DEFAULT_AUDIO_TYPE,    JackPortIsOutput|JackPortIsTerminal)
 ,   audioOutPort2(  "audio_out_2",  JACK_DEFAULT_AUDIO_TYPE,    JackPortIsOutput|JackPortIsTerminal)
 ,   audioInPort1(   "audio_in_1",   JACK_DEFAULT_AUDIO_TYPE,    JackPortIsInput|JackPortIsTerminal)
 ,   audioInPort2(   "audio_in_2",   JACK_DEFAULT_AUDIO_TYPE,    JackPortIsInput|JackPortIsTerminal)
-,   muted(true)
 {}
 
 YaIoJack::~YaIoJack()
@@ -65,7 +65,7 @@ void YaIoJack::shutdown( void )
 
 bool YaIoJack::initialize( void )
 {
-    if( nullptr == userData || nullptr == processMidiCommand || nullptr == audioOutProcesing ) {
+    if( nullptr == userData || nullptr == midiOutProcessing || nullptr == audioOutProcesing ) {
         errorString   += ":nullptr";
         return false;
     }
@@ -111,6 +111,12 @@ bool YaIoJack::initialize( void )
     if( !midiInPort.reg( client ) ) {
         return false;
     }
+    if( !audioInPort1.reg( client ) ) {
+        return false;
+    }
+    if( !audioInPort2.reg( client ) ) {
+        return false;
+    }
     return true;
 } // end YaIoJack::initialize
 
@@ -129,6 +135,7 @@ bool YaIoJack::run( void )
 // --------------------------------------------------------------------
 // jack process callback
 // gets midi input -> process
+// gets audio input -> FxInput
 // puts audio data from somewhere
 //
 int YaIoJack::processCB( jack_nframes_t nframes, void *arg )
@@ -138,17 +145,22 @@ int YaIoJack::processCB( jack_nframes_t nframes, void *arg )
     void * midiIn = thp.midiInPort.getBuffer( nframes );
     jack_default_audio_sample_t *audioOut1 = (jack_default_audio_sample_t *) thp.audioOutPort1.getBuffer( nframes );
     jack_default_audio_sample_t *audioOut2 = (jack_default_audio_sample_t *) thp.audioOutPort2.getBuffer( nframes );
-        
-// TODO : do midi processing at inner frame level to reduce latency?
     thp.processJackMidiIn();
-    if( thp.muted ) {
+    if( thp.mutedOutput ) {
+        // obsolete  - use EndMixer setProcMode(0) after processJackMidiIn is there
         for( auto i=0; i < nframes; ++i ) {
             *audioOut1++ = 0.0f;
             *audioOut2++ = 0.0f;
         }
         return 0;
     }
-    thp.audioOutProcesing ( thp.userData, nframes, audioOut1, audioOut2, thp.bufferSizeMult );
+    if( thp.mutedInput ) {
+        thp.audioOutProcesing ( thp.userData, nframes, audioOut1, audioOut2 );                
+    } else {
+        jack_default_audio_sample_t *audioIn1  = (jack_default_audio_sample_t *) thp.audioInPort1.getBuffer( nframes );
+        jack_default_audio_sample_t *audioIn2  = (jack_default_audio_sample_t *) thp.audioInPort2.getBuffer( nframes );
+        thp.audioInOutProcesing ( thp.userData, nframes, audioOut1, audioOut2, audioIn1, audioIn2 );                        
+    }
     return 0;
 } // end YaIoJack::processCB
 

@@ -24,16 +24,30 @@
  */
 
 #include "Setting.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 namespace yacynth {
 
+
+static int is_regular_file( const char *path )
+{
+    struct stat path_stat;
+    lstat(path, &path_stat);
+    return S_ISREG(path_stat.st_mode);
+}
+
 Setting::Setting()
 :   homeDir(".")
+,   ok(false)
 {
     const char *hdp = getenv("HOME");
     if( hdp != nullptr) {
         homeDir = hdp;
     }
+    // check if necessary files exist and type is ok
+    // if not try to fix
 }
 
 

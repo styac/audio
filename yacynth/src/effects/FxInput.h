@@ -26,7 +26,6 @@
 
 #include    "yacynth_globals.h"
 #include    "../effects/FxBase.h"
-
 #include    "v4.h"
 #include    "FxInputParam.h"
 
@@ -38,13 +37,6 @@ public:
     FxInput()
     :   Fx<FxInputParam>()
     {
-//        fillSprocessv<0>(sprocess_00);
-//        fillSprocessv<1>(sprocess_01);
-//        fillSprocessv<2>(sprocess_02);
-//        fillSprocessv<3>(sprocess_03);
-//        fillSprocessv<4>(sprocess_04);
-//        fillSprocessv<5>(sprocess_05);
-
     }
 
     virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override;
@@ -53,21 +45,16 @@ public:
 
     virtual bool connect( const FxBase * v, uint16_t ind ) override
     {
-        doConnect(v,ind);
+        return false; // no connectable input
     };
     
-    // real process
-    void process(  )
+    // real process - direct called by IOThread
+    inline void process( float *ch0, float *ch1 )
     {
+        out().load( ch0, ch1 );
     }
 
 private:
-    struct alignas(16) AddVector {
-        union {
-            v2di    i[oscillatorFrameSize/2];
-            int64_t v[oscillatorFrameSize];
-        };
-    };
 
 };
 

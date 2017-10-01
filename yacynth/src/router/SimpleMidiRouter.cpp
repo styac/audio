@@ -105,7 +105,7 @@ Yamsgrt SimpleMidiRouter::translate( const RouteIn& in )
 
     case MIDI_CONTR_CHNG: {
         MidiController::ControlData cdt =
-            midiController.getControlData( in.chn, in.note_cc_val );
+            midiController.getControlData( in.channel, in.note_cc_val );
 
         switch( cdt.mode ) {
         case MidiController::CM_DISABLE :
@@ -139,11 +139,11 @@ Yamsgrt SimpleMidiRouter::translate( const RouteIn& in )
         break;
 
     case MIDI_CHN_AFTCH:
-        InnerController::getInstance().setMidi( midiController.getAftertouch ( in.chn ), in.velocity_val );
+        InnerController::getInstance().setMidi( midiController.getAftertouch ( in.channel ), in.velocity_val );
         break;
 
     case MIDI_PITCH:
-        InnerController::getInstance().setMidi( midiController.getPitchbend( in.chn ), in.velocity_val, in.note_cc_val );
+        InnerController::getInstance().setMidi( midiController.getPitchbend( in.channel ), in.velocity_val, in.note_cc_val );
 
 //        InnerController::getInstance().setMidi( 4, in.velocity_val, in.note_cc_val );
         break;

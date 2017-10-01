@@ -43,8 +43,6 @@ public:
     bool initialize(    void );
     void shutdown(      void );
     bool run(           void );
-    void mute(   void ) { muted = true; };      // obsolete : EndMixer.setMode(0)
-    void unmute( void ) { muted = false; };     // obsolete : EndMixer.setMode(1)
     
     // process
     // static JackProcessCallback             processCB;
@@ -67,6 +65,7 @@ public:
     }
     
 protected:
+    // put this to audioIOProcessing
     inline void processJackMidiIn()
     {
         void * midiIn = midiInPort.getBuffer( nframes );
@@ -74,8 +73,22 @@ protected:
         jack_nframes_t event_count = jack_midi_get_event_count( midiIn );
         for( auto i=0; i < event_count; ++i ) {
             jack_midi_event_get( &in_event, midiIn , i );
-            processMidiCommand( userData, in_event.buffer, in_event.size, ( event_count-1 ) == i );
+            printEvent( in_event.buffer, in_event.size, ( event_count-1 ) == i );
+            midiOutProcessing( userData, in_event.buffer, in_event.size );
         }    
+    }
+    
+    void printEvent( uint8_t *eventp, uint32_t eventSize, bool lastEvent)
+    {
+        std::cout << "ev: " << std::hex;
+        for( auto i=0; i< eventSize; ++i, ++eventp ){
+            const uint16_t val = *eventp;
+            std::cout << " " <<  val ;
+        }
+        if( lastEvent ) {
+            std::cout << " ****";
+        }
+        std::cout << std::endl;
     }
     
     jack_client_t   *client;
@@ -87,7 +100,6 @@ protected:
     YaIoJackPort    audioInPort1;
     YaIoJackPort    audioInPort2;
     jack_nframes_t  nframes;
-    bool            muted;        
 
 private:
     YaIoJack();

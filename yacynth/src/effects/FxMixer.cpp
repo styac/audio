@@ -69,8 +69,8 @@ bool FxMixerParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t 
         message.setStatus( yaxp::MessageT::illegalDataLength );
         return false;
 
-    case TagEffectFxMixerMode::Preset0 : {
-        TAG_DEBUG(TagEffectFxMixerMode::Preset0, tagIndex, paramIndex, "FxMixerParam" );
+    case TagEffectFxMixerMode::Preset : {
+        TAG_DEBUG(TagEffectFxMixerMode::Preset, tagIndex, paramIndex, "FxMixerParam" );
         preset0();
         message.setStatusSetOk();
         return true;
@@ -90,7 +90,7 @@ bool FxMixer::connect( const FxBase * v, uint16_t ind )
 
 void FxMixer::clearTransient()
 {
-    EIObuffer::clear();
+    out().clear();    
 }
 
 bool FxMixer::setProcMode( uint16_t ind )
@@ -130,10 +130,14 @@ bool FxMixer::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t param
     // 2nd tag is tag operation
     const uint8_t tag = message.getTag(++tagIndex);
     switch( TagEffectFxMixerMode( tag ) ) {
+    case TagEffectFxMixerMode::ClearState:
+        clearTransient(); // this must be called to cleanup
+        message.setStatusSetOk();
+        return true;
     case TagEffectFxMixerMode::Clear:
         clearTransient(); // this must be called to cleanup
         break;
-    case TagEffectFxMixerMode::Preset0 :
+    case TagEffectFxMixerMode::Preset :
         setProcMode(1);    
         break;    
     }

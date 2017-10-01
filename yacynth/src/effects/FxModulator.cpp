@@ -52,7 +52,8 @@ bool FxModulatorParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint
 
 void FxModulator::clearTransient()
 {
-    EIObuffer::clear();    
+    out().clear();    
+    // + internal state
 }
 
 bool FxModulator::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
@@ -66,8 +67,15 @@ bool FxModulator::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t p
     }
     // 2nd tag is tag operation
     const uint8_t tag = message.getTag(++tagIndex);
-    if( uint8_t(TagEffectFxModulatorMode::Clear) == tag ) {
+    switch( TagEffectFxModulatorMode( tag ) ) {
+    case TagEffectFxModulatorMode::ClearState:
         clearTransient(); // this must be called to cleanup
+        message.setStatusSetOk();
+        return true;
+        
+    case TagEffectFxModulatorMode::Clear:
+        clearTransient(); // this must be called to cleanup
+        break;
     }
     // forward to param
     return param.parameter( message, tagIndex, paramIndex );    

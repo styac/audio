@@ -56,6 +56,7 @@ struct EffectListEntry
     static constexpr const char * const fxIndexName = "fxIndex";
     static constexpr const char * const idName = "id";
     static constexpr const char * const fxTypeName = "fxType";
+    static constexpr const char * const fxDymanicType = "dynamic";
     static constexpr const char * const fxMaxModeName = "fxMaxMode";
     static constexpr const char * const inputCountName = "inputCount";
     static constexpr const char * const masterIdName = "masterId";
@@ -67,6 +68,7 @@ struct EffectListEntry
     uint8_t fxIndex;
     uint8_t id;
     uint8_t fxType;
+    uint8_t dynamic;
     uint8_t fxMaxMode;
     uint8_t inputCount;
     uint8_t masterId;
@@ -78,15 +80,18 @@ struct EffectListEntry
 // fullName, EffectListEntry
 typedef std::map<std::string, uint8_t> EffectMap;
 
-
 // level 0
-
 namespace TagMainLevel_00 {
     enum class TagMain : uint8_t {
         Nop,
         Clear,
-        Mute,           // mute immediately
-        UnMute,         // unmute
+        ClearState,
+        Preset,             // param[0] - presetnumber
+        // ---
+        Mute,               // mute immediately > input, output
+        UnMuteOutput,       // unmute
+        MuteInput,          // mute input in Yaio and send fadeout + clear to input (delay)
+        UnMuteInput,        // unmute - fadeIn ?
         ToneShaper,
         InnerController,
         MidiController,
@@ -104,6 +109,9 @@ namespace TagToneShaperLevel_01 {
     enum class TagToneShaper : uint8_t {
         Nop,
         Clear,
+        ClearState,
+        Preset,     // param[0] - presetnumber
+        // ---
         // first set
         SetOvertone,                // parameter: ToneShaperIndex, OvertoneIndex
         SetOvertoneVector,          // parameter: ToneShaperIndex, count max 256 - size:184
@@ -115,22 +123,27 @@ namespace TagToneShaperLevel_01 {
     };
 } // end namespace
 
+#if 0
 namespace TagEffectFactoryLevel_01 {
     enum class EffectFactory : uint8_t {
         Nop,
         Clear,
+        ClearState,
+        Preset,     // param[0] - presetnumber
         Create,     // create a new effect
     };
 } // end namespace
-
+#endif
 namespace TagEffectRunnerLevel_01 {
     enum class TagEffectRunner : uint8_t {
         Nop,
         Clear,
+        ClearState,
+        Preset,     // param[0] - presetnumber
+        // ---
         Fill,
         SetConnections,
         GetEffectList,
-        Preset0,
     };
 
     // parameter structures
@@ -158,7 +171,10 @@ namespace TagEffectRunnerLevel_01 {
 namespace TagMidiControllerLevel_01 {
     enum class TagMidiController : uint8_t {
         Nop,
-        Clear,                      // clear all
+        Clear,
+        ClearState,
+        Preset,     // param[0] - presetnumber
+        // ---
         ClearChannelVector,         // parameter: channel : 0 .. channelCount-1
         SetChannelVector,           // parameter: channel + all controller of channel
         SetController,              // parameter: count of MidiSetting
@@ -185,6 +201,9 @@ namespace TagInnerControllerLevel_01 {
     enum class TagInnerController : uint8_t {
         Nop,
         Clear,
+        ClearState,
+        Preset,     // param[0] - presetnumber
+        // ---
         ClearController,            // parameter : controller number
         SetController,              // parameter : InnerControllerSetting
     };
@@ -204,6 +223,9 @@ namespace TagRouterLevel_01 {
     enum class TagRouter : uint8_t {
         Nop,
         Clear,
+        ClearState,
+        Preset,     // param[0] - presetnumber
+        // ---
         SetToneBank,
     };
 } // end namespace
@@ -212,6 +234,9 @@ namespace TagTunerLevel_01 {
     enum class TagTuner : uint8_t {
         Nop,
         Clear,
+        ClearState,
+        Preset,     // param[0] - presetnumber
+        // ---
         SetTuneTable,       // main rate table: eq tuned, natural tuned
         SetTuneSubTable,    // sub table select from main table
     };
@@ -220,7 +245,13 @@ namespace TagTunerLevel_01 {
 namespace TagEffectCollectorLevel_01 {
     enum class TagEffectCollector : uint8_t {
         Nop,
-        Clear,
+        Clear,                      
+        ClearState,
+        Preset,                     // param[0] - presetnumber
+        // ---
+        CreateEffect,               // create a new effect
+        CreateEffectSet,            // create a set of new effect - buff = list of effects (max 64)
+        DeleteEffects,              // delete dynamic effects
         EffectInstance,             // parameter: index,
         SetProcessingMode,          // parameter: index, mode
         GetEffectList,              // parameter: -
@@ -258,7 +289,10 @@ namespace TagEffectTypeLevel_02 {
 namespace TagEffectFxFilterModeLevel_03 {
     enum class TagEffectFxFilterMode : uint8_t {
         Nop,
-        Clear,                      // clear all
+        Clear,
+        ClearState,
+        Preset,     // param[0] - presetnumber
+        // ---
         GetFeatures,
         SetModeAP01,
         SetModeSV01,
@@ -269,32 +303,39 @@ namespace TagEffectFxFilterModeLevel_03 {
 namespace TagEffectFxMixerModeLevel_03 {
     enum class TagEffectFxMixerMode : uint8_t {
         Nop,
-        Clear,                      // clear all
+        Clear,
+        ClearState,
+        Preset,     // param[0] - presetnumber
+        // ---
         GetFeatures,
         SetParametersMode01,        // all param - must be implemented
         SetVolumeControllerIndex,
         SetVolumeRange,
         SetChannelVolumes,          // through controllers ? 0..127
         SetChannelCount,            // effective channel count
-        Preset0,
     };
 } // end namespace
 
 namespace TagEffectFxOscillatorMixerModeLevel_03 {
     enum class TagEffectFxOscillatorMixerMode : uint8_t {
         Nop,
-        Clear,                      // clear all
+        Clear,
+        ClearState,
+        Preset,     // param[0] - presetnumber
+        // ---
         GetFeatures,
         SetParametersMode01,        // set all gains
         SetChannelVolume,           // set volume of 1 channel - no InnerC
-        Preset0,
     };
 } // end namespace
 
 namespace TagEffectFxInputModeLevel_03 {
     enum class TagEffectFxInputMode : uint8_t {
         Nop,
-        Clear,                      // clear all
+        Clear,
+        ClearState,
+        Preset,     // param[0] - presetnumber
+        // ---
         GetFeatures,
         SetParametersMode01,
     };
@@ -304,17 +345,21 @@ namespace TagEffectFxModulatorModeLevel_03 {
     enum class TagEffectFxModulatorMode : uint8_t {
         Nop,
         Clear,
+        ClearState,
+        Preset,     // param[0] - presetnumber
+        // ---
         GetFeatures,
         SetParametersMode01,
-//        SetMode_01_amplitudeModulation,
-//        GetMode_01_amplitudeModulation,
     };
 } // end namespace
 
 namespace TagEffectFxOutNoiseModeLevel_03 {
     enum class TagEffectFxOutNoiseMode : uint8_t {
         Nop,
-        Clear,                      // clear all
+        Clear,
+        ClearState,
+        Preset,     // param[0] - presetnumber
+        // ---
         GetFeatures,
         SetParametersMode01,
     };
@@ -323,7 +368,10 @@ namespace TagEffectFxOutNoiseModeLevel_03 {
 namespace TagEffectFxOutOscillatorModeLevel_03 {
     enum class TagEffectFxOutOscillatorMode : uint8_t {
         Nop,
-        Clear,                      // clear all
+        Clear,
+        ClearState,
+        Preset,     // param[0] - presetnumber
+        // ---
         GetFeatures,
         SetParametersMode01,
     };
@@ -333,7 +381,10 @@ namespace TagEffectFxOutOscillatorModeLevel_03 {
 namespace TagEffectFxEchoModeLevel_03 {
     enum class TagEffectFxEchoMode : uint8_t {
         Nop,
-        Clear,                      // clear all
+        Clear,
+        ClearState,
+        Preset,     // param[0] - presetnumber
+        // ---
         GetFeatures,
         SetParametersMode01,              // all params
         SetTapOutput,               // select params
@@ -351,7 +402,10 @@ namespace TagEffectFxEchoModeLevel_03 {
 namespace TagEffectFxLateReverbModeLevel_03 {
     enum class TagEffectFxLateReverbMode : uint8_t {
         Nop,
-        Clear,                      // clear all
+        Clear,
+        ClearState,
+        Preset,     // param[0] - presetnumber
+        // ---
         GetFeatures,
         SetParametersMode01,
     };
@@ -360,7 +414,10 @@ namespace TagEffectFxLateReverbModeLevel_03 {
 namespace TagEffectFxEarlyReflectionModeLevel_03 {
     enum class TagEffectFxEarlyReflectionMode : uint8_t {
         Nop,
-        Clear,                      // clear all
+        Clear,
+        ClearState,
+        Preset,     // param[0] - presetnumber
+        // ---
         GetFeatures,
         SetParametersMode01,
     };
@@ -369,7 +426,10 @@ namespace TagEffectFxEarlyReflectionModeLevel_03 {
 namespace TagEffectFxChorusModeLevel_03 {
     enum class TagEffectFxChorusMode : uint8_t {
         Nop,
-        Clear,                      // clear all
+        Clear,
+        ClearState,
+        Preset,     // param[0] - presetnumber
+        // ---
         GetFeatures,
         SetParametersMode01,
     };
@@ -378,7 +438,10 @@ namespace TagEffectFxChorusModeLevel_03 {
 namespace TagEffectFxFlangerModeLevel_03 {
     enum class TagEffectFxFlangerMode : uint8_t {
         Nop,
-        Clear,                      // clear all
+        Clear,
+        ClearState,
+        Preset,     // param[0] - presetnumber
+        // ---
         GetFeatures,
         SetParametersMode01,
     };
@@ -387,7 +450,10 @@ namespace TagEffectFxFlangerModeLevel_03 {
 namespace TagEffect__ModeLevel_03 {
     enum class TagEffect__Mode : uint8_t {
         Nop,
-        Clear,                      // clear all
+        Clear,
+        ClearState,
+        Preset,     // param[0] - presetnumber
+        // ---
         GetFeatures,
         SetParametersMode01,
         SetMode_01___,

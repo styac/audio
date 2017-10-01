@@ -47,7 +47,6 @@ namespace yacynth {
 
 class   YaIo {
 public:
-
     YaIo()
     :   nameClient("yacsynth")
     ,   sampleRateMin(48000)
@@ -55,43 +54,101 @@ public:
     ,   bufferSizeMin(64)
     ,   bufferSizeMax(256)
     ,   userData(nullptr)
-    ,   processMidiCommand(nullptr)
-    ,   audioOutProcesing(nullptr)
+    ,   midiOutProcessing(noMidiProcessing)
+    ,   audioOutProcesing(noAudioOutProcesing)
+    ,   audioInOutProcesing(noAudioInOutProcesing)
     ,   errorString("err: ")
-    {};
+    ,   mutedOutput(true)
+    ,   mutedInput(true)
+    {}
+    
     NON_COPYABLE_NOR_MOVABLE(YaIo)
+
+    // processor function types
+    typedef void ( * MidiProcessorType )( void *data, uint8_t *eventp, uint32_t eventSize );
+    typedef void ( * AudioOutProcessorType )( void *data, uint32_t nframes, float *outp1, float *outp2 );
+    typedef void ( * AudioInOutProcessorType )( void *data, uint32_t nframes, float *outp1, float *outp2, float *inp1, float *inp2 );
+    
     virtual ~YaIo() = default;
     virtual bool initialize( void ) = 0;
     virtual bool run(        void ) = 0;
     virtual void shutdown(   void ) = 0;
     void setProcessCB(  void* userDataP,
-    void (midiInCB)(    void *data, uint8_t *eventp, uint32_t eventSize, bool lastEvent ),
-    void (audioOutCB)(  void *data, uint32_t nframes, float *outp1, float *outp2, int16_t bufferSizeMult ) )
+        MidiProcessorType midiInCB,
+        AudioOutProcessorType audioOutCB,
+        AudioInOutProcessorType audioInOutCB
+        // void (midiInCB)(     void *data, uint8_t *eventp, uint32_t eventSize ),
+        // void (audioOutCB)(   void *data, uint32_t nframes, float *outp1, float *outp2 ),
+        // void (audioInOutCB)( void *data, uint32_t nframes, float *outp1, float *outp2, float *inp1, float *inp2 ) 
+    )
     {
         userData            = userDataP;
-        processMidiCommand  = midiInCB;     // TODO : remove
-        audioOutProcesing   = audioOutCB;   // TODO : remove
-    };
-    void                setMyName( const std::string& name ) { nameClient = name; };
-    const std::string   getMyName( void )       { return nameClient; };
-    const std::string   getMyNameActual( void ) { return nameClientReal; };
-    const std::string   getErrorString( void )  { return errorString; };
-    std::int32_t        getErrorCode( void )    { return errorCode; };
+        midiOutProcessing   = midiInCB;
+        audioOutProcesing   = audioOutCB;
+        audioInOutProcesing = audioInOutCB;
+    }
+    
+    void clearProcessCB()
+    {
+        userData            = nullptr;
+        midiOutProcessing   = noMidiProcessing;
+        audioOutProcesing   = noAudioOutProcesing;
+        audioInOutProcesing = noAudioInOutProcesing;
+    }
+    
+    void                setMyName( const std::string& name ) 
+        { nameClient = name; }
+    const std::string   getMyName( void )       
+        { return nameClient; }
+    const std::string   getMyNameActual( void ) 
+        { return nameClientReal; }
+    const std::string   getErrorString( void )  
+        { return errorString; }
+    void mute( void ) 
+        { mutedOutput = true; mutedInput = true; }
+    void unmuteOutput( void ) 
+        { mutedOutput = false; }
+    void unmute( void )  
+        { mutedInput = false; mutedOutput = false; }
+    inline int16_t getBufferSizeRate()
+    {
+        return bufferSizeMult;
+    }
 
-protected:
-    uint16_t        sampleRateMin;
-    uint16_t        sampleRateMax;
+protected:    
+    static void noMidiProcessing
+        ( void *data, uint8_t *eventp, uint32_t eventSize ) // lastEvent only for logging - remove
+        {}
+    static void noAudioOutProcesing
+        ( void *data, uint32_t nframes, float *outp1, float *outp2 )
+        {}
+    static void noAudioInOutProcesing
+        ( void *data, uint32_t nframes, float *outp1, float *outp2, float *inp1, float *inp2 )
+        {}
+    
+    uint32_t        sampleRateMin;
+    uint32_t        sampleRateMax;
     uint16_t        bufferSizeMin;
     uint16_t        bufferSizeMax;
     uint16_t        bufferSizeJack;
     uint16_t        bufferSizeMult;     // how many internal buffer(64samples) fill a jack buffer(256)
     std::string     nameClient;
     std::string     nameClientReal;
-    int32_t         errorCode;
     std::string     errorString;
     void          * userData;
-    void         (* processMidiCommand)( void *data, uint8_t *eventp, uint32_t eventSize, bool lastEvent );
-    void         (* audioOutProcesing)(  void *data, uint32_t nframes, float *outp1, float *outp2, int16_t bufferSizeMult );
+
+    MidiProcessorType       midiOutProcessing;
+    AudioOutProcessorType   audioOutProcesing;
+    AudioInOutProcessorType audioInOutProcesing;
+    
+//    void        ( * midiOutProcessing   )
+//        ( void *data, uint8_t *eventp, uint32_t eventSize );
+//    void        ( * audioOutProcesing   )
+//        ( void *data, uint32_t nframes, float *outp1, float *outp2 );
+//    void        ( * audioInOutProcesing )
+//        ( void *data, uint32_t nframes, float *outp1, float *outp2, float *inp1, float *inp2 );
+    bool            mutedOutput;        
+    bool            mutedInput;        
 };
 
 } // end namespace yacynth

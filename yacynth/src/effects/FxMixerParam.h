@@ -89,7 +89,7 @@ public:
     };
 
     ControllerIndex gainIndex[ inputCount ];    // default: CC_127
-    uint8_t         effectiveInputCount;    // 1..inputCount
+    uint8_t         effectiveInputCount;        // 1..inputCount
 };
 
 

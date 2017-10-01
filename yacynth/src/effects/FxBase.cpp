@@ -24,6 +24,7 @@
  */
 
 #include    "FxBase.h"
+
 #include    <chrono>
 #include    <sys/time.h>
 #include    <ctime>
@@ -33,17 +34,23 @@ namespace yacynth {
 using namespace TagEffectRunnerLevel_01;
 using namespace TagEffectCollectorLevel_01;
 
+// --------------------------------------------------------------------
 
 FxBase      fxNil("Nil",0,0,TagEffectType::FxNil);
 uint16_t    FxBase::count = -1;
 // template <typename T>  uint16_t S<T>::something_relevant = 0;
 
+// --------------------------------------------------------------------
 
 FxNode::FxNode()
 :   thp(&fxNil)
 {};
 
-
+// --------------------------------------------------------------------
+FxBase::~FxBase() 
+{
+};
+// --------------------------------------------------------------------
 bool FxBase::connect( const FxBase * v, uint16_t ind )
 {
      std::cout
@@ -52,12 +59,15 @@ bool FxBase::connect( const FxBase * v, uint16_t ind )
     return false;
 }
 
+// --------------------------------------------------------------------
 // clear transient data - NOT settings
 
 void FxBase::clearTransient()
 {
-    EIObuffer::clear();
+    out().clear();    
 }
+
+// --------------------------------------------------------------------
 
 bool FxBase::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
@@ -65,6 +75,8 @@ bool FxBase::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramI
     message.setStatus( yaxp::MessageT::noParameter ); // nothing to do here
     return false;
 }
+
+// --------------------------------------------------------------------
 
 bool FxBase::setProcMode( uint16_t ind )
 {
@@ -74,6 +86,7 @@ bool FxBase::setProcMode( uint16_t ind )
     return false;
 }; // might be non virtual
 
+// --------------------------------------------------------------------
 
 // create a fullname : name + '.' + outputIndex ':' + instanceIndex
 void FxCollector::getFullName( const FxBase &fxmaster, const FxBase &fxcurr, char * fullName, size_t nameLength )
@@ -107,6 +120,8 @@ void FxCollector::getFullName( const FxBase &fxmaster, const FxBase &fxcurr, cha
     strncpy( fullName, resname.data(), nameLength-1 );
 }
 
+// --------------------------------------------------------------------
+
 // chop the 1st parameter as index in FxCollector
 
 bool FxCollector::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
@@ -135,9 +150,8 @@ bool FxCollector::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t p
                 message.setStatusSetOk();
                 return true;
             }
-            message.setStatus( yaxp::MessageT::illegalProcMode );
-            return false;
         }
+        message.setStatus( yaxp::MessageT::illegalProcMode );
         return false;
 
     case TagEffectCollector::GetEffectList : {
@@ -154,6 +168,7 @@ bool FxCollector::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t p
                 data->fxIndex       = ind;
                 data->id            = nodes[ind]->id();
                 data->fxType        = uint8_t( nodes[ind]->getType() );
+                data->dynamic       = nodes[ind]->isDynamic();
                 data->fxMaxMode     = nodes[ind]->getMaxMode();
                 data->inputCount    = nodes[ind]->getInputCount();
                 data->masterId      = nodes[ind]->getMasterId();
@@ -168,9 +183,9 @@ bool FxCollector::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t p
                 }
             }
             message.setStatusGetOk(listLength);
+            return true;
         }
-        return true;
-
+        
     case TagEffectCollector::EffectInstance : {
             TAG_DEBUG(TagEffectCollector::EffectInstance, tagIndex, paramIndex, "FxCollector" );
             if( !message.checkParamIndex(paramIndex) )
@@ -182,10 +197,30 @@ bool FxCollector::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t p
             }
             return get(effectInd)->parameter( message, ++tagIndex, ++paramIndex ); // tag will be dispatched in the effect
         }
-    }
+
+    case TagEffectCollector::CreateEffect : {
+            if( factory( TagEffectType( message.getParam( paramIndex ) ) ) ) {
+                message.setStatusSetOk();
+                return true;
+            }
+            message.setStatus( yaxp::MessageT::illegalTagEffectType );
+            return false;
+        }    
+    
+    case TagEffectCollector::DeleteEffects : {
+            if( cleanup() ) {
+                message.setStatusSetOk();
+                return true;
+            }
+            message.setStatus( yaxp::MessageT::nothingToDo );
+            return false;
+        }        
+    }        
     message.setStatus( yaxp::MessageT::illegalTag );
     return false;
 }
+
+// --------------------------------------------------------------------
 
 bool FxRunner::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
@@ -278,8 +313,8 @@ bool FxRunner::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t para
             return true;
         }
 
-    case TagEffectRunner::Preset0 : {
-            TAG_DEBUG(TagEffectRunner::Preset0, tagIndex, paramIndex, "FxRunner" );
+    case TagEffectRunner::Preset : {
+            TAG_DEBUG(TagEffectRunner::Preset, tagIndex, paramIndex, "FxRunner" );
             clearConnections();
             connect( 2, 0, 0 ); // oscillatormixer.00:00 to endmixer.00:00
             message.setStatusSetOk();
@@ -292,7 +327,5 @@ bool FxRunner::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t para
     return false;
 }
 
-
 // --------------------------------------------------------------------
-
 } // end namespace yacynth

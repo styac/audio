@@ -30,7 +30,6 @@ namespace yacynth {
 using namespace TagMainLevel_00;
 using namespace TagToneShaperLevel_01;
 
-using namespace TagEffectFactoryLevel_01;
 using namespace TagEffectRunnerLevel_01;
 using namespace TagMidiControllerLevel_01;
 using namespace TagInnerControllerLevel_01;
@@ -76,41 +75,43 @@ bool Sysman::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramI
     const uint8_t tag = message.getTag(tagIndex);
     switch( TagMain( tag ) ) {
     case TagMain::ToneShaper:
-        TAG_DEBUG(TagMain::ToneShaper, tagIndex, paramIndex, "Sysman" );
         return toneShaperMatrix.parameter( message,++tagIndex, paramIndex );
 
     case TagMain::EffectRunner:
-        TAG_DEBUG(TagMain::EffectRunner, tagIndex, paramIndex, "Sysman" );
         return iOThread.getFxRunner().parameter( message,++tagIndex, paramIndex );
 
     case TagMain::EffectCollector:
-        TAG_DEBUG(TagMain::EffectCollector, tagIndex, paramIndex, "Sysman" );
         return FxCollector::getInstance().parameter( message,++tagIndex, paramIndex );
 
     case TagMain::MidiController:
-        TAG_DEBUG(TagMain::MidiController, tagIndex, paramIndex, "Sysman" );
         return iOThread.getRouter().getMidiController().parameter( message,++tagIndex, paramIndex );
 
     case TagMain::InnerController:
-        TAG_DEBUG(TagMain::InnerController, tagIndex, paramIndex, "Sysman" );
         return InnerController::getInstance().parameter( message,++tagIndex, paramIndex );
 
+    case TagMain::Tuner: // TODO
+        return iOThread.getRouter().parameter( message,++tagIndex, paramIndex ); // getTuner() -refactor
+
     case TagMain::Router:
-        TAG_DEBUG(TagMain::Router, tagIndex, paramIndex, "Sysman" );
         return iOThread.getRouter().parameter( message,++tagIndex, paramIndex );
 
     case TagMain::Mute:
-        TAG_DEBUG(TagMain::Mute, tagIndex, paramIndex, "Sysman" );
         YaIoJack::getInstance().mute();
+        message.setStatusSetOk();
         return true;
 
-    case TagMain::UnMute:
-        TAG_DEBUG(TagMain::UnMute, tagIndex, paramIndex, "Sysman" );
-        YaIoJack::getInstance().unmute();
+    case TagMain::UnMuteOutput:
+        YaIoJack::getInstance().unmuteOutput();
+        message.setStatusSetOk();
         return true;
 
-    case TagMain::Tuner: // TODO
-        TAG_DEBUG(TagMain::Tuner, tagIndex, paramIndex, "Sysman" );
+    case TagMain::Clear:
+    case TagMain::ClearState:
+    case TagMain::Preset: 
+        // TODO : iterate through all units
+        // 1. stop all oscillaotors - wait and clear osc output
+        message.setStatus( yaxp::MessageT::illegalTag );
+//        message.setStatusSetOk();
         return false;
     }
     TAG_DEBUG(message.getTag(tagIndex), tagIndex, paramIndex, "Sysman" );

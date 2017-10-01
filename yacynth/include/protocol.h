@@ -84,6 +84,7 @@ enum class MessageT : uint8_t {
     illegalProcMode,                // 142
     dataCheckError,                 // 143
     illegalContext,                 // 144
+    nothingToDo,                    // 145
 };
 
 struct alignas(16) Header

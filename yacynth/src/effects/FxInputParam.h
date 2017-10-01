@@ -46,10 +46,10 @@ public:
     static constexpr TagEffectType  type     = TagEffectType::FxInput;
     static constexpr std::size_t maxMode     = 1; //
     static constexpr std::size_t inputCount  = 0; // input is audio input
+    static constexpr uint8_t subtype         = uint8_t(TagEffectFxInputMode::SetParametersMode01);
 
     // temp
-    static constexpr   float   gainref = 1.0f/(1L<<24);
-    static constexpr uint8_t subtype         = uint8_t(TagEffectFxInputMode::SetParametersMode01);
+    // static constexpr float gainref = 1.0f/(1L<<24);
 
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 };

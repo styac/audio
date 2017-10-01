@@ -76,7 +76,6 @@ using namespace noiser;
 using namespace TagMainLevel_00;
 using namespace TagToneShaperLevel_01;
 
-using namespace TagEffectFactoryLevel_01;
 using namespace TagEffectRunnerLevel_01;
 using namespace TagMidiControllerLevel_01;
 using namespace TagInnerControllerLevel_01;
@@ -128,6 +127,66 @@ static void basicInit( Sysman  * sysman )
     FxEarlyReflection   * fxearlyref    = new FxEarlyReflection();
     FxChorus            * fxchorus      = new FxChorus();
     FxFlanger           * fxFlanger     = new FxFlanger();
+    FxMixer             * fxMixer       = new FxMixer();
+
+#if 1
+    std::cout << "\n---------------------------- test factory Effect begin" << std::endl;
+    // test factory
+    msgBuffer.clear();
+    msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
+                    ,   uint8_t( TagEffectCollector::DeleteEffects )
+                    );
+    sysman->evalMessage(msgBuffer);
+    if( msgBuffer.messageType != yaxp::MessageT::responseSetOK ) {
+        std::cout << "---- DeleteEffects Effect error " << uint16_t(msgBuffer.messageType) << std::endl;
+        //exit(-1);
+    }
+
+    msgBuffer.clear();
+    msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
+                    ,   uint8_t( TagEffectCollector::CreateEffect )
+                    );
+    msgBuffer.setPar( uint16_t(TagEffectType::FxEarlyReflection) ); 
+    sysman->evalMessage(msgBuffer);
+    if( msgBuffer.messageType != yaxp::MessageT::responseSetOK ) {
+        std::cout << "---- Create Effect error " << uint16_t(msgBuffer.messageType) << std::endl;
+        //exit(-1);
+    }
+
+    msgBuffer.clear();
+    msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
+                    ,   uint8_t( TagEffectCollector::DeleteEffects )
+                    );
+    sysman->evalMessage(msgBuffer);
+    if( msgBuffer.messageType != yaxp::MessageT::responseSetOK ) {
+        std::cout << "---- DeleteEffects Effect error " << uint16_t(msgBuffer.messageType) << std::endl;
+        //exit(-1);
+    }
+
+    msgBuffer.clear();
+    msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
+                    ,   uint8_t( TagEffectCollector::CreateEffect )
+                    );
+    msgBuffer.setPar( uint16_t(TagEffectType::FxEarlyReflection) ); 
+    sysman->evalMessage(msgBuffer);
+    if( msgBuffer.messageType != yaxp::MessageT::responseSetOK ) {
+        std::cout << "---- Create Effect error " << uint16_t(msgBuffer.messageType) << std::endl;
+        //exit(-1);
+    }
+
+    msgBuffer.clear();
+    msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
+                    ,   uint8_t( TagEffectCollector::CreateEffect )
+                    );
+    msgBuffer.setPar( uint16_t(TagEffectType::FxEarlyReflection) ); 
+    sysman->evalMessage(msgBuffer);
+    if( msgBuffer.messageType != yaxp::MessageT::responseSetOK ) {
+        std::cout << "---- Create Effect error " << uint16_t(msgBuffer.messageType) << std::endl;
+        //exit(-1);
+    }
+
+    std::cout << "\n---------------------------- test factory Effect end" << std::endl;
+#endif
 
     ToneShaper ts;
     ts.clear();
@@ -221,6 +280,7 @@ static void basicInit( Sysman  * sysman )
                 << "++ ind  "           << uint16_t(data->fxIndex)
                 << " id "               << uint16_t(data->id)
                 << " type "             << uint16_t(data->fxType)
+                << " dynamic "          << uint16_t(data->dynamic)
                 << " maxMode "          << uint16_t(data->fxMaxMode)
                 << " inputCount "       << uint16_t(data->inputCount )
                 << " masterId "         << uint16_t(data->masterId)
@@ -242,12 +302,13 @@ static void basicInit( Sysman  * sysman )
         exit(-1);
     }
 
-    const uint8_t EffectInstance_Mixer4             = effectMap["EndMixer"];
+    const uint8_t EffectInstance_EndMixer           = effectMap["EndMixer"];
+    const uint8_t EffectInstance_Input              = effectMap["Input.00:00"];
     const uint8_t EffectInstance_OscillatorMixer    = effectMap["OscillatorMixer.00:00"];
 
     msgBuffer.clear();
     msgBuffer.setTags(  uint8_t( TagMain::EffectRunner )
-                    ,   uint8_t( TagEffectRunner::Preset0 )
+                    ,   uint8_t( TagEffectRunner::Preset )
                     );
     sysman->evalMessage(msgBuffer);
     if( msgBuffer.messageType != yaxp::MessageT::responseSetOK ) {
@@ -276,12 +337,12 @@ static void basicInit( Sysman  * sysman )
     msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
                     ,   uint8_t( TagEffectCollector::EffectInstance )
                     ,   uint8_t( TagEffectType::FxMixer )
-                    ,   uint8_t( TagEffectFxMixerMode::Preset0 )
+                    ,   uint8_t( TagEffectFxMixerMode::Preset )
                     );
-    msgBuffer.setPar( EffectInstance_Mixer4, 0 ); // channel
+    msgBuffer.setPar( EffectInstance_EndMixer, 0 ); // channel
     sysman->evalMessage(msgBuffer);
     if( msgBuffer.messageType != yaxp::MessageT::responseSetOK ) {
-        std::cout << "---- Volume control Preset0 error " << uint16_t(msgBuffer.messageType) << std::endl;
+        std::cout << "---- Volume control Preset error " << uint16_t(msgBuffer.messageType) << std::endl;
     }
 
     msgBuffer.clear();
@@ -291,13 +352,30 @@ static void basicInit( Sysman  * sysman )
                     ,   uint8_t( TagEffectFxMixerMode::SetVolumeControllerIndex )
                     );
 
-    msgBuffer.setPar( EffectInstance_Mixer4, 0  );// channel
+    msgBuffer.setPar( EffectInstance_EndMixer, 0  );// channel
     uint16_t cindex0 = InnerController::CC_MAINVOLUME;
     msgBuffer.getTargetData( cindex0 );
     sysman->evalMessage(msgBuffer);
     if( msgBuffer.messageType != yaxp::MessageT::responseSetOK ) {
         std::cout << "---- Volume control index0 error " << uint16_t(msgBuffer.messageType) << std::endl;
     }    
+#if 0    
+    // test FxInput
+    EffectRunnerSetConnections  effectRunnerSetConnections[] = {
+        { EffectInstance_Input,  0, 0 },
+    };
+    msgBuffer.clear();
+    msgBuffer.setTags(  uint8_t( TagMain::EffectRunner )
+                    ,   uint8_t( TagEffectRunner::SetConnections )
+                    );
+    msgBuffer.setPar(cArrayElementCount(effectRunnerSetConnections));
+    msgBuffer.getTargetData(effectRunnerSetConnections);
+    sysman->evalMessage(msgBuffer);
+    if( msgBuffer.messageType != yaxp::MessageT::responseSetOK ) {
+        std::cout << "---- Input connect error " << uint16_t(msgBuffer.messageType) << std::endl;
+    }
+#endif    
+    
 }
 
 static void teststuff(void)
@@ -363,15 +441,12 @@ int main( int argc, char** argv )
     InnerController&        controller  = InnerController::getInstance();
     FxCollector::getInstance();
 
-
     struct sigaction sigact;
     memset( &sigact, 0, sizeof(sigact) );
     sigfillset( &sigact.sa_mask );
     sigact.sa_handler = signal_handler;
 	sigaction( SIGTERM, &sigact, NULL );
     sigaction( SIGINT, &sigact, NULL );
-
-
     uint16_t   port( yaxp::defaultPort ); // from param
 
     Setting settings;
@@ -393,7 +468,7 @@ int main( int argc, char** argv )
     // threads
     IOThread            *iOThread   = new IOThread(      queuein, oscOutVec, *midiRoute );
     SynthFrontend       *synthFe    = new SynthFrontend( queuein, oscOutVec, oscArray );
-    Sysman              *sysman     = new Sysman( *oscArray, *iOThread );
+    Sysman              *sysman     = new Sysman( *oscArray, *iOThread ); // + oscOutVec to control
     Server              uiServer( *sysman, port );
     auto& fxRunner      = iOThread->getFxRunner();
 
@@ -409,20 +484,28 @@ int main( int argc, char** argv )
         basicInit( sysman );
         //-------------------------
         // start jack thread
-        YaIoJack::getInstance().setProcessCB( iOThread, IOThread::midiInCB,  IOThread::audioOutCB );
+        YaIoJack::getInstance().setProcessCB( 
+            iOThread, IOThread::midiInCB,  
+            IOThread::audioOutCB,
+            IOThread::audioInOutCB );
+        
         if( ! synthFe->initialize() )
             exit(-1);
         if( !YaIoJack::getInstance().initialize() )
             exit(-1);
+
+        iOThread->setBufferSizeRate( YaIoJack::getInstance().getBufferSizeRate() ); 
+
         if( !YaIoJack::getInstance().run() )
             exit(-1);
+        
         //-------------------------
         // start synth fe thread
         std::thread   synthFrontendThread( SynthFrontend::exec, synthFe );
         // use :   int nanosleep(const struct timespec *req, struct timespec *rem);
         sleep(1); // wait to relax
         std::cout << "\n\n============LETS GO==============\n\n" << std::endl;
-        YaIoJack::getInstance().unmute();
+        YaIoJack::getInstance().unmute(); // in - out running
 
         //-------------------------
         // start ui server -- cmd processor thread

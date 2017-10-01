@@ -58,7 +58,7 @@ bool FxEarlyReflectionParam::parameter( yaxp::Message& message, uint8_t tagIndex
 
 void FxEarlyReflection::clearTransient()
 {
-    EIObuffer::clear();
+    out().clear();    
 }
 
 bool FxEarlyReflection::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
@@ -72,8 +72,15 @@ bool FxEarlyReflection::parameter( yaxp::Message& message, uint8_t tagIndex, uin
     }
     // 2nd tag is tag operation
     const uint8_t tag = message.getTag(++tagIndex);
-    if( uint8_t(TagEffectFxEarlyReflectionMode::Clear) == tag ) {
+    switch( TagEffectFxEarlyReflectionMode( tag ) ) {
+    case TagEffectFxEarlyReflectionMode::ClearState:
         clearTransient(); // this must be called to cleanup
+        message.setStatusSetOk();
+        return true;
+        
+    case TagEffectFxEarlyReflectionMode::Clear:
+        clearTransient(); // this must be called to cleanup
+        break;
     }
     // forward to param
     return param.parameter( message, tagIndex, paramIndex );
@@ -158,7 +165,7 @@ void FxEarlyReflection::sprocess_04( void * thp )
     static_cast< MyType * >(thp)->process_04_modulated_noslave();
 }
 
-
+#if 0
 // slave has no params
 template<>
 bool FxSlave<FxEarlyReflectionParam>::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
@@ -169,7 +176,7 @@ template<>
 void FxSlave<FxEarlyReflectionParam>::clearTransient()
 {
 };
-
+#endif
 // simple genrator for coeffs
 
 void generator_FxEarlyReflectionParam( float gain, float modampl, float decay )

@@ -373,7 +373,7 @@ struct EIObuffer : public EbufferPar {
         }
     }
 
-    void dump( float * chnA, float * chnB ) const
+    inline void dump( float * chnA, float * chnB ) const
     {
         const float * cA = channel[chA];
         for( auto i = 0u; i < sectionSize; ++i ) {
@@ -385,7 +385,7 @@ struct EIObuffer : public EbufferPar {
         }
     }
 
-    void dump( float * chnA, float * chnB, float kA, float kB ) const
+    inline void dump( float * chnA, float * chnB, float kA, float kB ) const
     {
         const float * cA = channel[chA];
         for( auto i = 0u; i < sectionSize; ++i ) {
@@ -394,6 +394,18 @@ struct EIObuffer : public EbufferPar {
         const float * cB = channel[chB];
         for( auto i = 0u; i < sectionSize; ++i ) {
             *chnB++ = *cB++ * kB;
+        }
+    }
+
+    inline void load( float * chnA, float * chnB )
+    {
+        float * cA = channel[chA];
+        for( auto i = 0u; i < sectionSize; ++i ) {
+            *cA++ = *chnA++;
+        }
+        float * cB = channel[chB];
+        for( auto i = 0u; i < sectionSize; ++i ) {
+            *cB++ = *chnB++;
         }
     }
 

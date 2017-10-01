@@ -55,7 +55,10 @@ public:
 
     void clear()
     {
-        
+        for( auto &p : gainZero ) {
+            p = 0;
+        }        
+        gain[ 0 ] = gain[ 1 ] = gainref;
     }
     
     bool check()
@@ -64,12 +67,9 @@ public:
     }
     
     union {
-        float       gain[ oscOutputChannelCount ] = { gainref, gainref };
-        uint64_t    zeroGain[ oscOutputChannelCount / 2 ];
+        float       gain[ oscOutputChannelCount ] = { gainref, gainref }; // param change must clear slave.out()
+        uint64_t    gainZero[ oscOutputChannelCount / 2 ];
     };
-
-    // index to put the amplitudeSumm
-    ControllerIndex     amplitudeSummIndex; // [ layerCount ] - agree with InnerController
 };
 
 

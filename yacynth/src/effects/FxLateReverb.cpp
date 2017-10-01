@@ -56,7 +56,7 @@ bool FxLateReverbParam::parameter( yaxp::Message& message, uint8_t tagIndex, uin
 
 void FxLateReverb::clearTransient()
 {
-    EIObuffer::clear();
+    out().clear();    
 }
 
 bool FxLateReverb::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
@@ -70,8 +70,15 @@ bool FxLateReverb::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t 
     }
     // 2nd tag is tag operation
     const uint8_t tag = message.getTag(++tagIndex);
-    if( uint8_t(TagEffectFxLateReverbMode::Clear) == tag ) {
+    switch( TagEffectFxLateReverbMode( tag ) ) {
+    case TagEffectFxLateReverbMode::ClearState:
         clearTransient(); // this must be called to cleanup
+        message.setStatusSetOk();
+        return true;
+        
+    case TagEffectFxLateReverbMode::Clear:
+        clearTransient(); // this must be called to cleanup
+        break;
     }
     // forward to param
     return param.parameter( message, tagIndex, paramIndex );

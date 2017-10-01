@@ -27,6 +27,7 @@
 namespace yacynth {
 using namespace TagEffectFxInputModeLevel_03;
 
+// probably no settable parameter
 bool FxInputParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
     const uint8_t tag = message.getTag(tagIndex);
@@ -49,7 +50,7 @@ bool FxInputParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t 
 
 void FxInput::clearTransient()
 {
-    EIObuffer::clear();
+    out().clear();    
 }
 
 bool FxInput::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
@@ -63,8 +64,15 @@ bool FxInput::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t param
     }
     // 2nd tag is tag operation
     const uint8_t tag = message.getTag(++tagIndex);
-    if( uint8_t(TagEffectFxInputMode::Clear) == tag ) {
+    switch( TagEffectFxInputMode( tag ) ) {
+    case TagEffectFxInputMode::ClearState:
         clearTransient(); // this must be called to cleanup
+        message.setStatusSetOk();
+        return true;
+        
+    case TagEffectFxInputMode::Clear:
+        clearTransient(); // this must be called to cleanup
+        break;
     }
     // forward to param
     return param.parameter( message, tagIndex, paramIndex ); 

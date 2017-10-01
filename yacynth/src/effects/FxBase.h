@@ -57,8 +57,7 @@ class FxCollector;
 
 
 class FxCollector {
-public:
-
+public:    
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
     static FxCollector& getInstance(void)
@@ -82,16 +81,23 @@ public:
     {
         return nodes.at(id); // may throw !!!
     }
-
-
+    
 private:
+    // create a new instance of an effect
+    bool factory( TagEffectType effectType );
+    
+    // destroys all dynamic effects and restore static instance counters
+    bool cleanup();
+
     void getFullName( const FxBase &fxmaster, const FxBase &fxcurr, char * name, size_t nameLength );
     FxCollector()
     :   nodes()
+    ,   firstDynamicInstance(0)
     {
-        nodes.reserve(64);
+        nodes.reserve(128);
     };
     std::vector< FxBase * >  nodes;
+    uint16_t    firstDynamicInstance;
 };
 
 // --------------------------------------------------------------------
@@ -106,7 +112,7 @@ public:
     FxBase(FxBase const &)          = delete;
     void operator=(FxBase const &t) = delete;
     FxBase(FxBase &&)               = delete;
-    virtual ~FxBase() {};
+    virtual ~FxBase();
 
     using SpfT = void (*)( void * );
     enum class FadePhase : uint8_t {
@@ -134,10 +140,10 @@ public:
     ,   masterId(0)
     ,   myType(type)
     ,   myInstance(0)
+    ,   dynamic(0)    
     {
         FxCollector::getInstance().put(*this);
     };
-
     
     inline const FxBase& get(void) const { return *this; };
     inline const std::string& name(void) const { return myName; };
@@ -148,6 +154,9 @@ public:
     inline uint16_t getMaxMode(void) const { return maxMode; };
     inline TagEffectType getType(void) const { return myType; };
     inline bool isSlave(void) const { return masterId != 0; };
+    inline uint8_t isDynamic() { return dynamic; }
+    inline  void exec(void) { sprocessp(this); }
+    inline EIObuffer& out(void) { return *static_cast<EIObuffer *>(this); }
 
     static inline uint16_t getMaxId(void) { return count; };
 
@@ -155,26 +164,16 @@ public:
     virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
     virtual void clearTransient();
     virtual bool setProcMode( uint16_t ind ); // might be non virtual
-
-    inline  void exec(void)
-    {
-        sprocessp(this);
-    }
-//    virtual bool fill(  std::stringstream& ser );
-//    virtual void query( std::stringstream& ser );
-//    virtual void clear( void );
-// pan> sin,cos
-//    inline void setGain( const float gain, const float pan=0 ) { gain=v; };
-
-
-    inline EIObuffer& out(void)
-    {
-        return *static_cast<EIObuffer *>(this);
-    }
-
+    
     friend class FxNode;
+    friend class FxCollector;
 
 protected:
+    // called by FxCollector::factory to manage dynamic instances
+    inline void setDynamic() { dynamic = 1; }    
+    inline void setCount( uint16_t val ) { count = val; }
+    inline uint16_t getCount() { return count; }
+    
 //    virtual SpfT getProcMode( uint16_t ind ) const { return sprocessp; };
 
     SpfT                sprocessp;
@@ -188,6 +187,7 @@ protected:
     uint8_t             masterId;       // 0 - master , 0 < slave -- value is the id of master
     uint8_t             myInstance;     // 
     uint8_t             procMode;       // might go up the base
+    uint8_t             dynamic;        // instance was created dynamically
     FadePhase           fadePhase;      // might go  up the base
 
 
@@ -222,7 +222,9 @@ public:
     FxSlave()
     :   FxBase(Tparam::slavename, 0, 0, TagEffectType::FxSlave )
     {}
-
+    virtual ~FxSlave() 
+    {        
+    }
     inline void setMasterId( uint8_t val )
     {
         masterId = val;
@@ -233,8 +235,20 @@ public:
         myInstance = val;
     }
 
-    virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override;
-    virtual void clearTransient() override;
+    // this could be here -- no parameter at all
+    virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override
+    {
+        message.setStatus( yaxp::MessageT::noParameter );
+        return false;
+    };
+    // this could be here -- clear out
+    virtual void clearTransient() override
+    {
+        out().clear();
+    };
+    
+protected:
+  //  virtual void decInstance() override {}
 };
 
 // --------------------------------------------------------------------
@@ -451,7 +465,11 @@ public:
         for( auto& ip : sprocessv ) ip = sprocessNop;
         myInstance = instanceCount++;
     }
-
+    virtual ~Fx()
+    {        
+        --instanceCount;
+    }
+    
 private:
     Fx(Fx const &)              = delete;
     void operator=(Fx const &t) = delete;
@@ -492,7 +510,7 @@ protected:
         return *static_cast<const EIObuffer *>(inpFx[n]);
     }
     
-    // n nott checked
+    // n not checked
     inline const EIObuffer& inp( uint8_t n ) const
     {
         return *static_cast<const EIObuffer *>(inpFx[n]);
