@@ -65,10 +65,6 @@ void YaIoJack::shutdown( void )
 
 bool YaIoJack::initialize( void )
 {
-    if( nullptr == userData || nullptr == midiOutProcessing || nullptr == audioOutProcesing ) {
-        errorString   += ":nullptr";
-        return false;
-    }
     client = jack_client_open ( nameClient.c_str(), jackOptions, &jackStatus );
     if( nullptr == client )
         return false;
@@ -101,20 +97,22 @@ bool YaIoJack::initialize( void )
     if( jackStatus & JackNameNotUnique ) {
         nameClientReal = jack_get_client_name( client );
     }
-    jack_set_process_callback( client, processCB, this );
+    jack_set_process_callback( client, processAudioMidiCB, this );
     if( !audioOutPort1.reg( client ) ) {
         return false;
     }
     if( !audioOutPort2.reg( client ) ) {
         return false;
     }
-    if( !midiInPort.reg( client ) ) {
-        return false;
-    }
+    // optional
     if( !audioInPort1.reg( client ) ) {
         return false;
     }
     if( !audioInPort2.reg( client ) ) {
+        return false;
+    }
+    // check if used -- rawMidi option
+    if( !midiInPort.reg( client ) ) {
         return false;
     }
     return true;
@@ -133,19 +131,44 @@ bool YaIoJack::run( void )
 }
 
 // --------------------------------------------------------------------
-// jack process callback
-// gets midi input -> process
-// gets audio input -> FxInput
-// puts audio data from somewhere
-//
-int YaIoJack::processCB( jack_nframes_t nframes, void *arg )
+
+// audio + midi
+int YaIoJack::processAudioMidiCB( jack_nframes_t nframes, void *arg )
 {
     YaIoJack& thp  = * static_cast<YaIoJack *> ( arg) ;
     thp.nframes = nframes;
-    void * midiIn = thp.midiInPort.getBuffer( nframes );
     jack_default_audio_sample_t *audioOut1 = (jack_default_audio_sample_t *) thp.audioOutPort1.getBuffer( nframes );
     jack_default_audio_sample_t *audioOut2 = (jack_default_audio_sample_t *) thp.audioOutPort2.getBuffer( nframes );
+    
+    if( thp.mutedOutput ) {
+        // obsolete  - use EndMixer setProcMode(0) after processJackMidiIn is there
+        for( auto i=0; i < nframes; ++i ) {
+            *audioOut1++ = 0.0f;
+            *audioOut2++ = 0.0f;
+        }
+        // clear midi event buffer ?
+        return 0;
+    }
     thp.processJackMidiIn();
+    if( thp.mutedInput ) {
+        thp.audioOutProcesing ( thp.audioProcessorData, nframes, audioOut1, audioOut2 );                
+    } else {
+        jack_default_audio_sample_t *audioIn1  = (jack_default_audio_sample_t *) thp.audioInPort1.getBuffer( nframes );
+        jack_default_audio_sample_t *audioIn2  = (jack_default_audio_sample_t *) thp.audioInPort2.getBuffer( nframes );
+        thp.audioInOutProcesing ( thp.audioProcessorData, nframes, audioOut1, audioOut2, audioIn1, audioIn2 );                        
+    }
+    return 0;
+} // end YaIoJack::processAudioMidiCB
+
+// --------------------------------------------------------------------
+
+// only audio if midi uses raw midi
+int YaIoJack::processAudioCB( jack_nframes_t nframes, void *arg )
+{
+    YaIoJack& thp  = * static_cast<YaIoJack *> ( arg) ;
+    thp.nframes = nframes;
+    jack_default_audio_sample_t *audioOut1 = (jack_default_audio_sample_t *) thp.audioOutPort1.getBuffer( nframes );
+    jack_default_audio_sample_t *audioOut2 = (jack_default_audio_sample_t *) thp.audioOutPort2.getBuffer( nframes );    
     if( thp.mutedOutput ) {
         // obsolete  - use EndMixer setProcMode(0) after processJackMidiIn is there
         for( auto i=0; i < nframes; ++i ) {
@@ -155,16 +178,14 @@ int YaIoJack::processCB( jack_nframes_t nframes, void *arg )
         return 0;
     }
     if( thp.mutedInput ) {
-        thp.audioOutProcesing ( thp.userData, nframes, audioOut1, audioOut2 );                
+        thp.audioOutProcesing ( thp.audioProcessorData, nframes, audioOut1, audioOut2 );                
     } else {
         jack_default_audio_sample_t *audioIn1  = (jack_default_audio_sample_t *) thp.audioInPort1.getBuffer( nframes );
         jack_default_audio_sample_t *audioIn2  = (jack_default_audio_sample_t *) thp.audioInPort2.getBuffer( nframes );
-        thp.audioInOutProcesing ( thp.userData, nframes, audioOut1, audioOut2, audioIn1, audioIn2 );                        
+        thp.audioInOutProcesing ( thp.audioProcessorData, nframes, audioOut1, audioOut2, audioIn1, audioIn2 );                        
     }
     return 0;
-} // end YaIoJack::processCB
-
-// --------------------------------------------------------------------
+} // end YaIoJack::processAudioCB
 
 // --------------------------------------------------------------------
 

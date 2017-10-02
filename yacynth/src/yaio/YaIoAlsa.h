@@ -1,5 +1,6 @@
+#pragma once
 /*
- * Copyright (C) 2016 Istvan Simon -- stevens37 at gmail dot com
+ * Copyright (C) 2017 ist
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,46 +17,36 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-/*
- * File:   Setting.cpp
+/* 
+ * File:   YaioAlsa.h
  * Author: Istvan Simon -- stevens37 at gmail dot com
  *
- * Created on February 6, 2016, 10:42 PM
+ * Created on October 2, 2017, 7:31 PM
  */
 
-#include "Setting.h"
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
+#include    "YaIo.h"
 
 namespace yacynth {
 
-
-static int is_regular_file( const char *path )
-{
-    struct stat path_stat;
-    lstat(path, &path_stat);
-    return S_ISREG(path_stat.st_mode);
-}
-// check if key exists if not create one with random data
-
-Setting::Setting()
-:   homeDir(".")
-,   controlPort(defaultCOntrolPort)
-,   ok(false)
-{
-    const char *hdp = getenv("HOME");
-    if( hdp != nullptr) {
-        homeDir = hdp;
+class   YaIoAlsa : public YaIo {
+public:
+    virtual ~YaIoAlsa();
+    bool initialize(    void );
+    void shutdown(      void );
+    bool run(           void );
+    
+    static inline YaIoAlsa&   getInstance(void)
+    {
+        static YaIoAlsa inst;
+        return inst;
     }
-    // check if necessary files exist and type is ok
-    // if not try to fix
-}
+    
+protected:
 
-bool Setting::initialize( int argc, char** argv )
-{
-    return true;
-}
+private:
+    YaIoAlsa();
+    NON_COPYABLE_NOR_MOVABLE(YaIoAlsa)
+};
 
 } // end namespace yacynth
 

@@ -24,6 +24,7 @@
  *
  * Created on January 31, 2016, 9:17 AM
  */
+
 #ifndef     YAIO
 #define     YAIO
 
@@ -44,23 +45,9 @@
 
 namespace yacynth {
 
-
 class   YaIo {
 public:
-    YaIo()
-    :   nameClient("yacsynth")
-    ,   sampleRateMin(48000)
-    ,   sampleRateMax(48000)
-    ,   bufferSizeMin(64)
-    ,   bufferSizeMax(256)
-    ,   userData(nullptr)
-    ,   midiOutProcessing(noMidiProcessing)
-    ,   audioOutProcesing(noAudioOutProcesing)
-    ,   audioInOutProcesing(noAudioInOutProcesing)
-    ,   errorString("err: ")
-    ,   mutedOutput(true)
-    ,   mutedInput(true)
-    {}
+    YaIo();
     
     NON_COPYABLE_NOR_MOVABLE(YaIo)
 
@@ -73,29 +60,15 @@ public:
     virtual bool initialize( void ) = 0;
     virtual bool run(        void ) = 0;
     virtual void shutdown(   void ) = 0;
-    void setProcessCB(  void* userDataP,
-        MidiProcessorType midiInCB,
-        AudioOutProcessorType audioOutCB,
-        AudioInOutProcessorType audioInOutCB
-        // void (midiInCB)(     void *data, uint8_t *eventp, uint32_t eventSize ),
-        // void (audioOutCB)(   void *data, uint32_t nframes, float *outp1, float *outp2 ),
-        // void (audioInOutCB)( void *data, uint32_t nframes, float *outp1, float *outp2, float *inp1, float *inp2 ) 
-    )
-    {
-        userData            = userDataP;
-        midiOutProcessing   = midiInCB;
-        audioOutProcesing   = audioOutCB;
-        audioInOutProcesing = audioInOutCB;
-    }
-    
-    void clearProcessCB()
-    {
-        userData            = nullptr;
-        midiOutProcessing   = noMidiProcessing;
-        audioOutProcesing   = noAudioOutProcesing;
-        audioInOutProcesing = noAudioInOutProcesing;
-    }
-    
+
+    void registerAudioProcessor( void* userData, 
+        AudioOutProcessorType audioOutCB, AudioInOutProcessorType audioInOutCB );
+
+    void registerMidiProcessor( void* userData, 
+        MidiProcessorType midiInCB );
+
+    void clearProcessCB();
+
     void                setMyName( const std::string& name ) 
         { nameClient = name; }
     const std::string   getMyName( void )       
@@ -111,20 +84,12 @@ public:
     void unmute( void )  
         { mutedInput = false; mutedOutput = false; }
     inline int16_t getBufferSizeRate()
-    {
-        return bufferSizeMult;
-    }
+        { return bufferSizeMult; }
 
 protected:    
-    static void noMidiProcessing
-        ( void *data, uint8_t *eventp, uint32_t eventSize ) // lastEvent only for logging - remove
-        {}
-    static void noAudioOutProcesing
-        ( void *data, uint32_t nframes, float *outp1, float *outp2 )
-        {}
-    static void noAudioInOutProcesing
-        ( void *data, uint32_t nframes, float *outp1, float *outp2, float *inp1, float *inp2 )
-        {}
+    static void noMidiProcessing( void *data, uint8_t *eventp, uint32_t eventSize );
+    static void noAudioOutProcesing( void *data, uint32_t nframes, float *outp1, float *outp2 );
+    static void noAudioInOutProcesing( void *data, uint32_t nframes, float *outp1, float *outp2, float *inp1, float *inp2 );
     
     uint32_t        sampleRateMin;
     uint32_t        sampleRateMax;
@@ -135,18 +100,13 @@ protected:
     std::string     nameClient;
     std::string     nameClientReal;
     std::string     errorString;
-    void          * userData;
-
+    
+    void          * audioProcessorData;
+    void          * midiProcessorData;
     MidiProcessorType       midiOutProcessing;
     AudioOutProcessorType   audioOutProcesing;
     AudioInOutProcessorType audioInOutProcesing;
     
-//    void        ( * midiOutProcessing   )
-//        ( void *data, uint8_t *eventp, uint32_t eventSize );
-//    void        ( * audioOutProcesing   )
-//        ( void *data, uint32_t nframes, float *outp1, float *outp2 );
-//    void        ( * audioInOutProcesing )
-//        ( void *data, uint32_t nframes, float *outp1, float *outp2, float *inp1, float *inp2 );
     bool            mutedOutput;        
     bool            mutedInput;        
 };

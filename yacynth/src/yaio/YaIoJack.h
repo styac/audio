@@ -47,7 +47,8 @@ public:
     // process
     // static JackProcessCallback             processCB;
     // void *arg == this
-    static int processCB( jack_nframes_t nframes, void *arg ); 
+    static int processAudioMidiCB( jack_nframes_t nframes, void *arg ); 
+    static int processAudioCB( jack_nframes_t nframes, void *arg ); 
 
     // not really needed yet
     static JackThreadInitCallback          threadInitCB;
@@ -65,7 +66,6 @@ public:
     }
     
 protected:
-    // put this to audioIOProcessing
     inline void processJackMidiIn()
     {
         void * midiIn = midiInPort.getBuffer( nframes );
@@ -74,7 +74,7 @@ protected:
         for( auto i=0; i < event_count; ++i ) {
             jack_midi_event_get( &in_event, midiIn , i );
             printEvent( in_event.buffer, in_event.size, ( event_count-1 ) == i );
-            midiOutProcessing( userData, in_event.buffer, in_event.size );
+            midiOutProcessing( midiProcessorData, in_event.buffer, in_event.size );
         }    
     }
     

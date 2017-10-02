@@ -31,13 +31,21 @@
 #include    <string>
 
 namespace yacynth {
+//
+// authentication
+// read and uiServer.setAuthSeed( );
+//
 
 class Setting {
 public:
     static constexpr const char * const configDirName = "/.yacconfig/";
-    static constexpr const char * const authKeyName = "yyauth.key";
+    static constexpr const char * const authKeyName = ".yyauth.key";
+    static constexpr const char * const confName = "default.conf";
+    static constexpr uint16_t defaultCOntrolPort = 7373;
 
     Setting();
+    
+    bool initialize( int argc, char** argv );
 
     std::string getHomeDir() const
     { 
@@ -59,9 +67,15 @@ public:
         return ok;
     }
     
+    uint16_t getControlPort()
+    {
+        return controlPort;
+    }
+    
 private:
     std::string homeDir;
-    bool    ok;
+    uint16_t    controlPort;
+    bool        ok;
 };
 
 

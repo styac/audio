@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Istvan Simon -- stevens37 at gmail dot com
+ * Copyright (C) 2017 ist
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,47 +16,51 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-/*
- * File:   Setting.cpp
+/* 
+ * File:   YaioAlsa.cpp
  * Author: Istvan Simon -- stevens37 at gmail dot com
  *
- * Created on February 6, 2016, 10:42 PM
+ * Created on October 2, 2017, 7:30 PM
  */
 
-#include "Setting.h"
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
+#include    "YaIoAlsa.h"
+#include    "../control/global.h"
+#include    <thread>
 
 namespace yacynth {
+// --------------------------------------------------------------------
 
+YaIoAlsa::YaIoAlsa()
+:   YaIo()
+{}
 
-static int is_regular_file( const char *path )
+// --------------------------------------------------------------------
+
+YaIoAlsa::~YaIoAlsa()
 {
-    struct stat path_stat;
-    lstat(path, &path_stat);
-    return S_ISREG(path_stat.st_mode);
 }
-// check if key exists if not create one with random data
+// --------------------------------------------------------------------
 
-Setting::Setting()
-:   homeDir(".")
-,   controlPort(defaultCOntrolPort)
-,   ok(false)
+void YaIoAlsa::shutdown( void )
 {
-    const char *hdp = getenv("HOME");
-    if( hdp != nullptr) {
-        homeDir = hdp;
-    }
-    // check if necessary files exist and type is ok
-    // if not try to fix
 }
 
-bool Setting::initialize( int argc, char** argv )
+// --------------------------------------------------------------------
+
+bool YaIoAlsa::initialize( void )
+{
+    return true;
+} // end YaIoAlsa::initialize
+
+// --------------------------------------------------------------------
+
+bool YaIoAlsa::run( void )
 {
     return true;
 }
 
+// --------------------------------------------------------------------
 } // end namespace yacynth
+
 
 

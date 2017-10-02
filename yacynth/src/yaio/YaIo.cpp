@@ -27,5 +27,53 @@
 
 namespace yacynth {
 
+YaIo::YaIo()
+:   nameClient("yacsynth")
+,   sampleRateMin(48000)
+,   sampleRateMax(48000) // TODO 88200, 96000
+,   bufferSizeMin(64)
+,   bufferSizeMax(256)
+,   audioProcessorData(nullptr)
+,   midiProcessorData(nullptr)
+,   midiOutProcessing(noMidiProcessing)
+,   audioOutProcesing(noAudioOutProcesing)
+,   audioInOutProcesing(noAudioInOutProcesing)
+,   errorString("err: ")
+,   mutedOutput(true)
+,   mutedInput(true)
+{}
+    
+void YaIo::registerAudioProcessor( void* userData, 
+    AudioOutProcessorType audioOutCB, AudioInOutProcessorType audioInOutCB )
+{
+    audioProcessorData  = userData;
+    audioOutProcesing   = audioOutCB;
+    audioInOutProcesing = audioInOutCB;
+}
+
+void YaIo::registerMidiProcessor( void* userData, 
+    MidiProcessorType midiInCB )
+{
+    midiProcessorData = userData;
+    midiOutProcessing = midiInCB;
+}
+
+void YaIo::clearProcessCB()
+{
+    audioProcessorData  = nullptr;
+    midiProcessorData   = nullptr;
+    midiOutProcessing   = noMidiProcessing;
+    audioOutProcesing   = noAudioOutProcesing;
+    audioInOutProcesing = noAudioInOutProcesing;
+}
+
+// empty functions to fill unused callbacks
+void YaIo::noMidiProcessing( void *data, uint8_t *eventp, uint32_t eventSize )
+{}
+void YaIo::noAudioOutProcesing( void *data, uint32_t nframes, float *outp1, float *outp2 )
+{}
+void YaIo::noAudioInOutProcesing( void *data, uint32_t nframes, float *outp1, float *outp2, float *inp1, float *inp2 )
+{}
+    
 
 } // end namespace yacynth
