@@ -35,7 +35,7 @@ namespace yacynth {
 
 
 SynthFrontend::SynthFrontend (
-        YaIoInQueueVector&      queueinP,
+        ControlQueueVector&      queueinP,
         OscillatorOutVector&    outVectorP,
         OscillatorArray       * oscArrayP
     )

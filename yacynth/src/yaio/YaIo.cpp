@@ -68,7 +68,7 @@ void YaIo::clearProcessCB()
 }
 
 // empty functions to fill unused callbacks
-void YaIo::noMidiProcessing( void *data, uint8_t *eventp, uint32_t eventSize )
+void YaIo::noMidiProcessing( void *data, RouteIn msg )
 {}
 void YaIo::noAudioOutProcesing( void *data, uint32_t nframes, float *outp1, float *outp2 )
 {}

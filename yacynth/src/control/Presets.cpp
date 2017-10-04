@@ -28,6 +28,7 @@
 #include    "../oscillator/Oscillator.h"
 #include    "../oscillator/OscillatorArray.h"
 #include    "../oscillator/ToneShaper.h"
+#if 0
 #include    "../effects/DelayTap.h"
 #include    "../effects/FxFilter.h"
 #include    "../effects/FxOutNoise.h"
@@ -38,6 +39,7 @@
 #include    "../effects/FxEarlyReflection.h"
 #include    "../effects/FxChorus.h"
 #include    "../effects/FxFlanger.h"
+#endif
 #include    "../control/Controllers.h"
 #include    "../control/Sysman.h"
 
@@ -72,16 +74,6 @@ static int32_t relFreq2pitch( double relf ) {
 void preset0( Sysman  * sysman )
 {
     yaxp::Message msgBuffer;
-    FxOutNoise          * fxnoise       = new FxOutNoise();
-    FxOutOscillator     * fxosc         = new FxOutOscillator();
-    FxModulator         * fxmod         = new FxModulator();
-    FxFilter            * fxfilt        = new FxFilter();
-    FxEcho              * fxecho        = new FxEcho();
-    FxLateReverb        * fxrevb        = new FxLateReverb();
-    FxEarlyReflection   * fxearlyref    = new FxEarlyReflection();
-    FxChorus            * fxchorus      = new FxChorus();
-    FxFlanger           * fxFlanger     = new FxFlanger();
-    FxMixer             * fxMixer       = new FxMixer();
 
 #if 1
     std::cout << "\n---------------------------- test factory Effect begin" << std::endl;

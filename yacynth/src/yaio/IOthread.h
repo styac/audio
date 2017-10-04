@@ -25,7 +25,7 @@
  * Created on February 15, 2016, 4:59 PM
  */
 
-#include    "YaIoInQueue.h"
+#include    "../router/ControlQueue.h"
 #include    "../oscillator/OscillatorOutput.h"
 #include    "../message/Midi.h"
 #include    "../control/Controllers.h"
@@ -51,26 +51,18 @@ namespace yacynth {
 class IOThread {
 public:
     IOThread()  = delete;
-    IOThread(   YaIoInQueueVector&      in,
-                OscillatorOutVector&    out,
-                AbstractRouter&         router );
-
-    static void midiInCB(       void *data, uint8_t *eventp, uint32_t eventSize );
+    IOThread( OscillatorOutVector & out, AbstractRouter & router );
     static void audioOutCB(     void *data, uint32_t nframes, float *outp1, float *outp2 );
     static void audioInOutCB(   void *data, uint32_t nframes, float *outp1, float *outp2, float *inp1, float *inp2 );
     inline FxRunner&        getFxRunner(void) 
         { return fxRunner; }
-    inline AbstractRouter&  getRouter(void) 
-        { return midiRouter; }
     inline void setBufferSizeRate( int16_t val )
         { bufferSizeRate = val; }
     inline void clearFxInput()
         { toClearFxInput = true; }
 
 private:
-    YaIoInQueueVector&      queueIn;
-    OscillatorOutVector&    queueOut;
-    AbstractRouter&         midiRouter;
+    OscillatorOutVector   & queueOut;
     FxMixer                 fxEndMixer;
     FxOscillatorMixer       fxOscillatorMixer;
     FxInput                 fxInput;

@@ -30,6 +30,7 @@
 
 #include    "YaIo.h"
 #include    "YaIoJackPort.h"
+#include    "../message/Midi.h"
 
 #include    <jack/jack.h>
 #include    <jack/midiport.h>
@@ -68,13 +69,22 @@ public:
 protected:
     inline void processJackMidiIn()
     {
+        RouteIn  midi;
         void * midiIn = midiInPort.getBuffer( nframes );
         jack_midi_event_t in_event;
         jack_nframes_t event_count = jack_midi_get_event_count( midiIn );
         for( auto i=0; i < event_count; ++i ) {
             jack_midi_event_get( &in_event, midiIn , i );
             printEvent( in_event.buffer, in_event.size, ( event_count-1 ) == i );
-            midiOutProcessing( midiProcessorData, in_event.buffer, in_event.size );
+            midi.op                 = ( in_event.buffer[ 0 ] ) >> 4;
+            midi.channel            = ( in_event.buffer[ 0 ] ) & 0x0F;
+            if( 2 < in_event.size ) {
+                midi.velocity_val   = (in_event.buffer[ 2 ]);
+                midi.note_cc_val    = (in_event.buffer[ 1 ]);        
+            } else if ( 1 < in_event.size ) {
+                midi.note_cc_val    = (in_event.buffer[ 1 ]);                
+            }
+            midiOutProcessing( midiProcessorData, midi );
         }    
     }
     

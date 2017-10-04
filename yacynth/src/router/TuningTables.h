@@ -1,7 +1,6 @@
 #pragma once
-
 /*
- * Copyright (C) 2016 Istvan Simon
+ * Copyright (C) 2017 ist
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,85 +17,53 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-/*
- * File:   AbstractRouter.h
- * Author: Istvan Simon
+/* 
+ * File:   TuningTables.h
+ * Author: Istvan Simon -- stevens37 at gmail dot com
  *
- * Created on February 27, 2016, 9:00 PM
+ * Created on October 4, 2017, 7:07 PM
  */
 
+// next generation 
+
 #include    "yacynth_globals.h"
-#include    "../message/yamsg.h"
-#include    "../message/Midi.h"
-#include    "../control/Controllers.h"
-#include    "../router/ControlQueue.h"
+#include    "protocol.h"
+
+#include    <array>
 
 namespace yacynth {
 
-//
-// MIDI structure
-//  - op=0..15
-//  - chn=0..15
-//  - note_cc = note number or controller number - parameter 1
-//  - velocity_val = velocity or controller value
-//
-// Tuning concept:
-//      equal tempered: max 72 TET ( default )
-//          12 * microResolution / octave
-//          11 octaves
-//          normal 12TET is set to 0 .. microResolution-1 ...
-//
-//      just intonation:
-//          first N places/octave
-//          0...N-1 then zero
-//
-//      non octave centric
-//
-//
-//
-
-// TODO: reduce AbstractRouter + SimpleRouter to Router 
-
-class AbstractRouter {
+class TunerSet {
 public:
-    
-// http://xenharmonic.wikispaces.com/
-    
     enum    tuned_t {
+        // JI_n just intonation
+        // ET_n equal tempered
+        
         JI_43_PARTCH,
-        ET_72,      // default on table[0]
-#if 0
-        TET15,
-        TET17,
-        TET19,
-        TET22,
-        TET31,
-        TET34,
-        TET41,
-        TET53,
-#endif
+        ET_72,          // default on table[0] also ET_12,ET_24,ET_36
+        ET_53,
+        ET_41,
+        ET_34,
+        ET_31,
+        ET_22,
+        ET_19,
+        ET_17,
+        ET_15,
 // alpha .. delta, Bohlen Pierce, ...
     };
     
-    AbstractRouter() = delete;
-    AbstractRouter( ControlQueueVector& inQueue );
+    TunerSet();    
 
-    virtual ~AbstractRouter() = default;
+    ~TunerSet() = default;
 
     void clear(void) {};
-    bool fill(  std::stringstream& ser ) {};
-    void query( std::stringstream& ser ) {};
-    
-    static void midiInCB( void *, RouteIn in );
-   
-    virtual void        translate( RouteIn in ) = 0;
 
     // get the direct addressed notes from a table
-    virtual uint32_t    getPitch( int32_t noteNr, uint8_t tableNr = 0 );
+    uint32_t    getPitch( int32_t noteNr, uint8_t tableNr = 0 );
 
     // get the notes relative to the 12 grade system : note + ( -2 ... 0 ... +2 )
-    virtual uint32_t    getPitch( int32_t noteNr, int8_t mod, uint8_t tableNr );
-    virtual void        setTransposition( int8_t val );
+    uint32_t    getPitch( int32_t noteNr, int8_t mod, uint8_t tableNr );
+    void        setTransposition( int8_t val );
     void    setCustomTuning( tuned_t custune );
     tuned_t getCustomTune( void) const { return tuned; };
 
@@ -123,26 +90,36 @@ public:
     // NO RPN here
     static constexpr  uint32_t pitchMult    =  (octaveResolution/6) / pitchBendMax;
 
-    void    setMode( int16_t val ) { monoPhone = val != 0; };
+    // void    setMode( int16_t val ) { monoPhone = val != 0; };
     void    fillEqualTempered(  uint8_t tableNr );
-    void    fillPartch43(       uint8_t tableNr );
-
-    inline MidiController&  getMidiController(void) { return midiController; }
-
+    void    fillPartch43(       uint8_t tableNr );  
     virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
 
     void  sendToneControl();
     
 protected:
-    ControlQueueVector& queueIn;
-    MidiController      midiController;
-    Yamsgrt             out; // function local
     std::array< std::array<uint32_t, tuningTableSize>, tuningTableCount> pitch;
     tuned_t             tuned;
     int16_t             toneBank;
     int8_t              transposition;
-    bool                monoPhone;
+
 };
 
+struct MidiNote {    
+    uint8_t octave;
+    uint8_t semitone;
+};
 
-} // end namespace yacynth
+struct MidiNoteVector {    
+    static constexpr uint16_t size = 128;
+    MidiNote    table[ size ];
+};
+
+struct TuneTable {
+    
+//    int32_t table[];
+};
+
+} // end namespace yacynth 
+
+

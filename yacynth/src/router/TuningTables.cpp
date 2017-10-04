@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Istvan Simon
+ * Copyright (C) 2017 ist
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -15,66 +15,50 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
-/*
- * File:   AbstractRouter.cpp
- * Author: Istvan Simon
- *
- * Created on February 27, 2016, 9:00 PM
- */
 
-#include    "AbstractRouter.h"
-#include    "../oscillator/Tables.h"
-#include    <iomanip>
+/* 
+ * File:   TuningTables.cpp
+ * Author: Istvan Simon -- stevens37 at gmail dot com
+ *
+ * Created on October 4, 2017, 7:07 PM
+ */
+#include    "TuningTables.h"
+
+//  http://xenharmonic.wikispaces.com/
 
 //  http://www.microtonal-synthesis.com/scale_partch.html
 //  http://www.tonalsoft.com/monzo/partch/scale/partch43-lattice.aspx
 //  http://self.gutenberg.org/articles/bohlen%E2%80%93pierce_scale
 //  http://www.huygens-fokker.org/docs/modename.html
-//  http://xenharmonic.wikispaces.com/Regular+Temperaments
 //  https://en.wikipedia.org/wiki/Five-limit_tuning
 //  http://xenharmonic.wikispaces.com/Regular+Temperaments
 
+// Bohlen-Pierce Scale 
+// Pierce 3579b scale,  3 root of 13 
+// https://en.wikipedia.org/wiki/Bohlen%E2%80%93Pierce_scale
+// https://www.youtube.com/watch?v=z0Xpn4G9_R4
+
 namespace yacynth {
-using namespace TagRouterLevel_01;
-// --------------------------------------------------------------------
 
-AbstractRouter::AbstractRouter( ControlQueueVector& inQueue )
-:   transposition(0)
-,   monoPhone(false)
-,   toneBank(0)
-,   queueIn(inQueue)
-{
-    out.store = 0;
-    fillEqualTempered(0);
-    setCustomTuning(JI_43_PARTCH);
-} // end AbstractRouter::AbstractRouter
 
-// --------------------------------------------------------------------
-
-void AbstractRouter::midiInCB( void *data, RouteIn in )
-{
-    AbstractRouter& thp = *static_cast<AbstractRouter *>(data);
-    thp.translate( in );
-}
-// --------------------------------------------------------------------
-uint32_t AbstractRouter::getPitch( int32_t noteNr, uint8_t tableNr )
+uint32_t TunerSet::getPitch( int32_t noteNr, uint8_t tableNr )
 {
     const int32_t currNote  =  noteNr + transposition;
     const int32_t noteInd   =  currNote < 0 ? 0 : ( currNote >= tuningTableSize ? tuningTableSize-1 : currNote );
     return pitch[ tableNr & ( tuningTableCount - 1)][ noteInd ];
-} // end AbstractRouter::getPitch
+} // end TunerSet::getPitch
 
-uint32_t AbstractRouter::getPitch( int32_t noteNr, int8_t mod, uint8_t tableNr )
+uint32_t TunerSet::getPitch( int32_t noteNr, int8_t mod, uint8_t tableNr )
 {
     const int8_t    modLim      = mod < -microResolution ? -microResolution : ( mod > microResolution ? microResolution : mod );
     const int32_t   currNote    =  noteNr + modLim + transposition;
     const int32_t   noteInd     =  currNote < 0 ? 0 : ( currNote >= tuningTableSize ? tuningTableSize-1 : currNote );
     return pitch[ tableNr & ( tuningTableCount - 1)][ noteInd ];
-} // end AbstractRouter::getPitch
+} // end TunerSet::getPitch
 
 // --------------------------------------------------------------------
 
-void AbstractRouter::fillEqualTempered( uint8_t tableNr )
+void TunerSet::fillEqualTempered( uint8_t tableNr )
 {
     for( auto i = 0; i < tuningTableSize; ++i ) {
         pitch[ tableNr ][ i ]  = round( pitch0MidiEqual + equalTemperedNote * i );
@@ -117,11 +101,11 @@ void AbstractRouter::fillEqualTempered( uint8_t tableNr )
 
 
 #endif
-} // end AbstractRouter::EqualTemperedNoteRates(void)
+} // end TunerSet::EqualTemperedNoteRates(void)
 // --------------------------------------------------------------------
 
 
-void AbstractRouter::fillPartch43( uint8_t tableNr )
+void TunerSet::fillPartch43( uint8_t tableNr )
 {
     std::array<double, partch43Size>  note;
 // ===========
@@ -221,17 +205,17 @@ void AbstractRouter::fillPartch43( uint8_t tableNr )
 
 #endif
 
-} // end AbstractRouter::EqualTemperedNoteRates(void)
+} // end TunerSet::EqualTemperedNoteRates(void)
 
 // --------------------------------------------------------------------
 
-void AbstractRouter::setTransposition( int8_t val )
+void TunerSet::setTransposition( int8_t val )
 {
   transposition = ( val > maxTransposition ? maxTransposition : ( val < -maxTransposition ? -maxTransposition : val ) );
 }
 // --------------------------------------------------------------------
 
-void AbstractRouter::setCustomTuning( tuned_t custune )
+void TunerSet::setCustomTuning( tuned_t custune )
 {
     switch( custune ) {
     case JI_43_PARTCH:
@@ -241,30 +225,18 @@ void AbstractRouter::setCustomTuning( tuned_t custune )
         return;
     }
     tuned = custune;
-} // end AbstractRouter::setCustomTune
+} // end TunerSet::setCustomTune
 
-bool AbstractRouter::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+bool TunerSet::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
-    const uint8_t tag = message.getTag(tagIndex);
-    switch( TagRouter( tag ) ) {
-    case TagRouter::Clear :
-        return true;
-    case TagRouter::SetToneBank :
-        toneBank = message.getParam(paramIndex);
-        // TODO: send tonebank ymsg message
-        // this will also work with midi control message
-        // not yet implemented in oscillator
-        sendToneControl();
-        return true;        
-    }
-
-    message.setStatus( yaxp::MessageT::illegalTag );
     return false;
 }
 
-void  AbstractRouter::sendToneControl()
+void  TunerSet::sendToneControl()
 {
     
 }
 
-} // end namespace yacynth
+
+
+} // end namespace yacynth 

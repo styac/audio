@@ -1,7 +1,5 @@
-#pragma once
-
 /*
- * Copyright (C) 2016 Istvan Simon
+ * Copyright (C) 2017 ist
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,36 +16,22 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-/*
- * File:   SimpleMidiRouter.h
- * Author: Istvan Simon
+/* 
+ * File:   ControlQueue.cpp
+ * Author: Istvan Simon -- stevens37 at gmail dot com
  *
- * Created on February 27, 2016, 10:15 PM
+ * Created on October 3, 2017, 6:47 PM
  */
-#include    "AbstractRouter.h"
+#include    "ControlQueue.h"
 
 namespace yacynth {
 
-class SimpleMidiRouter : public AbstractRouter {
-public:
-    SimpleMidiRouter( ControlQueueVector& inQueue )
-    :  AbstractRouter(inQueue)
-    {};
-    
-    
-    SimpleMidiRouter() = delete;
-    
-    virtual ~SimpleMidiRouter() = default;
-
-    void clear(void) {};
-    
-    virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
-
-
-    virtual void        translate( RouteIn in ) override;
-    virtual uint32_t    getPitch( int32_t noteNr, uint16_t tableNr = 0 );
-    virtual void        setTransposition( int8_t val ) override;
-};
+ControlQueueVector& ControlQueueVector::getInstance(void)
+{
+    static ControlQueueVector instance;
+    return instance;
+}
 
 } // end namespace yacynth
+
 

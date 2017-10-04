@@ -1,7 +1,5 @@
-#pragma once
-
 /*
- * Copyright (C) 2016 Istvan Simon
+ * Copyright (C) 2017 ist
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,45 +16,48 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-/*
- * File:   Midi.h
- * Author: Istvan Simon
+/* 
+ * File:   Router.cpp
+ * Author: Istvan Simon -- stevens37 at gmail dot com
  *
- * Created on February 14, 2016, 7:50 PM
+ * Created on October 4, 2017, 7:06 PM
  */
-#include    "yamsg.h"
+#include    "Router.h"
 
-
+// next generation 
 
 namespace yacynth {
 
-// --------------------------------------------------------------------
-
-enum midi_status_t : uint8_t {
-    MIDI_NOTE_OFF   = 0x08,
-    MIDI_NOTE_ON    = 0x09,
-    MIDI_PLY_AFTCH  = 0x0A,
-    MIDI_CONTR_CHNG = 0x0B,
-    MIDI_PROG_CHNG  = 0x0C,
-    MIDI_CHN_AFTCH  = 0x0D,
-    MIDI_PITCH      = 0x0E,
-    MIDI_SYS        = 0x0F
-};
-
-struct  RouteIn {
-    RouteIn() : all(0) {};
-    union {
-        uint32_t  all;
-        struct {
-            uint8_t op;
-            uint8_t channel;
-            uint8_t note_cc_val;
-            uint8_t velocity_val;            
-        };
-    };
-};
+using namespace TagRouterLevel_01;
 
 // --------------------------------------------------------------------
 
-} // end namespace yacynth
+Router::Router( ControlQueueVector& inQueue )
+:   queueIn(inQueue)
+{
+} // end Router::Router
 
+// --------------------------------------------------------------------
+
+void Router::midiInCB( void *data, RouteIn in )
+{
+    static_cast<Router *>(data)->translate( in );
+}
+// --------------------------------------------------------------------
+
+bool Router::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+{
+    const uint8_t tag = message.getTag(tagIndex);
+    switch( TagRouter( tag ) ) {
+    case TagRouter::Clear :
+        return true;
+    case TagRouter::SetToneBank :
+        return true;        
+    }
+
+    message.setStatus( yaxp::MessageT::illegalTag );
+    return false;
+}
+
+
+} // end namespace yacynth 

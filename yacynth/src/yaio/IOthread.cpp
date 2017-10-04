@@ -30,13 +30,9 @@
 
 namespace yacynth {
 
-IOThread:: IOThread(
-    YaIoInQueueVector&      in,
-    OscillatorOutVector&    out,
+IOThread:: IOThread( OscillatorOutVector&    out,
     AbstractRouter&         router )
-:   queueIn(in)
-,   queueOut(out)
-,   midiRouter(router)
+:   queueOut(out)
 ,   cycleNoise(0)
 ,   fxEndMixer()
 ,   fxOscillatorMixer()
@@ -47,28 +43,6 @@ IOThread:: IOThread(
 {
     fxEndMixer.setProcMode(1); // TODO > endMixed mode -- muted function
 };
-
-// --------------------------------------------------------------------
-
-void IOThread::midiInCB( void *data, uint8_t *eventp, uint32_t eventSize )
-{
-    bool res;
-    IOThread& thp = *static_cast<IOThread *>(data);
-    RouteIn  midi;
-    midi.op                 = ( *eventp ) >> 4;
-    midi.channel            = ( *eventp ) & 0x0F;
-    if( 2 < eventSize ) {
-        midi.velocity_val   = *(eventp+2);
-        midi.note_cc_val    = *(eventp+1);        
-    } else if ( 1 < eventSize ) {
-        midi.note_cc_val    = *(eventp+1);                
-    }
-        
-    Yamsgrt ymsg = thp.midiRouter.translate( midi );
-    if( 0 == ymsg.store )
-        return;
-    res     = thp.queueIn.queueOscillator.put( ymsg.store );
-} // end IOThread::midiInCB
 
 // --------------------------------------------------------------------
 

@@ -49,11 +49,13 @@ using namespace TagEffectFxLateReverbModeLevel_03;
 // --------------------------------------------------------------------
 
 Sysman::Sysman(
+    AbstractRouter      &routerP,
     OscillatorArray&    oscillatorArrayP,
     IOThread&           iOThreadP  )
-:   oscillatorArray(    oscillatorArrayP )
-,   iOThread(           iOThreadP )
-,   toneShaperMatrix(   oscillatorArrayP.getToneShaperMatrix() )
+:   router( routerP )
+,   oscillatorArray( oscillatorArrayP )
+,   iOThread( iOThreadP )
+,   toneShaperMatrix( oscillatorArrayP.getToneShaperMatrix() )
 {
 
 } // end Sysman::Sysman
@@ -84,16 +86,19 @@ bool Sysman::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramI
         return FxCollector::getInstance().parameter( message,++tagIndex, paramIndex );
 
     case TagMain::MidiController:
-        return iOThread.getRouter().getMidiController().parameter( message,++tagIndex, paramIndex );
+        // router - can be called as singleton
+        return router.getMidiController().parameter( message,++tagIndex, paramIndex );
 
     case TagMain::InnerController:
         return InnerController::getInstance().parameter( message,++tagIndex, paramIndex );
 
     case TagMain::Tuner: // TODO
-        return iOThread.getRouter().parameter( message,++tagIndex, paramIndex ); // getTuner() -refactor
+        // router - can be called as singleton
+        return router.parameter( message,++tagIndex, paramIndex ); // getTuner() -refactor
 
     case TagMain::Router:
-        return iOThread.getRouter().parameter( message,++tagIndex, paramIndex );
+        // router - can be called as singleton
+        return router.parameter( message,++tagIndex, paramIndex );
 
     case TagMain::Mute:
         YaIoJack::getInstance().mute();

@@ -32,6 +32,7 @@
 #include    "../oscillator/ToneShaper.h"
 #include    "../yaio/YaIoJack.h"
 #include    "../yaio/IOthread.h"
+#include    "../router/AbstractRouter.h"
 #include    "Tags.h"
 
 #include    <cstdlib>
@@ -47,7 +48,7 @@ namespace yacynth {
 
 class Sysman {
 public:
-    explicit Sysman(
+    explicit Sysman( AbstractRouter &router,
         OscillatorArray&    oscillatorArrayP,
         IOThread&           iOThreadP );
 
@@ -58,9 +59,10 @@ public:
 
 private:
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
-    OscillatorArray&            oscillatorArray;
-    ToneShaperMatrix&           toneShaperMatrix;
-    IOThread&                   iOThread;
+    AbstractRouter      & router;
+    OscillatorArray     & oscillatorArray;
+    ToneShaperMatrix    & toneShaperMatrix;
+    IOThread            & iOThread;
 };
 
 } // end namespace yacynth

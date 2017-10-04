@@ -28,9 +28,9 @@
 #ifndef     YAIO
 #define     YAIO
 
-#include    "YaIoInQueue.h"
-#include    "../message/yamsg.h"
 #include    "yacynth_globals.h"
+#include    "../message/yamsg.h"
+#include    "../message/Midi.h"
 
 #include    <cstddef>
 #include    <cstdint>
@@ -52,7 +52,7 @@ public:
     NON_COPYABLE_NOR_MOVABLE(YaIo)
 
     // processor function types
-    typedef void ( * MidiProcessorType )( void *data, uint8_t *eventp, uint32_t eventSize );
+    typedef void ( * MidiProcessorType )( void *data, RouteIn msg );
     typedef void ( * AudioOutProcessorType )( void *data, uint32_t nframes, float *outp1, float *outp2 );
     typedef void ( * AudioInOutProcessorType )( void *data, uint32_t nframes, float *outp1, float *outp2, float *inp1, float *inp2 );
     
@@ -87,7 +87,7 @@ public:
         { return bufferSizeMult; }
 
 protected:    
-    static void noMidiProcessing( void *data, uint8_t *eventp, uint32_t eventSize );
+    static void noMidiProcessing( void *data, RouteIn msg );
     static void noAudioOutProcesing( void *data, uint32_t nframes, float *outp1, float *outp2 );
     static void noAudioInOutProcesing( void *data, uint32_t nframes, float *outp1, float *outp2, float *inp1, float *inp2 );
     
@@ -101,8 +101,8 @@ protected:
     std::string     nameClientReal;
     std::string     errorString;
     
-    void          * audioProcessorData;
-    void          * midiProcessorData;
+    void                  * audioProcessorData;
+    void                  * midiProcessorData;    
     MidiProcessorType       midiOutProcessing;
     AudioOutProcessorType   audioOutProcesing;
     AudioInOutProcessorType audioInOutProcesing;

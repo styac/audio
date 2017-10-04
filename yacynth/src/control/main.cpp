@@ -53,6 +53,8 @@ using namespace tables;
 using namespace noiser;
 
 void preset0( Sysman  * sysman );
+void createStaticEfects();
+
 // --------------------------------------------------------------------
 //
 // this is not the normal stop method
@@ -125,7 +127,7 @@ int main( int argc, char** argv )
     // OBSOLETE
     // LowOscillatorArray::getInstance().reset();
 
-    YaIoInQueueVector&      queuein     = YaIoInQueueVector::getInstance();
+    ControlQueueVector&     queuein    = ControlQueueVector::getInstance();
     OscillatorOutVector&    oscOutVec   = OscillatorOutVector::getInstance();
     InnerController&        controller  = InnerController::getInstance();
     FxCollector::getInstance();
@@ -151,22 +153,25 @@ int main( int argc, char** argv )
 
     // inter thread communication
     OscillatorArray     *oscArray   = new OscillatorArray();
-    SimpleMidiRouter    *midiRoute  = new SimpleMidiRouter();
+    // router - can be singleton
+    SimpleMidiRouter    *midiRoute  = new SimpleMidiRouter(queuein);
 
     // threads
     // TODO IOThread: separate audio and midi 
-    IOThread            *iOThread   = new IOThread(      queuein, oscOutVec, *midiRoute );
+    IOThread            *iOThread   = new IOThread( oscOutVec, *midiRoute );
     SynthFrontend       *synthFe    = new SynthFrontend( queuein, oscOutVec, oscArray );
-    Sysman              *sysman     = new Sysman( *oscArray, *iOThread ); // + oscOutVec to control
+    Sysman              *sysman     = new Sysman( *midiRoute, *oscArray, *iOThread ); // + oscOutVec to control
     Server              uiServer( *sysman, settings.getControlPort() );
-    auto& fxRunner      = iOThread->getFxRunner();
-
+    auto& fxRunner    = iOThread->getFxRunner();
+    
+    createStaticEfects();
+        
     try {
         preset0( sysman );
         //-------------------------
         // start jack thread
         YaIoJack::getInstance().registerAudioProcessor( iOThread, IOThread::audioOutCB, IOThread::audioInOutCB );
-        YaIoJack::getInstance().registerMidiProcessor( iOThread, IOThread::midiInCB );
+        YaIoJack::getInstance().registerMidiProcessor( midiRoute, AbstractRouter::midiInCB );
         
         if( ! synthFe->initialize() )
             exit(-1);

@@ -59,42 +59,34 @@ uint32_t SimpleMidiRouter::getPitch( int32_t noteNr, uint16_t tableNr )
     return pitch[ tableNr & ( tuningTableCount - 1)][ noteInd ];
 } // end SimpleMidiRouter::getPitch
 // --------------------------------------------------------------------
+
+
 // polyphonic translate
-Yamsgrt SimpleMidiRouter::translate( const RouteIn& in )
+void SimpleMidiRouter::translate( RouteIn in )
 {
     out.store = 0;
     switch( in.op ) {
-
-/*
-
-#ifdef OSCILLATOR_VELOCITY_RANDOMIZER
-    velocity = in.velocity + ( gRandom.getRaw() & 0x0FFFF );
-#else
-    velocity = in.velocity;
-#endif
-
-
-
- */
-
     case MIDI_NOTE_OFF:
         out.voiceRelease.opcode         = YAMOP_VOICE_RELEASE;
         out.voiceRelease.oscNr          = in.note_cc_val;
         out.voiceRelease.tickRelease    = 0;    // ?
-        break;
+        queueIn.queueOscillator.put( out.store );
+        return;
 
     case MIDI_NOTE_ON:
         if( 0 == in.velocity_val ) {
             out.voiceRelease.opcode         = YAMOP_VOICE_RELEASE;
             out.voiceRelease.oscNr          = in.note_cc_val;
             out.voiceRelease.tickRelease    = 0;    // ?
-            break;
+            queueIn.queueOscillator.put( out.store );
+            return;
         }
         out.voiceSet.oscNr          = in.note_cc_val;
         out.voiceSet.toneBank       = 0;
         out.voiceSet.velocity       = in.velocity_val * 2;  // 8 bit
         out.voiceSet.pitch          = getPitch( in.note_cc_val, 0 );
-        break;
+        queueIn.queueOscillator.put( out.store );
+        return;
 
     case MIDI_PLY_AFTCH:
 //        out.setVoice.opcode = YAMOP_CHNGVOICE_NOTE;
@@ -148,7 +140,7 @@ Yamsgrt SimpleMidiRouter::translate( const RouteIn& in )
 //        InnerController::getInstance().setMidi( 4, in.velocity_val, in.note_cc_val );
         break;
     }
-    return out;
+    return;
 } // end SimpleMidiRouter::translate
 
 // --------------------------------------------------------------------

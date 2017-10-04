@@ -54,7 +54,7 @@ class SynthFrontend {
 public:
     SynthFrontend() = delete;
     SynthFrontend(
-        YaIoInQueueVector&      queueinP,
+        ControlQueueVector&      queueinP,
         OscillatorOutVector&    outVectorP,
         OscillatorArray       * oscArrayP
         );
@@ -75,7 +75,7 @@ private:
     uint64_t                waitLimit;          // if the cycle was too fast wait a bit to ceck
     OscillatorArray       * oscArray;
     OscillatorOutVector&    outVector;
-    YaIoInQueueVector&      queuein;
+    ControlQueueVector&      queuein;
     Statistics              statistics;
     uint32_t                cycleNoise;
     bool                    runFe;
