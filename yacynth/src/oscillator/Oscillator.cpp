@@ -38,6 +38,7 @@ Oscillator::Oscillator()
 ,   toneShaperSelect(0)
 ,   toneShaperVecCurr(&toneShaperMatrix.toneShapers[ 0 ])
 ,   oscillatorCountUsed( overtoneCountOscDef )
+,   runCount(0)
 {
     ;
     for( auto i=0; i<overtoneCountOscDef; i++ ) {
@@ -260,21 +261,11 @@ L_innerloop:
             uint32_t phase = stateOsc.phase;
             out.amplitudeSumm[ outChannel ] += amplitudoOsc;
             auto layp = &outLayer[ 0 ];
-#if 0            
-            {
-                static uint32_t cnt = 0;
-                std::cout 
-                        << "+++ " << layp
-                        << "  " << ++cnt
-                        << " outChannel " << uint16_t(outChannel)  
-                        << std::endl;
-                
-            }
-#endif
             switch( oscillatorType ) {
             case ToneShaper::OSC_SIN:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    *layp++ +=  ( tables::waveSinTable[ uint16_t((( phase += deltaPhase ) >> scalePhaseIndexExp))]
+//                    *layp++ +=  ( tables::waveSinTable[ uint16_t(((( phase += deltaPhase ) + 0x8000 ) >> scalePhaseIndexExp))]
+                    *layp++ +=  ( tables::waveSinTable[ uint16_t(((( phase += deltaPhase )) >> scalePhaseIndexExp))]
                             * amplitudoOsc ) >> scaleAmplitudeOscExp;
                     amplitudoOsc += deltaAmpl;
                 }
@@ -627,6 +618,7 @@ void Oscillator::voiceRun( const OscillatorInChange& in )
         return;
     }
 #endif
+    ++runCount;
     toneShaperSelect    = in.toneShaperSelect; // direct from router
     if( toneShaperSelect >= settingVectorSize ) {
       toneShaperSelect = settingVectorSize-1;
@@ -641,6 +633,13 @@ void Oscillator::voiceRun( const OscillatorInChange& in )
     deltaPitch = 0;
     glissandoTick = 0;
     setPitchDependency();
+
+    const double dph = ycent2deltafi( basePitch, 0 );
+    const double freq   = 48000.0 * dph / (1LL<<32) ;
+    std::cout
+        << "\n  ***  freq " << freq
+        << " dph "     << dph
+        << std::endl;    
 
     // monitoring
     std::cout
@@ -688,9 +687,15 @@ void Oscillator::voiceRelease( const OscillatorInChange& in )
     case VOICE_DOWN:
         return;
     }
+    --runCount;
+    std::cout << "voiceRelease: " << runCount << std::endl;
 
-    std::cout << "voiceRelease: " << std::endl;
-
+    if( runCount > 0 ) {
+        return;
+    } else if ( runCount < 0 ) {
+        runCount = 0;
+    }
+    
     voiceState  = VOICE_RELEASE;
     for( auto oscindex = 0; oscindex < oscillatorCountUsed; ++oscindex ) {
         auto& stateOsc = state[ oscindex ];

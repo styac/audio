@@ -24,102 +24,126 @@
  * Created on October 4, 2017, 7:07 PM
  */
 
-// next generation 
-
 #include    "yacynth_globals.h"
 #include    "protocol.h"
+#include    "TuningConst.h"
 
 #include    <array>
+#include    <iostream>
+#include    <fstream>
+#include    <iomanip>
+
+using namespace Tuning;
 
 namespace yacynth {
 
-class TunerSet {
-public:
-    enum    tuned_t {
-        // JI_n just intonation
-        // ET_n equal tempered
+// 1 ChannelTable for each MIDI channel: 16
+struct ChannelTable {    
+    ChannelTable()
+    :   transientTransposition(0)
+    ,   tuningTableSelect(0)
+    ,   currentMicroModifier(0)
+    {}
+    
+    bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
         
-        JI_43_PARTCH,
-        ET_72,          // default on table[0] also ET_12,ET_24,ET_36
-        ET_53,
-        ET_41,
-        ET_34,
-        ET_31,
-        ET_22,
-        ET_19,
-        ET_17,
-        ET_15,
-// alpha .. delta, Bohlen Pierce, ...
-    };
+    int32_t     transientTransposition; // = detune + transposition
+    uint8_t     tuningTableSelect;      // tuning table index
+    //  encoded     bbb, bb, b,     0,      #,  ##, ### 
+    //              7    6   5     0,4      1   2   3
+    uint8_t     currentMicroModifier;   // index of microtonal modifier   
+};
+
+// any number of TuningTable for fast change : lets 4 or 8
+struct TuningTable {    
+    // absolute values (relative to sampling frequency)
+    static constexpr double ycentA400_48000    = freq2ycentDouble(440.0);  // MIDI 69
+    static constexpr double ycentMidi0_48000   = ycentA400_48000 - 69 * ycentET12Semitone;
+    static constexpr double ycentMidi127_48000 = ycentA400_48000 + (127-69) * ycentET12Semitone;
+
+    TuningTable()
+    :   baseTransposition(ycentMidi0_48000)
+    {}
     
-    TunerSet();    
+    static constexpr uint16_t noteCountExp = 7;                 // 128 MIDI note
+    static constexpr uint16_t noteCount = 1 << noteCountExp;
+    static constexpr uint16_t noteCountMask = noteCount-1;
+    static constexpr uint16_t modifierCountExp = 3;             // for each 6 mod value -3...+3 (0,4 base value)
+    static constexpr uint16_t modifierCount = 1 << modifierCountExp;
+    static constexpr uint16_t modifierCountMask = modifierCount-1;
+    static constexpr uint16_t size = noteCount  * modifierCount;
 
-    ~TunerSet() = default;
-
-    void clear(void) {};
-
-    // get the direct addressed notes from a table
-    uint32_t    getPitch( int32_t noteNr, uint8_t tableNr = 0 );
-
-    // get the notes relative to the 12 grade system : note + ( -2 ... 0 ... +2 )
-    uint32_t    getPitch( int32_t noteNr, int8_t mod, uint8_t tableNr );
-    void        setTransposition( int8_t val );
-    void    setCustomTuning( tuned_t custune );
-    tuned_t getCustomTune( void) const { return tuned; };
-
-    static constexpr uint16_t   noteperOctave       =   12;
-    static constexpr uint16_t   microResolution     =   6;
-    static constexpr uint16_t   maxTransposition    =   noteperOctave * microResolution;
-    static constexpr uint16_t   octaveCount         =   11; // because of the MIDI
-    static constexpr uint16_t   A440MidiNote        =   69;
-    static constexpr uint16_t   A440MidiNoteMicro   =   A440MidiNote * microResolution;
-    static constexpr uint16_t   tuningTableCount    =   2;  // standard - custom : Partch43
-    static constexpr uint16_t   tuningTableSize     =   noteperOctave * microResolution * octaveCount;
-    static constexpr uint16_t   partch43Size        =   43;
-    static constexpr double     octaveResolution    =   (1<<24);    // 64k*256
-    static constexpr double     equalTemperedNote   =   octaveResolution / 12.0 / microResolution;
-    static constexpr double     pitch0MidiEqual     =   refA440ycentDouble - A440MidiNoteMicro * equalTemperedNote;
-    // A440 : octave 5 note 31 (0..42) - major sixth
-    static constexpr double     pitch0MidiPartch43  =   pitch0MidiEqual + refA440ycentDouble - 0x1937b33a;
-
-    static constexpr  int16_t   pitchBendMax = 8192;
-    static constexpr  int16_t   pitchOffset  = -pitchBendMax;
-        // 8192 =>  2 semitones
-    //  1 octave = octaveResolution = 1<<24
-    //  2 semitones =
-    // NO RPN here
-    static constexpr  uint32_t pitchMult    =  (octaveResolution/6) / pitchBendMax;
-
-    // void    setMode( int16_t val ) { monoPhone = val != 0; };
-    void    fillEqualTempered(  uint8_t tableNr );
-    void    fillPartch43(       uint8_t tableNr );  
-    virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
-
-    void  sendToneControl();
+    bool fill( TuningTypes ttype );
     
-protected:
-    std::array< std::array<uint32_t, tuningTableSize>, tuningTableCount> pitch;
-    tuned_t             tuned;
-    int16_t             toneBank;
-    int8_t              transposition;
+    bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
+        
+    // modifier = 0     : 0
+    // modifier = 1     : 1
+    // modifier = 2     : 2
+    // modifier = 3     : 3
+    // modifier = 4     : 0
+    // modifier = 5     : -1
+    // modifier = 6     : -2
+    // modifier = 7     : -3
 
-};
-
-struct MidiNote {    
-    uint8_t octave;
-    uint8_t semitone;
-};
-
-struct MidiNoteVector {    
-    static constexpr uint16_t size = 128;
-    MidiNote    table[ size ];
-};
-
-struct TuneTable {
+    inline int32_t get( uint8_t baseNote, uint8_t modifier ) const 
+    {
+        uint16_t note = uint16_t(baseNote) << modifierCountExp;
+        return relativeYcent[ note | ( modifier & modifierCountMask ) ];
+    }
     
-//    int32_t table[];
+    double  baseTransposition;  // base of the table for the generator
+    int32_t relativeYcent[  size  ];
 };
 
+class TuningTableArray {
+public:
+    static constexpr uint16_t tuningTableCountExp = 4;
+    static constexpr uint16_t tuningTableCount = 1 << tuningTableCountExp;
+    static constexpr uint16_t tuningTableCountMask = tuningTableCount - 1;
+    
+    inline static TuningTableArray& getInstance(void)
+    {
+        static TuningTableArray instance;
+        return instance;
+    }
+
+    inline int32_t get( uint8_t baseNote, uint8_t modifier, uint8_t tableIndex ) const 
+    {
+        return tuningTables[ tableIndex & tuningTableCountMask ].get( baseNote, modifier );
+    }    
+    
+private:
+    TuningTableArray();
+    TuningTable     tuningTables [ tuningTableCount ];
+};
+
+class MidiTuningTables {
+public:   
+    MidiTuningTables();
+    
+    static constexpr uint16_t channelTableCountExp = 4; 
+    static constexpr uint16_t channelTableCount = 1 << channelTableCountExp;
+    static constexpr uint16_t channelTableCountMask = channelTableCount-1;
+    static constexpr uint16_t tuningTableCountExp = 4;
+    static constexpr uint16_t tuningTableCount = 1 << tuningTableCountExp;
+    
+    bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
+    
+    inline int32_t get( uint8_t baseNote, uint8_t channel ) const 
+    {
+        const uint8_t ch = channel & channelTableCountMask;
+        const uint8_t tuningTableIndex = channelTable[ ch  ].tuningTableSelect;
+        const uint8_t microModifier = channelTable[ ch  ].currentMicroModifier;
+        const int32_t baseYcent = channelTable[ ch  ].transientTransposition;        
+        const int32_t relYcent = TuningTableArray::getInstance().get( baseNote, microModifier, tuningTableIndex );
+        return relYcent + baseYcent;
+    }
+
+private:    
+    ChannelTable    channelTable[ channelTableCount ];
+};
+    
 } // end namespace yacynth 
 
 

@@ -33,14 +33,14 @@ namespace yacynth {
 // --------------------------------------------------------------------
 
 enum midi_status_t : uint8_t {
-    MIDI_NOTE_OFF   = 0x08,
-    MIDI_NOTE_ON    = 0x09,
-    MIDI_PLY_AFTCH  = 0x0A,
-    MIDI_CONTR_CHNG = 0x0B,
-    MIDI_PROG_CHNG  = 0x0C,
-    MIDI_CHN_AFTCH  = 0x0D,
-    MIDI_PITCH      = 0x0E,
-    MIDI_SYS        = 0x0F
+    MIDI_NOTE_OFF           = 0x08,
+    MIDI_NOTE_ON            = 0x09,
+    MIDI_POLY_AFTERTOUCH    = 0x0A,
+    MIDI_CONTROL_CHANGE     = 0x0B,
+    MIDI_PROGRAM_CHANGE     = 0x0C,
+    MIDI_CHANNEL_AFTERTOUCH = 0x0D,
+    MIDI_PITCH              = 0x0E,
+    MIDI_SYS                = 0x0F
 };
 
 struct  RouteIn {

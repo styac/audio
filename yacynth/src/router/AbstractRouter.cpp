@@ -54,7 +54,7 @@ AbstractRouter::AbstractRouter( ControlQueueVector& inQueue )
 void AbstractRouter::midiInCB( void *data, RouteIn in )
 {
     AbstractRouter& thp = *static_cast<AbstractRouter *>(data);
-    thp.translate( in );
+    thp.processMidi( in );
 }
 // --------------------------------------------------------------------
 uint32_t AbstractRouter::getPitch( int32_t noteNr, uint8_t tableNr )
@@ -84,7 +84,7 @@ void AbstractRouter::fillEqualTempered( uint8_t tableNr )
                 << "i " << i
                 << " nt " << (i/microResolution)
                 << " oct " << (i/maxTransposition)
-                << std::hex
+//                << std::hex
                 << " pitch " << pitch[ tableNr ][ i ]
                 << std::endl;
 #endif

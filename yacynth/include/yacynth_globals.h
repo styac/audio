@@ -76,10 +76,10 @@ constexpr uint16_t  effectChannelCount          = 16;
 constexpr uint16_t  effectFrameSizeExp          = oscillatorFrameSizeExp;        // 64 sample
 constexpr uint16_t  effectFrameSize             = 1<<effectFrameSizeExp;        // 64 sample
 
-constexpr uint8_t   oscOutputChannelCountExp          = 5; // 16 x 2  
-constexpr uint8_t   oscOutputChannelCount             = 1<<oscOutputChannelCountExp;
-constexpr uint8_t   oscOutputChannelCountMsk          = oscOutputChannelCount-1;
-constexpr uint8_t   layerCount                        = oscOutputChannelCount / 2; // 2 ch
+constexpr uint8_t   oscOutputChannelCountExp    = 5; // 16 x 2  
+constexpr uint8_t   oscOutputChannelCount       = 1<<oscOutputChannelCountExp;
+constexpr uint8_t   oscOutputChannelCountMsk    = oscOutputChannelCount-1;
+constexpr uint8_t   layerCount                  = oscOutputChannelCount / 2; // 2 ch
 
 //
 // ------------------------------------------------------------
@@ -88,7 +88,7 @@ constexpr uint8_t   layerCount                        = oscOutputChannelCount / 
 //
 constexpr uint32_t  ycentNormIntExp         = 24;
 constexpr uint32_t  ycentNormInt            = 1<<ycentNormIntExp;
-constexpr double    ycentNorm               = 65536.0 * 256.0;
+constexpr double    ycentNorm               = ycentNormInt;
 
 constexpr double    deltaPhaseScalerBase    =
     double( scalePhaseIndex * waveTableSize ) / samplingFrequency;
@@ -114,7 +114,7 @@ constexpr inline double deltaPhase2ycentDouble( double delta )
 constexpr inline uint32_t freq2ycent( double freq )
     { return uint32_t( std::lround( std::log2( deltaPhaseScalerBase * freq ) * ycentNorm) ); };
 
-inline double freq2ycentDouble( double freq )
+constexpr inline double freq2ycentDouble( double freq )
     { return std::log2( deltaPhaseScalerBase * freq ) * ycentNorm; };
     
 //====================================================
@@ -217,6 +217,18 @@ constexpr inline double fc_sinPi2_F( const double fc )
     return std::sin( PI2 * fc );
 }
 
+// check the oscillator period end
+// if T unsigned    : result 0,1
+// if T signed      : result 0,-1
+// valid for: 8,16,32,64 bit integer
+
+template< typename T >
+inline T isPeriodEnd( const T& lastPhase, const T& currPhase ) 
+{
+    constexpr size_t size = sizeof(T);
+    static_assert( size > 7 && size < 65, "illegal type" );
+    return ( lastPhase ^ currPhase ) >> ( size - 1 );
+}
 
 } // end namespace yacynth
 

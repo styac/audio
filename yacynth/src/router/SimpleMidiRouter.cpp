@@ -62,7 +62,7 @@ uint32_t SimpleMidiRouter::getPitch( int32_t noteNr, uint16_t tableNr )
 
 
 // polyphonic translate
-void SimpleMidiRouter::translate( RouteIn in )
+void SimpleMidiRouter::processMidi( RouteIn in )
 {
     out.store = 0;
     switch( in.op ) {
@@ -88,14 +88,14 @@ void SimpleMidiRouter::translate( RouteIn in )
         queueIn.queueOscillator.put( out.store );
         return;
 
-    case MIDI_PLY_AFTCH:
+    case MIDI_POLY_AFTERTOUCH:
 //        out.setVoice.opcode = YAMOP_CHNGVOICE_NOTE;
 //        out.setVoice.oscNr      = in.note_cc_val;
 //        out.setVoice.velocity   = 0;    // ?
 //        out.setVoice.pitch      = 0;    // OFF
         break;
 
-    case MIDI_CONTR_CHNG: {
+    case MIDI_CONTROL_CHANGE: {
         MidiController::ControlData cdt =
             midiController.getControlData( in.channel, in.note_cc_val );
 
@@ -127,10 +127,10 @@ void SimpleMidiRouter::translate( RouteIn in )
         break;
     }
 
-    case MIDI_PROG_CHNG:
+    case MIDI_PROGRAM_CHANGE:
         break;
 
-    case MIDI_CHN_AFTCH:
+    case MIDI_CHANNEL_AFTERTOUCH:
         InnerController::getInstance().setMidi( midiController.getAftertouch ( in.channel ), in.velocity_val );
         break;
 

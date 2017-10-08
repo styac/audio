@@ -81,15 +81,14 @@ void OscillatorArray::voiceRun(  uint16_t oscNr,  uint32_t pitch,  uint8_t veloc
 {
     if( oscNr >= voiceCount )
         return;
-
+    oscillatorParamChange.pitch             = pitch;
+    oscillatorParamChange.velocity          = velocity;
+    oscillatorParamChange.toneShaperSelect  = toneBank;
     std::cout 
         << "voiceUp oscNr:" << oscNr 
         << " velo:" << uint16_t(oscillatorParamChange.velocity ) 
         << " pitch:" << oscillatorParamChange.pitch 
         << " toneBank:" << toneBank << std::endl;
-    oscillatorParamChange.pitch             = pitch;
-    oscillatorParamChange.velocity          = velocity;
-    oscillatorParamChange.toneShaperSelect  = toneBank;
     array[ oscNr ].voiceRun( oscillatorParamChange );
 } // OscillatorArray::voiceUp
 // --------------------------------------------------------

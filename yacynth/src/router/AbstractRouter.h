@@ -89,7 +89,7 @@ public:
     
     static void midiInCB( void *, RouteIn in );
    
-    virtual void        translate( RouteIn in ) = 0;
+    virtual void        processMidi( RouteIn in ) = 0;
 
     // get the direct addressed notes from a table
     virtual uint32_t    getPitch( int32_t noteNr, uint8_t tableNr = 0 );

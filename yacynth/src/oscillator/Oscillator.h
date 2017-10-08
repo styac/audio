@@ -230,6 +230,7 @@ private:
     uint16_t                        toneShaperSelect;
     uint16_t                        oscillatorCountUsed;
     uint16_t                        pitchDepDx;
+    int16_t                         runCount;   // if multirun 
     voice_state_t                   voiceState;
     // common for all voices - correlated narrow band parallel filters by noiseNarrow
     static NoiseFrame<FrameInt<oscillatorFrameSizeExp>>

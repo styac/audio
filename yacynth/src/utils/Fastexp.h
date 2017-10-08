@@ -53,7 +53,7 @@ extern const ExpTable& expTable;
 class ExpTable {
 public:
     static constexpr double     PI = 3.141592653589793238462643383279502884197169399375105820974944592307816;
-    static constexpr int        precMultExp = 60;
+    static constexpr uint8_t    precMultExp = 60;
     static constexpr float      frange = 1.0f / (1LL<<precMultExp);
     static constexpr uint32_t   ref19900ycent   = 0x1ebacfd9;
     static constexpr uint32_t   ref0_01ycent    = 0x9ce2e7f;
@@ -125,7 +125,7 @@ public:
 
         const uint32_t  logv = base;
         const uint16_t  ind = logv >> 8;
-        const uint16_t  xpo = logv >> 24;
+        const uint8_t   xpo = logv >> 24;
         const uint64_t  y1 = exp2Table[ ind ];
         const uint64_t  dy = (( exp2Table[ ind + 1 ] - y1 ) * ( logv & 0x0FF )) >> 8;
         const uint64_t  rs = ( y1 + dy ) >> ( precMultExp - xpo );
@@ -144,7 +144,7 @@ public:
         const uint32_t  pitch = base + saturate<int32_t,maxDelta>( delta );
         const uint32_t  logv = pitch > ref19900ycent ? ref19900ycent : pitch;
         const uint16_t  ind = logv >> 8;
-        const uint16_t  xpo = logv >> 24;
+        const uint8_t   xpo = logv >> 24;
         const uint64_t  y1 = exp2Table[ ind ];
         const uint64_t  dy = (( exp2Table[ ind + 1 ] - y1 ) * ( logv & 0x0FF )) >> 8;
         const uint64_t  rs = ( y1 + dy ) >> ( precMultExp - xpo );
@@ -187,8 +187,9 @@ public:
 protected:
     ExpTable()
     {
-        constexpr double delta  = -PI / expTableSize;
-        constexpr double dexp   = 1.0L / double(expTableSize);
+        constexpr long double delta = -PI / expTableSize;
+        constexpr long double dexp  = 1.0L / double(expTableSize);
+        constexpr long double two   = 2.0;
         constexpr uint64_t norm = 1LL << precMultExp;
         for( uint32_t i = 0u; i <= expTableSize; ++i ) {
 
@@ -196,7 +197,7 @@ protected:
             // exp( -2 * PI *x ) ; x = 0 .. 0.5
             expMinus2PI[ i ]    = std::exp( delta * i );
             // exp2 x = 1..2
-            exp2Table[ i ]      = uint64_t( std::llround( std::pow( 2.0L, i * dexp ) * norm ) );
+            exp2Table[ i ]      = uint64_t( std::llround( std::pow( two, i * dexp ) * norm ) );
         }
     };
 };

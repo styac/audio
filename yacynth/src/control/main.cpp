@@ -29,6 +29,7 @@
 #include    "../yaio/IOthread.h"
 #include    "../net/Server.h"
 #include    "../router/SimpleMidiRouter.h"
+#include    "../router/Router.h"
 #include    "../control/Controllers.h"
 #include    "../control/Sysman.h"
 #include    "../control/SynthFrontend.h"
@@ -98,10 +99,18 @@ static void teststuff(void)
         << "\nrefA440ycentDouble:       "   << uint64_t(std::llround(refA440ycentDouble))
         << "\n19990:                    "   << ref19900ycent
         << "\n0.01:                     "   << ref0_01ycent
-        << std::dec
+        << "\n ycentA400_48000:         "   << int32_t(TuningTable::ycentA400_48000) 
+        << "\n ycentMidi0_48000:        "   << int32_t(TuningTable::ycentMidi0_48000) 
+        << "\n ycentMidi127_48000:      "   << int32_t(TuningTable::ycentMidi127_48000) 
+        << "\n deltaPhaseA400_48000:    "   << ycent2deltafi(TuningTable::ycentA400_48000 ,0)
+        << "\n deltaPhaseMidi0_48000:   "   << ycent2deltafi(TuningTable::ycentMidi0_48000,0)
+        << "\n deltaPhaseMidi127_48000: "   << ycent2deltafi(TuningTable::ycentMidi127_48000,0)
+        << "\ncent2ycent:               "   << cent2ycent
+        << "\nycent2cent:               "   << ycent2cent
+        << "\nmidi res:                 "   << (100.0/16384.0)            
         << "\n\n"
-        << std::endl;
-
+        << std::dec
+        << std::endl;        
 }
 
 // --------------------------------------------------------------------
@@ -123,7 +132,8 @@ int main( int argc, char** argv )
     SinTable::table();
     VelocityBoostTable::getInstance();
     YaIoJack::getInstance();
-
+    TuningTableArray::getInstance();
+    
     // OBSOLETE
     // LowOscillatorArray::getInstance().reset();
 
@@ -131,6 +141,7 @@ int main( int argc, char** argv )
     OscillatorOutVector&    oscOutVec   = OscillatorOutVector::getInstance();
     InnerController&        controller  = InnerController::getInstance();
     FxCollector::getInstance();
+    
 
     struct sigaction sigact;
     memset( &sigact, 0, sizeof(sigact) );
@@ -155,6 +166,7 @@ int main( int argc, char** argv )
     OscillatorArray     *oscArray   = new OscillatorArray();
     // router - can be singleton
     SimpleMidiRouter    *midiRoute  = new SimpleMidiRouter(queuein);
+    Router           *newmidiRoute  = new Router(queuein);
 
     // threads
     // TODO IOThread: separate audio and midi 
@@ -171,7 +183,9 @@ int main( int argc, char** argv )
         //-------------------------
         // start jack thread
         YaIoJack::getInstance().registerAudioProcessor( iOThread, IOThread::audioOutCB, IOThread::audioInOutCB );
-        YaIoJack::getInstance().registerMidiProcessor( midiRoute, AbstractRouter::midiInCB );
+        
+        //YaIoJack::getInstance().registerMidiProcessor( midiRoute, AbstractRouter::midiInCB );
+        YaIoJack::getInstance().registerMidiProcessor( newmidiRoute, Router::midiInCB );
         
         if( ! synthFe->initialize() )
             exit(-1);

@@ -34,14 +34,19 @@ using namespace TagRouterLevel_01;
 
 Router::Router( ControlQueueVector& inQueue )
 :   queueIn(inQueue)
+,   midiController()
+,   midiTuningTables()
 {
+    for( auto pm : notePlayMode) 
+        pm = poliphonicNote;
+    
 } // end Router::Router
 
 // --------------------------------------------------------------------
 
 void Router::midiInCB( void *data, RouteIn in )
 {
-    static_cast<Router *>(data)->translate( in );
+    static_cast<Router *>(data)->processMidi( in );
 }
 // --------------------------------------------------------------------
 

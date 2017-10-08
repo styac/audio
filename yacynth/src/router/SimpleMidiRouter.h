@@ -44,7 +44,7 @@ public:
     virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
 
-    virtual void        translate( RouteIn in ) override;
+    virtual void        processMidi( RouteIn in ) override;
     virtual uint32_t    getPitch( int32_t noteNr, uint16_t tableNr = 0 );
     virtual void        setTransposition( int8_t val ) override;
 };

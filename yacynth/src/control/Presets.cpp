@@ -28,20 +28,10 @@
 #include    "../oscillator/Oscillator.h"
 #include    "../oscillator/OscillatorArray.h"
 #include    "../oscillator/ToneShaper.h"
-#if 0
-#include    "../effects/DelayTap.h"
-#include    "../effects/FxFilter.h"
-#include    "../effects/FxOutNoise.h"
-#include    "../effects/FxModulator.h"
-#include    "../effects/FxOutOscillator.h"
-#include    "../effects/FxEcho.h"
-#include    "../effects/FxLateReverb.h"
-#include    "../effects/FxEarlyReflection.h"
-#include    "../effects/FxChorus.h"
-#include    "../effects/FxFlanger.h"
-#endif
 #include    "../control/Controllers.h"
 #include    "../control/Sysman.h"
+#include    "TuningConst.h"
+
 
 using namespace yacynth;
 using namespace TagMainLevel_00;
@@ -65,17 +55,14 @@ using namespace TagEffectFxLateReverbModeLevel_03;
 using namespace TagEffectFxEarlyReflectionModeLevel_03;
 using namespace TagEffectFxChorusModeLevel_03;
 using namespace TagEffectFxFlangerModeLevel_03;
-
-static int32_t relFreq2pitch( double relf ) {
-    return std::round( std::log2( relf ) * (1<<24) );
-};
+using namespace Tuning;
 
 
 void preset0( Sysman  * sysman )
 {
     yaxp::Message msgBuffer;
 
-#if 1
+#if 0
     std::cout << "\n---------------------------- test factory Effect begin" << std::endl;
     // test factory
     msgBuffer.clear();
@@ -140,7 +127,7 @@ void preset0( Sysman  * sysman )
     ts.amplitudeDetune = 0;
     ts.sustain.decayCoeff.setPar( 0, 0 );
     ts.sustain.modDepth  = 0;     // 100 / 256
-    ts.sustain.modDeltaPhase = 300;
+    ts.sustain.modDeltaPhase = 0; //300;
     ts.tickFrameRelease.setPar( 100, 0, 2 );
     ts.transient[ 2 ].tickFrame.setPar( 20, 0, 2 );
     ts.transient[ 2 ].targetValue = uint32_t( 32000.0 * 65535.0 );
@@ -165,16 +152,16 @@ void preset0( Sysman  * sysman )
     }
 
     // velo BOOST test
-    constexpr   int overToneCount = 8;
+    constexpr   int overToneCount = 12;
     for( auto vi=1u; vi < overToneCount; ++vi ) {
 //        const float onevi = 1.0f/float(vi+1);
 //        ts.pitch = relFreq2pitch( vi+1 );
-        const float onevi = 1.0f/float( vi + 1 );
-        ts.pitch = relFreq2pitch( vi + 1 );
+        const double onevi = 1.0/double( vi + 1 );
+        ts.pitch = interval2ycent( vi + 1 );
         ts.amplitudeDetune = 0;
         ts.sustain.decayCoeff.setPar( 0, 0 );
         ts.sustain.modDepth  = 0;     // 100 / 256
-        ts.sustain.modDeltaPhase = 300;
+        ts.sustain.modDeltaPhase = 0; // 300;
         ts.tickFrameRelease.setPar( 100, 0, 2 );
         ts.transient[ 2 ].tickFrame.setPar( 20, 0, 2 );
         ts.transient[ 2 ].targetValue = uint32_t( 32000.0 * 65535.0 * onevi );

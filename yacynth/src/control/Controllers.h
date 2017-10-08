@@ -143,6 +143,12 @@ public:
         CC_END                          = 8*(1<<8)
     };
 
+    inline static InnerController& getInstance(void)
+    {
+        static InnerController instance;
+        return instance;
+    }
+
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
     inline uint16_t getCountMasterLfo(void)
@@ -284,12 +290,6 @@ k 9 f 14.9358  -- 20.6
     inline int32_t getValueI32( uint16_t ind ) const
     {
         return value.v[ ind & arraySizeMask ];
-    }
-
-    inline static InnerController& getInstance(void)
-    {
-        static InnerController instance;
-        return instance;
     }
 
     static float getExpValueFloat( uint8_t v )
