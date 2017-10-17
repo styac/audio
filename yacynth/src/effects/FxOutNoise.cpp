@@ -43,9 +43,9 @@ bool FxOutNoiseParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8
     return false;
 }
 
-void FxOutNoise::clearTransient()
+void FxOutNoise::clearState()
 {
-    out().clear();        
+    // out().clear();        
 }
 
 bool FxOutNoise::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
@@ -61,18 +61,51 @@ bool FxOutNoise::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t pa
     const uint8_t tag = message.getTag(++tagIndex);
     switch( TagEffectFxOutNoiseMode( tag ) ) {
     case TagEffectFxOutNoiseMode::ClearState:
-        clearTransient(); // this must be called to cleanup
+        clearState(); // this must be called to cleanup
         message.setStatusSetOk();
         return true;
         
     case TagEffectFxOutNoiseMode::Clear:
-        clearTransient(); // this must be called to cleanup
+        clearState(); // this must be called to cleanup
         break;
     }
     // forward to param
     return param.parameter( message, tagIndex, paramIndex );
 }
 
+bool FxOutNoise::connect( const FxBase * v, uint16_t ind )
+{
+    doConnect(v,ind);
+};
+
+
+bool FxOutNoise::setSprocessNext( uint16_t mode ) 
+{
+    switch( mode ) {
+    case 0:
+        procMode = 0;
+        sprocesspNext = FxBase::sprocessClear2Nop;
+        sprocessp = FxBase::sprocessFadeOut;        
+        return true;
+    case 1:
+        sprocesspNext = sprocess_01;
+        break;
+    case 2:
+        sprocesspNext = sprocess_02;
+        break;
+    default:
+        return false;
+    }
+    bool fadeIn = 0 == procMode;
+    procMode = mode;
+    if( fadeIn ) {
+        sprocesspCurr = sprocesspNext;
+        sprocessp = FxBase::sprocessFadeIn;
+        return true;
+    }
+    sprocessp = FxBase::sprocessCrossFade;
+    return true;
+}
 
 // --------------------------------------------------------------------
 } // end namespace yacynth

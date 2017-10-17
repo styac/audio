@@ -42,32 +42,8 @@ public:
     FxMixer()
     :   Fx<FxMixerParam>()
     {
-        fillSprocessv<0>(sprocess_00);
-        fillSprocessv<1>(sprocess_01);
     }
-    // go up to Fx ??
-    // might change -> set sprocessTransient
-    // FIRST TEST WITHOUT TRANSIENT
-    // THEN  WITH TRANSIENT -> all types > out,
-    // 00 is always clear for output or bypass for in-out == effect OFF
-    virtual bool setProcMode( uint16_t ind )  override;
 
-    // go up to Fx ?? virtual ?
-#if 0
-    SpfT getProcMode( uint16_t ind ) const override
-    {
-        switch( ind ) {
-        case 0:
-            return sprocess_00;
-        case 1:
-            return sprocess_01;
-        case 2:
-            return sprocess_02;
-        default:
-            return sprocessp; // illegal index no change
-        }
-    }
-#endif
     inline void dump( float * channel0,  float * channel1 )
     {
         out().dump( channel0, channel1 );
@@ -77,60 +53,12 @@ public:
 
     virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override;
 
-    virtual void clearTransient() override;
+    virtual void clearState() override;
+    
+    virtual bool setSprocessNext( uint16_t mode ) override;
 
 private:
 
-    // go up to Fx ???
-    static void sprocessTransient( void * thp )
-    {
-        FxMixer& th = *static_cast< FxMixer * >(thp);
-        switch( th.fadePhase ) {
-        // 1 phase
-        case FadePhase::FPH_fadeNo:
-            th.sprocessp = th.sprocesspSave =  th.sprocessv[ th.procMode ];
-            th.sprocesspSave(thp);
-            return;
-
-        // clear then switch to nop
-        case FadePhase::FPH_fadeOutClear:
-            th.clear();
-            th.procMode = 0;
-            th.sprocessp = th.sprocesspSave = sprocessNop;
-            return;
-
-        case FadePhase::FPH_fadeOutSimple:
-            th.sprocesspSave(thp);
-            th.fadeOut();   // then clear -- then nop
-            th.sprocessp = th.sprocesspSave =  th.sprocessv[ th.procMode ];
-            return;
-
-        // 1 phase
-        case FadePhase::FPH_fadeInSimple:
-            th.sprocessp = th.sprocesspSave =  th.sprocessv[ th.procMode ];
-            th.sprocesspSave(thp);
-            th.fadeIn();
-            return;
-
-        // 1 of 2 phase
-        case FadePhase::FPH_fadeOutCross:
-            th.sprocesspSave(thp);
-            th.fadeOut();
-            th.sprocesspSave =  th.sprocessv[ th.procMode ];
-            th.fadePhase = FadePhase::FPH_fadeInCross;
-            return;
-
-        // 2 of 2 phase
-        case FadePhase::FPH_fadeInCross: // the same as FPH_fadeInSimple ???
-            th.sprocessp = th.sprocesspSave =  th.sprocessv[ th.procMode ];
-            th.sprocesspSave(thp);
-            th.fadeIn();
-            return;
-        }
-
-    }
-
-    static void sprocess_00( void * thp );
     static void sprocess_01( void * thp );
 
     inline void process()
@@ -140,7 +68,7 @@ private:
         if( isMasterVolumeChanged ) {
             const float cgainChA = gainCache[ 0 ].getExpValueFloat() * param.gainRange[ 0 ][ chA ];
             const float cgainChB = gainCache[ 0 ].getExpValueFloat() * param.gainRange[ 0 ][ chB ];
-            out().fadeAddV4( inp<0>(), gain[ 0 ][ chA ], gain[ 0 ][ chB ], 
+            out().fadeAddV4( inp<0>(), gain[ 0 ][ chA ], gain[ 0 ][ chB ],
                 ( cgainChA - gain[ 0 ][ chA ] ), ( cgainChB - gain[ 0 ][ chB ] ) );
         } else {
             out().multSet( inp<0>(), gain[ 0 ][ chA ], gain[ 0 ][ chB ] );
@@ -152,15 +80,15 @@ private:
                 if( gainCache[ cin ].update( param.gainIndex[ cin ] ) || isMasterVolumeChanged ) {
                     const float cgainChA = gainCache[ cin ].getExpValueFloat() * param.gainRange[ cin ][ chA ] * gain[ 0 ][ chA ];
                     const float cgainChB = gainCache[ cin ].getExpValueFloat() * param.gainRange[ cin ][ chB ] * gain[ 0 ][ chB ];
-                    out().fadeAddV4( inp( cin ), gain[ cin ][ chA ], gain[ cin ][ chB ], 
+                    out().fadeAddV4( inp( cin ), gain[ cin ][ chA ], gain[ cin ][ chB ],
                         ( cgainChA - gain[ cin ][ chA ] ), ( cgainChB - gain[ cin ][ chB ] ) );
                 } else {
                     out().multSet( inp( cin ), gain[ cin ][ chA ], gain[ cin ][ chB ] );
                 }
             }
-        }        
+        }
     }
-    
+
     float   gain[ FxMixerParam::inputCount ][ 2 ]; // for each stereo channel
     ControllerCache gainCache[FxMixerParam::inputCount];
 //    ControllerCacheRate<8> gainCache[FxMixerParam::inputCount];

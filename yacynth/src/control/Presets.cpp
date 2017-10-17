@@ -32,7 +32,6 @@
 #include    "../control/Sysman.h"
 #include    "TuningConst.h"
 
-
 using namespace yacynth;
 using namespace TagMainLevel_00;
 using namespace TagToneShaperLevel_01;
@@ -56,7 +55,6 @@ using namespace TagEffectFxEarlyReflectionModeLevel_03;
 using namespace TagEffectFxChorusModeLevel_03;
 using namespace TagEffectFxFlangerModeLevel_03;
 using namespace Tuning;
-
 
 void preset0( Sysman  * sysman )
 {
@@ -134,7 +132,7 @@ void preset0( Sysman  * sysman )
     ts.transient[ 1 ].tickFrame.setPar( 300, 0, 1 );
     ts.transient[ 1 ].targetValue = uint32_t( 20000.0 * 65535.0 );
 
-    ts.oscillatorType = ToneShaper::OSC_SIN;
+    ts.oscillatorType = ToneShaper::OSC_TRIANGLE; // OSC_SIN;
     // filter test
     // ts.oscillatorType = ToneShaper::OSC_NOISE_SV3x4_PEEK;
     ts.filterBandwidth = 0x60;
@@ -152,12 +150,13 @@ void preset0( Sysman  * sysman )
     }
 
     // velo BOOST test
-    constexpr   int overToneCount = 12;
+    int32_t overtoneDetune = 10000;
+    constexpr   int overToneCount = 1;
     for( auto vi=1u; vi < overToneCount; ++vi ) {
 //        const float onevi = 1.0f/float(vi+1);
 //        ts.pitch = relFreq2pitch( vi+1 );
         const double onevi = 1.0/double( vi + 1 );
-        ts.pitch = interval2ycent( vi + 1 );
+        ts.pitch = interval2ycent( vi + 1 ) + overtoneDetune * vi;
         ts.amplitudeDetune = 0;
         ts.sustain.decayCoeff.setPar( 0, 0 );
         ts.sustain.modDepth  = 0;     // 100 / 256

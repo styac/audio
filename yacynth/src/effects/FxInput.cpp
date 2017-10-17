@@ -48,9 +48,9 @@ bool FxInputParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t 
 }
 
 
-void FxInput::clearTransient()
+void FxInput::clearState()
 {
-    out().clear();    
+    // out().clear();    
 }
 
 bool FxInput::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
@@ -66,18 +66,27 @@ bool FxInput::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t param
     const uint8_t tag = message.getTag(++tagIndex);
     switch( TagEffectFxInputMode( tag ) ) {
     case TagEffectFxInputMode::ClearState:
-        clearTransient(); // this must be called to cleanup
+        clearState(); // this must be called to cleanup
         message.setStatusSetOk();
         return true;
         
     case TagEffectFxInputMode::Clear:
-        clearTransient(); // this must be called to cleanup
+        clearState(); // this must be called to cleanup
         break;
     }
     // forward to param
     return param.parameter( message, tagIndex, paramIndex ); 
 }
 
+bool FxInput::connect( const FxBase * v, uint16_t ind )
+{
+    return false; // no connectable input
+};
+
+bool FxInput::setSprocessNext( uint16_t mode ) 
+{
+    return true;
+}
 
 } // end namespace yacynth
 

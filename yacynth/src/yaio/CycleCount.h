@@ -1,6 +1,7 @@
 #pragma once
+
 /*
- * Copyright (C) 2017 ist
+ * Copyright (C) 2017 Istvan Simon
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -18,44 +19,43 @@
  */
 
 /*
- * File:   FxInput.h
- * Author: Istvan Simon -- stevens37 at gmail dot com
+ * File:   CycleCount.h
+ * Author: Istvan Simon
  *
- * Created on September 16, 2017, 10:37 AM
+ * Created on October 14, 2017, 3:03 PM
  */
-
-#include    "yacynth_globals.h"
-#include    "../effects/FxBase.h"
-#include    "v4.h"
-#include    "FxInputParam.h"
 
 namespace yacynth {
 
-class FxInput : public Fx<FxInputParam>  {
+class CycleCount {
 public:
-    using MyType = FxInput;
-    FxInput()
-    :   Fx<FxInputParam>()
+    static inline CycleCount&   getInstance(void)
     {
+        static CycleCount inst;
+        return inst;
     }
 
-    virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override;
-
-    virtual void clearState() override;
-
-    virtual bool setSprocessNext( uint16_t mode ) override;
-
-    virtual bool connect( const FxBase * v, uint16_t ind ) override;
-
-    // real process - direct called by IOThread
-    inline void process( float *ch0, float *ch1 )
+    void inc( int32_t val )
     {
-        out().load( ch0, ch1 );
+        cycleCount += val;
+    }
+
+    void reset()
+    {
+        cycleCount = 0;
+    }
+
+    int64_t get() const
+    {
+        return cycleCount;
     }
 
 private:
-
+    CycleCount()
+    :   cycleCount(0)
+    {
+    }
+    int64_t cycleCount;
 };
 
 } // end namespace yacynth
-

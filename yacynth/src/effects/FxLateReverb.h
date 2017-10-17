@@ -92,48 +92,17 @@ public:
     :   Fx<FxLateReverbParam>()
     ,   combVector(FxLateReverbParam::combLngExp)
     {
-        fillSprocessv<0>(sprocess_00);
-        fillSprocessv<1>(sprocess_01);
-        fillSprocessv<2>(sprocess_02);
-        fillSprocessv<3>(sprocess_03);
     }
 
     virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
-    // go up to Fx ??
-    // might change -> set sprocessTransient
-    // FIRST TEST WITHOUT TRANSIENT
-    // THEN  WITH TRANSIENT -> all types > out,
-    // 00 is always clear for output or bypass for in-out == effect OFF
-    bool setProcMode( uint16_t ind )  override
-    {
-        if( procMode == ind ) {
-            return true; // no change
-        }
-        if( getMaxMode() < ind ) {
-            return false; // illegal
-        }
-        if( 0 == procMode ) {
-            fadePhase = FadePhase::FPH_fadeInSimple;
-        } else if( 0 == ind ) {
-            fadePhase = FadePhase::FPH_fadeOutSimple;
-        } else {
-            fadePhase = FadePhase::FPH_fadeOutCross;
-        }
-
-        procMode = ind;
-        sprocessp = sprocesspSave = sprocessv[ind];
-        // sprocesspSave = sprocessv[ind];
-        // sprocessp = sprocessTransient;
-        return true;
-    }
-
+    virtual bool setSprocessNext( uint16_t mode ) override;
+    
     virtual bool connect( const FxBase * v, uint16_t ind ) override;
 
 private:
-    virtual void clearTransient(void) override;
-    static void sprocessTransient( void * thp );
-    static void sprocess_00( void * thp );  // bypass > inp<0> -> out
+    virtual void clearState(void) override;
+
     static void sprocess_01( void * thp );  // reverb 1 mode
     static void sprocess_02( void * thp );  // reverb 2 mode
     static void sprocess_03( void * thp );  // reverb 3 mode

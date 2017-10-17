@@ -28,6 +28,7 @@
 #include    "yacynth_globals.h"
 
 #include    <array>
+#include    <map>
 #include    <string>
 
 namespace yacynth {
@@ -36,45 +37,74 @@ namespace yacynth {
 // read and uiServer.setAuthSeed( );
 //
 
+// parameters:
+// -option1 value1a value1b -option2 value2a .. value2n -option3 value3 -option4 value4 ....
+//  -confd /home/x/y -port 7777 -midi jack
+
 class Setting {
 public:
     static constexpr const char * const configDirName = "/.yacconfig/";
     static constexpr const char * const authKeyName = ".yyauth.key";
     static constexpr const char * const confName = "default.conf";
     static constexpr uint16_t defaultCOntrolPort = 7373;
+    static constexpr uint16_t minCOntrolPort = 2000;
+    static constexpr uint16_t maxCOntrolPort = 40000;
+
+    enum class OptionTag {
+        CONFD,
+        MIDI,
+        PORT,
+    };
+
+    typedef struct { OptionTag tag; const char * usage; } OptionData;
+    typedef std::map<std::string, OptionData> OptionType;
+
+    // options  with selection
+    enum class OptMidi {
+        JACK,
+        ALSARAW,
+    };
 
     Setting();
-    
+
     bool initialize( int argc, char** argv );
 
     std::string getHomeDir() const
-    { 
-        return homeDir; 
+    {
+        return homeDir;
     }
 
     std::string getConfDir() const
-    { 
-        return homeDir + configDirName; 
+    {
+        return homeDir + configDirName;
     }
 
     std::string getAuthKey() const
-    { 
-        return homeDir + configDirName + authKeyName; 
+    {
+        return homeDir + configDirName + authKeyName;
     }
 
     bool isOk() const
     {
         return ok;
     }
-    
+
     uint16_t getControlPort()
     {
         return controlPort;
     }
-    
+
+
 private:
+    void usage( const char* option, const char* info ) const;
+
+    // TODO extend to accept multiple values
+    bool setOption( Setting::OptionTag tag, const std::string& optionValue );
+
+    OptionType  options;
     std::string homeDir;
     uint16_t    controlPort;
+    OptMidi     optMidi;
     bool        ok;
 };
 

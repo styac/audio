@@ -23,6 +23,8 @@
  * Created on October 4, 2017, 7:07 PM
  */
 #include    "TuningTables.h"
+#include    "protocol.h"
+#include    "Tags.h"
 #include    <iostream>
 #include    <fstream>
 #include    <iomanip>
@@ -53,18 +55,24 @@ namespace yacynth {
 // 1 ChannelTable for each MIDI channel: 16
 
 bool ChannelTable::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
-{
-    
+{   
+    TAG_DEBUG(message.getTag(tagIndex), tagIndex, paramIndex, "ChannelTable" );
+    message.setStatus( yaxp::MessageT::illegalTag );
+    return false; // error
 }
 
 bool TuningTable::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
-{
-    
+{    
+    TAG_DEBUG(message.getTag(tagIndex), tagIndex, paramIndex, "TuningTable" );
+    message.setStatus( yaxp::MessageT::illegalTag );
+    return false; // error
 }
 
 bool MidiTuningTables::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
-{
-    
+{   
+    TAG_DEBUG(message.getTag(tagIndex), tagIndex, paramIndex, "MidiTuningTables" );
+    message.setStatus( yaxp::MessageT::illegalTag );
+    return false; // error
 }
 
 

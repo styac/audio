@@ -88,35 +88,11 @@ bool FxMixer::connect( const FxBase * v, uint16_t ind )
     doConnect(v,ind);
 };
 
-void FxMixer::clearTransient()
+void FxMixer::clearState()
 {
-    out().clear();    
+    // out().clear();    
 }
 
-bool FxMixer::setProcMode( uint16_t ind )
-{
-    std::cout << "***** setProcMode mixer " << ind << std::endl;
-    if( procMode == ind ) {
-        return true; // no change
-    }
-    if( getMaxMode() < ind ) {
-        std::cout << "***** setProcMode mixer illegal" << ind << std::endl;
-        return false; // illegal
-    }
-    if( 0 == procMode ) {
-        fadePhase = FadePhase::FPH_fadeInSimple;
-    } else if( 0 == ind ) {
-        fadePhase = FadePhase::FPH_fadeOutSimple;
-    } else {
-        fadePhase = FadePhase::FPH_fadeOutCross;
-    }
-
-    procMode = ind;
-    sprocessp = sprocesspSave = sprocessv[ind];
-    // sprocesspSave =  sprocessv[ th.procMode ];
-    // sprocessp = sprocessTransient;
-    return true;
-}
 
 bool FxMixer::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
 {
@@ -131,29 +107,52 @@ bool FxMixer::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t param
     const uint8_t tag = message.getTag(++tagIndex);
     switch( TagEffectFxMixerMode( tag ) ) {
     case TagEffectFxMixerMode::ClearState:
-        clearTransient(); // this must be called to cleanup
+        clearState(); // this must be called to cleanup
         message.setStatusSetOk();
         return true;
     case TagEffectFxMixerMode::Clear:
-        clearTransient(); // this must be called to cleanup
+        clearState(); // this must be called to cleanup
         break;
     case TagEffectFxMixerMode::Preset :
-        setProcMode(1);    
+        setProcessingMode(1);    
         break;    
     }
     // forward to param
     return param.parameter( message, tagIndex, paramIndex );
 }
 
-// 00 is always clear for output or bypass for in-out
-void FxMixer::sprocess_00( void * thp )
-{
-   // static_cast< FxOutNoise * >(thp)->clear();
-}
-
 void FxMixer::sprocess_01( void * thp )
 {
     static_cast< MyType * >(thp)->process();
+}
+
+
+bool FxMixer::setSprocessNext( uint16_t mode )
+{
+    switch( mode ) {
+    case 0:
+        procMode = 0;
+        sprocesspNext = FxBase::sprocessClear2Nop;
+        sprocessp = FxBase::sprocessFadeOut;        
+        return true;
+        
+    case 1:
+        sprocesspNext = sprocess_01;
+        break;
+        
+    default:
+        return false;
+    }
+    
+    bool fadeIn = 0 == procMode;
+    procMode = mode;
+    if( fadeIn ) {
+        sprocesspCurr = sprocesspNext;
+        sprocessp = FxBase::sprocessFadeIn;
+        return true;
+    }
+    sprocessp = FxBase::sprocessCrossFade;
+    return true;
 }
 
 } // end namespace yacynth

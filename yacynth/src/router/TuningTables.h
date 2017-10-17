@@ -127,17 +127,45 @@ public:
     static constexpr uint16_t channelTableCountMask = channelTableCount-1;
     static constexpr uint16_t tuningTableCountExp = 4;
     static constexpr uint16_t tuningTableCount = 1 << tuningTableCountExp;
+    static constexpr uint8_t  oneShotMicromodifier = 0x80; 
     
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
     
-    inline int32_t get( uint8_t baseNote, uint8_t channel ) const 
+    inline int32_t get( uint8_t baseNote, uint8_t channel ) 
     {
         const uint8_t ch = channel & channelTableCountMask;
         const uint8_t tuningTableIndex = channelTable[ ch  ].tuningTableSelect;
         const uint8_t microModifier = channelTable[ ch  ].currentMicroModifier;
         const int32_t baseYcent = channelTable[ ch  ].transientTransposition;        
+        if( microModifier & oneShotMicromodifier ) {
+            channelTable[ ch  ].currentMicroModifier = 0;            
+        }
         const int32_t relYcent = TuningTableArray::getInstance().get( baseNote, microModifier, tuningTableIndex );
         return relYcent + baseYcent;
+    }
+
+    void setTransposition( int32_t ycent, uint8_t channel ) 
+    {
+        const uint8_t ch = channel & channelTableCountMask;
+        channelTable[ ch  ].transientTransposition = ycent;
+    }
+
+    void setTuningTableSelect( uint8_t tableIndex, uint8_t channel ) 
+    {
+        const uint8_t ch = channel & channelTableCountMask;
+        channelTable[ ch  ].tuningTableSelect = tableIndex;
+    }
+    
+    void setMicromodifier( uint8_t microModifier, uint8_t channel ) 
+    {
+        const uint8_t ch = channel & channelTableCountMask;
+        channelTable[ ch  ].currentMicroModifier = microModifier;
+    }
+
+    void setOneShotMicromodifier( uint8_t microModifier, uint8_t channel ) 
+    {
+        const uint8_t ch = channel & channelTableCountMask;
+        channelTable[ ch  ].currentMicroModifier = microModifier | oneShotMicromodifier;
     }
 
 private:    

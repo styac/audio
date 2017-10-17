@@ -59,9 +59,6 @@ public:
     :   Fx<FxEchoParam>()
     ,   delay(FxEchoParam::delayLngExp)   // 8192 * 64 sample - 10 sec
     {
-        fillSprocessv<0>(sprocess_00);
-        fillSprocessv<1>(sprocess_01);
-        fillSprocessv<2>(sprocess_02);
         delay.clear();
     };
 
@@ -69,36 +66,13 @@ public:
 
     virtual bool connect( const FxBase * v, uint16_t ind ) override;
 
-    static void sprocess_00( void * thp );  // bypass > inp<0> -> out
     static void sprocess_01( void * thp );
     static void sprocess_02( void * thp );
 
     // void clear(void) {  delay.clear(); };
-    virtual void clearTransient() override ;
+    virtual void clearState() override ;
 
-    bool setProcMode( uint16_t ind )  override
-    {
-        if( procMode == ind ) {
-            return true; // no change
-        }
-        if( getMaxMode() < ind ) {
-            return false; // illegal
-        }
-        if( 0 == procMode ) {
-            fadePhase = FadePhase::FPH_fadeInSimple;
-        } else if( 0 == ind ) {
-            clearTransient(); // ????
-            fadePhase = FadePhase::FPH_fadeOutSimple;
-        } else {
-            fadePhase = FadePhase::FPH_fadeOutCross;
-        }
-
-        procMode = ind;
-        sprocessp = sprocesspSave = sprocessv[ind];
-        // sprocesspSave = sprocessv[ind];
-        // sprocessp = sprocessTransient;
-        return true;
-    }
+    virtual bool setSprocessNext( uint16_t mode ) override;
 
     inline void process_add_dry(void)
     {

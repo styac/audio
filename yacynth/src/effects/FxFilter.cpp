@@ -77,9 +77,9 @@ bool FxFilterParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t
     return false;    
 }
 
-void FxFilter::clearTransient()
+void FxFilter::clearState()
 {
-    out().clear();    
+    // out().clear();    
 }
 
 bool FxFilter::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
@@ -95,28 +95,29 @@ bool FxFilter::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t para
     const uint8_t tag = message.getTag(++tagIndex);
     switch( TagEffectFxFilterMode( tag ) ) {
     case TagEffectFxFilterMode::ClearState:
-        clearTransient(); // this must be called to cleanup
+        clearState(); // this must be called to cleanup
         message.setStatusSetOk();
         return true;
         
     case TagEffectFxFilterMode::Clear:
-        clearTransient(); // this must be called to cleanup
+        clearState(); // this must be called to cleanup
         break;
     }
-    clearTransient();
+    clearState();
     // forward to param
     return param.parameter( message, tagIndex, paramIndex );    
 }
 
-    // 00 is always clear for output or bypass for in-out
-void FxFilter::sprocess_00( void * thp )
+bool FxFilter::connect( const FxBase * v, uint16_t ind ) 
 {
-    static_cast< MyType * >(thp)->clear();
-}
+    doConnect(v,ind);
+};
+
 void FxFilter::sprocess_01( void * thp )
 {
     static_cast< MyType * >(thp)->process_01_ap4x();
 }
+
 void FxFilter::sprocess_02( void * thp )
 {
     static_cast< MyType * >(thp)->process_02_svf_1x();
@@ -150,6 +151,54 @@ void FxFilter::sprocess_09( void * thp )
     static_cast< MyType * >(thp)->process_01_ap4x();
 }
 
+bool FxFilter::setSprocessNext( uint16_t mode ) 
+{
+    switch( mode ) {
+    case 0:
+        procMode = 0;
+        sprocesspNext = FxBase::sprocessClear2Nop;
+        sprocessp = FxBase::sprocessFadeOut;        
+        return true;
+    case 1: // TODO : Bypass
+        sprocesspNext = sprocess_01;
+        break;
+    case 2:
+        sprocesspNext = sprocess_02;
+        break;
+    case 3:
+        sprocesspNext = sprocess_03;
+        break;
+    case 4:
+        sprocesspNext = sprocess_04;
+        break;
+    case 5:
+        sprocesspNext = sprocess_05;
+        break;
+    case 6:
+        sprocesspNext = sprocess_06;
+        break;
+    case 7:
+        sprocesspNext = sprocess_07;
+        break;
+    case 8:
+        sprocesspNext = sprocess_08;
+        break;
+    case 9:
+        sprocesspNext = sprocess_09;
+        break;
+    default:
+        return false;
+    }
+    bool fadeIn = 0 == procMode;
+    procMode = mode;
+    if( fadeIn ) {
+        sprocesspCurr = sprocesspNext;
+        sprocessp = FxBase::sprocessFadeIn;
+        return true;
+    }
+    sprocessp = FxBase::sprocessCrossFade;
+    return true;
+}
 
 } // end namespace yacynth
 

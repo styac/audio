@@ -39,7 +39,8 @@ public:
 
     explicit Server(
         Sysman&             sysmanP,
-        const uint16_t      port
+        const uint16_t      port,
+        yaxp::CONN_MODE     connMode
     );
 
     Server(const Server&) = delete;
@@ -68,10 +69,12 @@ private:
     int                     socketListen;
     int                     socketAccept;
     int                     errnoNet;
+    yaxp::CONN_MODE         connMode;
     uint8_t                 seedAuth[ seedLength ];
     yaxp::Message           message;
     uint16_t                cliendId;
     uint8_t                 lastSequenceNumber;
+    yaxp::MessageT          lastMessageType;
     bool                    connected;
     bool                    authenticated;
     bool                    stopServer;

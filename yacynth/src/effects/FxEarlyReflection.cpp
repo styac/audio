@@ -56,9 +56,9 @@ bool FxEarlyReflectionParam::parameter( yaxp::Message& message, uint8_t tagIndex
     return false;
 }
 
-void FxEarlyReflection::clearTransient()
+void FxEarlyReflection::clearState()
 {
-    out().clear();    
+    // out().clear();    
 }
 
 bool FxEarlyReflection::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
@@ -74,12 +74,12 @@ bool FxEarlyReflection::parameter( yaxp::Message& message, uint8_t tagIndex, uin
     const uint8_t tag = message.getTag(++tagIndex);
     switch( TagEffectFxEarlyReflectionMode( tag ) ) {
     case TagEffectFxEarlyReflectionMode::ClearState:
-        clearTransient(); // this must be called to cleanup
+        clearState(); // this must be called to cleanup
         message.setStatusSetOk();
         return true;
         
     case TagEffectFxEarlyReflectionMode::Clear:
-        clearTransient(); // this must be called to cleanup
+        clearState(); // this must be called to cleanup
         break;
     }
     // forward to param
@@ -91,59 +91,6 @@ bool FxEarlyReflection::connect( const FxBase * v, uint16_t ind )
     doConnect(v,ind);
 };
 
-void FxEarlyReflection::sprocessTransient( void * thp )
-{
-    auto& th = *static_cast< MyType * >(thp);
-    switch( th.fadePhase ) {
-    // 1 phase
-    case FadePhase::FPH_fadeNo:
-        th.sprocessp = th.sprocesspSave =  th.sprocessv[ th.procMode ];
-        th.sprocesspSave(thp);
-        return;
-
-    // clear then switch to nop
-    case FadePhase::FPH_fadeOutClear:
-        th.clear();
-        th.procMode = 0;
-        th.sprocessp = th.sprocesspSave = sprocessNop;
-        return;
-
-    case FadePhase::FPH_fadeOutSimple:
-        th.sprocesspSave(thp);
-        th.fadeOut();   // then clear -- then nop
-        th.sprocessp = th.sprocesspSave =  th.sprocessv[ th.procMode ];
-        return;
-
-    // 1 phase
-    case FadePhase::FPH_fadeInSimple:
-        th.sprocessp = th.sprocesspSave =  th.sprocessv[ th.procMode ];
-        th.sprocesspSave(thp);
-        th.fadeIn();
-        return;
-
-    // 1 of 2 phase
-    case FadePhase::FPH_fadeOutCross:
-        th.sprocesspSave(thp);
-        th.fadeOut();
-        th.sprocesspSave =  th.sprocessv[ th.procMode ];
-        th.fadePhase = FadePhase::FPH_fadeInCross;
-        return;
-
-    // 2 of 2 phase
-    case FadePhase::FPH_fadeInCross: // the same as FPH_fadeInSimple ???
-        th.sprocessp = th.sprocesspSave =  th.sprocessv[ th.procMode ];
-        th.sprocesspSave(thp);
-        th.fadeIn();
-        return;
-    }
-
-}
-
-// 00 is always clear for output or bypass for in-out
-void FxEarlyReflection::sprocess_00( void * thp )
-{
-    static_cast< MyType * >(thp)->clear();
-}
 
 void FxEarlyReflection::sprocess_01( void * thp )
 {
@@ -165,18 +112,6 @@ void FxEarlyReflection::sprocess_04( void * thp )
     static_cast< MyType * >(thp)->process_04_modulated_noslave();
 }
 
-#if 0
-// slave has no params
-template<>
-bool FxSlave<FxEarlyReflectionParam>::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
-{
-    return false;
-};
-template<>
-void FxSlave<FxEarlyReflectionParam>::clearTransient()
-{
-};
-#endif
 // simple genrator for coeffs
 
 void generator_FxEarlyReflectionParam( float gain, float modampl, float decay )
@@ -211,5 +146,82 @@ void generator_FxEarlyReflectionParam( float gain, float modampl, float decay )
     }
 }
 
+bool FxEarlyReflection::setSprocessNext( uint16_t mode ) 
+{
+    switch( mode ) {
+    case 0:
+        procMode = 0;
+        sprocesspNext = FxEarlyReflection::sprocessClear2Nop;
+        sprocessp = FxBase::sprocessFadeOut;        
+        return true;
+    case 1:
+        sprocesspNext = sprocess_01;
+        break;
+    case 2:
+        sprocesspNext = sprocess_02;
+        break;
+    case 3:
+        sprocesspNext = sprocess_03;
+        break;
+    case 4:
+        sprocesspNext = sprocess_04;
+        break;
+    default:
+        return false;
+    }
+    bool fadeIn = 0 == procMode;
+    procMode = mode;
+    if( fadeIn ) {
+        sprocesspCurr = sprocesspNext;
+        sprocessp = FxEarlyReflection::sprocessFadeIn; 
+        return true;
+    }
+    sprocessp = FxEarlyReflection::sprocessCrossFade;
+    return true;
+}
+
+// --------------------------------------------------------------------
+// TODO : clear fadein fadeout the slaves
+
+void FxEarlyReflection::sprocessClear2Nop( void * data )
+{
+    FxEarlyReflection& thp = * static_cast<FxEarlyReflection *> ( data );
+    thp.sprocessp = FxBase::sprocessNop;
+    thp.EIObuffer::clear();
+// TODO : clear fadein fadeout the slaves
+    
+}
+// --------------------------------------------------------------------
+void FxEarlyReflection::sprocessFadeOut( void * data )
+{
+    FxEarlyReflection& thp = * static_cast<FxEarlyReflection *> ( data );
+    thp.sprocessp = FxEarlyReflection::sprocessClear2Nop;
+    thp.sprocesspCurr( data );
+    thp.EIObuffer::fadeOut();
+// TODO : clear fadein fadeout the slaves
+}
+// --------------------------------------------------------------------
+void FxEarlyReflection::sprocessFadeIn( void * data )
+{
+    FxEarlyReflection& thp = * static_cast<FxEarlyReflection *> ( data ) ;
+    thp.clearState(); // clears the internal state but not the output - new mode starts
+// TODO : clear fadein fadeout the slaves
+    SpfT sprocessX( thp.sprocesspNext );
+    thp.sprocessp = sprocessX;
+    thp.sprocesspCurr = sprocessX;
+    sprocessX( data );
+    thp.EIObuffer::fadeIn();
+// TODO : clear fadein fadeout the slaves
+}
+// --------------------------------------------------------------------
+// not real cross fade at the moment but fade out - fade in
+void FxEarlyReflection::sprocessCrossFade( void * data )
+{
+    FxEarlyReflection& thp = * static_cast<FxEarlyReflection *> ( data );
+    thp.sprocessp = FxEarlyReflection::sprocessFadeIn;
+    thp.sprocesspCurr( data );
+    thp.EIObuffer::fadeOut();
+// TODO : clear fadein fadeout the slaves
+}
 
 } // end yacynth

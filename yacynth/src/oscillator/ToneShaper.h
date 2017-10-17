@@ -180,6 +180,7 @@ struct ToneShaper {
         OSC_NONE,       // no sound
         OSC_SIN,
         OSC_SINSIN,     // waveSinTable[ uint16_t( waveSinTable[phase >>16] )]
+        OSC_TRIANGLE,
 
         OSC_PD00,       // phase distorsion0 waveSinTable[ uint16_t((waveSinTable[phase >>16]) + (phase >>16))]
         OSC_PD01,       // phase distorsion1 waveSinTable[ uint16_t((waveSinTable[phase >>16]>>1) + (phase >>16))]

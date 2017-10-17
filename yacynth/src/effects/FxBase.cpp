@@ -24,11 +24,12 @@
  */
 
 #include    "FxBase.h"
+#include    "../yaio/CycleCount.h"
 
 #include    <chrono>
 #include    <sys/time.h>
 #include    <ctime>
-
+#include    <time.h>
 
 namespace yacynth {
 using namespace TagEffectRunnerLevel_01;
@@ -47,10 +48,99 @@ FxNode::FxNode()
 {};
 
 // --------------------------------------------------------------------
-FxBase::~FxBase() 
+FxBase::~FxBase()
 {
 };
+
 // --------------------------------------------------------------------
+
+void FxBase::sprocessNop( void * data )
+{
+    return;
+}
+// --------------------------------------------------------------------
+void FxBase::sprocessClear2Nop( void * data )
+{
+    FxBase& thp = * static_cast<FxBase *> ( data );
+    thp.sprocessp = sprocessNop;
+    thp.EIObuffer::clear();
+}
+// --------------------------------------------------------------------
+void FxBase::sprocessFadeOut( void * data )
+{
+    FxBase& thp = * static_cast<FxBase *> ( data );
+    thp.sprocessp = sprocessClear2Nop;
+    thp.sprocesspCurr( data );
+    thp.EIObuffer::fadeOut();
+}
+// --------------------------------------------------------------------
+void FxBase::sprocessFadeIn( void * data )
+{
+    FxBase& thp = * static_cast<FxBase *> ( data ) ;
+    thp.clearState(); // clears the internal state but not the output - new mode starts
+    SpfT sprocessX( thp.sprocesspNext );
+    thp.sprocessp = sprocessX;
+    thp.sprocesspCurr = sprocessX;
+    sprocessX( data );
+    thp.EIObuffer::fadeIn();
+}
+// --------------------------------------------------------------------
+// not real cross fade at the moment but fade out - fade in
+void FxBase::sprocessCrossFade( void * data )
+{
+    FxBase& thp = * static_cast<FxBase *> ( data );
+    thp.sprocessp = sprocessFadeIn;
+    thp.sprocesspCurr( data );
+    thp.EIObuffer::fadeOut();
+}
+// --------------------------------------------------------------------
+// X -> 0:
+//  k:      run old function    :  sprocessX2FadeOut
+//          fade out
+//  k+1:    clear               :  sprocessClear2Nop
+//  k+2:    nop
+//          wait 4 cycle
+
+// 0 -> X
+//  k:      run new function    :  sprocessFadeIn2X
+//          fade in
+//  k+1:    new function
+//          wait 3 cycle
+
+// X -> Y
+//  k:      run old function    :  sprocessX2FadeOut
+//          fade out
+//  k+1     run new function    :  sprocessFadeIn2X
+//          fade in
+//  k+2:    new function
+//          wait 4 cycle
+
+bool FxBase::setProcessingMode( uint16_t mode )
+{
+    constexpr int waitCycle = 10;
+    if( procMode == mode ) {
+        return true; // no change
+    }
+
+    // check cycleCount if low then wait 10msec
+    // set cycleCount
+    auto currCycle = CycleCount::getInstance().get();
+    if( currCycle < nextSetPocModeCycle ) {
+        timespec req{0,1000LL*1000*10};
+        timespec rem;
+        // sleep(10sec)
+        int r = nanosleep( &req, &rem );
+        if( r != 0 ) {
+            // TODO temp
+            std::cout << " *** nanosleep error: " << errno << std::endl;
+        }
+    }
+    nextSetPocModeCycle = CycleCount::getInstance().get() + waitCycle;
+    return setSprocessNext( mode );
+}
+
+// --------------------------------------------------------------------
+
 bool FxBase::connect( const FxBase * v, uint16_t ind )
 {
      std::cout
@@ -62,9 +152,9 @@ bool FxBase::connect( const FxBase * v, uint16_t ind )
 // --------------------------------------------------------------------
 // clear transient data - NOT settings
 
-void FxBase::clearTransient()
+void FxBase::clearState()
 {
-    out().clear();    
+    // EIObuffer::clear();
 }
 
 // --------------------------------------------------------------------
@@ -78,13 +168,11 @@ bool FxBase::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramI
 
 // --------------------------------------------------------------------
 
-bool FxBase::setProcMode( uint16_t ind )
+bool FxBase::setSprocessNext( uint16_t mode )
 {
-     std::cout
-         << " *** FxBase::setProcMode"
-         << std::endl;
-    return false;
-}; // might be non virtual
+    sprocessp = sprocesspNext = FxBase::sprocessClear2Nop;
+    return true;
+}; 
 
 // --------------------------------------------------------------------
 
@@ -146,10 +234,17 @@ bool FxCollector::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t p
                     << "---- FxCollector setProcMode call " << uint16_t(effectInd )
                     << " mode " << message.getParam(paramIndex+1)
                     <<  std::endl;
-            if( get(effectInd)->setProcMode(message.getParam(paramIndex+1)) ) {
+//            if( get(effectInd)->setProcMode(message.getParam(paramIndex+1)) ) {
+//                message.setStatusSetOk();
+//                return true;
+//            }
+            
+            if( get(effectInd)->setProcessingMode(message.getParam(paramIndex+1)) ) {
                 message.setStatusSetOk();
                 return true;
             }
+            
+            
         }
         message.setStatus( yaxp::MessageT::illegalProcMode );
         return false;
@@ -185,7 +280,7 @@ bool FxCollector::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t p
             message.setStatusGetOk(listLength);
             return true;
         }
-        
+
     case TagEffectCollector::EffectInstance : {
             TAG_DEBUG(TagEffectCollector::EffectInstance, tagIndex, paramIndex, "FxCollector" );
             if( !message.checkParamIndex(paramIndex) )
@@ -205,8 +300,8 @@ bool FxCollector::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t p
             }
             message.setStatus( yaxp::MessageT::illegalTagEffectType );
             return false;
-        }    
-    
+        }
+
     case TagEffectCollector::DeleteEffects : {
             if( cleanup() ) {
                 message.setStatusSetOk();
@@ -214,8 +309,8 @@ bool FxCollector::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t p
             }
             message.setStatus( yaxp::MessageT::nothingToDo );
             return false;
-        }        
-    }        
+        }
+    }
     message.setStatus( yaxp::MessageT::illegalTag );
     return false;
 }
@@ -232,7 +327,7 @@ bool FxRunner::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t para
             message.setStatusSetOk();
             return true;
         }
-        
+
         case TagEffectRunner::Fill : {
             TAG_DEBUG(TagEffectRunner::Fill, tagIndex, paramIndex, "FxRunner" );
             if( !message.checkParamIndex(paramIndex) )

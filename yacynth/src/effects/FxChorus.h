@@ -25,17 +25,13 @@
  * Created on June 23, 2016, 7:46 PM
  */
 
-
-
 #include    "../utils/Fastsincos.h"
 #include    "../oscillator/Tables.h"
 #include    "../utils/Limiters.h"
 #include    "../effects/DelayTap.h"
 #include    "../oscillator/NoiseSample.h"
-
 #include    "../effects/FxChorusParam.h"
 #include    "../effects/FxBase.h"
-
 
 using namespace tables;
 
@@ -49,72 +45,16 @@ public:
     ,   delay(FxChorusParam::delayLngExp)   // 8192 * 64 sample - 10 sec
     ,   noiseSample( GaloisShifterSingle<seedThreadEffect_noise>::getInstance() )
     {
-        fillSprocessv<0>(sprocess_00);
-        fillSprocessv<1>(sprocess_01);
-        fillSprocessv<2>(sprocess_02);
     }
 
     virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
+    virtual bool setSprocessNext( uint16_t mode ) override;
 
-    // go up to Fx ??
-    // might change -> set sprocessTransient
-    // FIRST TEST WITHOUT TRANSIENT
-    // THEN  WITH TRANSIENT -> all types > out,
-    // 00 is always clear for output or bypass for in-out == effect OFF
-    bool setProcMode( uint16_t ind )  override
-    {
-        std::cout << "---- FxChorus setProcMode " << ind << std::endl;
-        if( procMode == ind ) {
-            return true; // no change
-        }
-        if( getMaxMode() < ind ) {
-            return false; // illegal
-        }
-        if( 0 == procMode ) {
-            fadePhase = FadePhase::FPH_fadeInSimple;
-        } else if( 0 == ind ) {
-            fadePhase = FadePhase::FPH_fadeOutSimple;
-        } else {
-            fadePhase = FadePhase::FPH_fadeOutCross;
-        }
-
-        procMode = ind;
-        sprocessp = sprocesspSave = sprocessv[ind];
-        // sprocesspSave = sprocessv[ind];
-        // sprocessp = sprocessTransient;
-        return true;
-    }
-#if 0
-    // go up to Fx ?? virtual ?
-    SpfT getProcMode( uint16_t ind ) const override
-    {
-        switch( ind ) {
-        case 0:
-            return sprocess_00;
-        case 1:
-            return sprocess_01;
-        case 2:
-            return sprocess_02;
-        case 3:
-            return sprocess_03;
-        case 4:
-            return sprocess_04;
-        case 5:
-            return sprocess_05;
-        default:
-            return sprocessp; // illegal index no change
-        }
-    }
-#endif
     virtual bool connect( const FxBase * v, uint16_t ind ) override;
 
 private:
-    virtual void clearTransient(void) override;
-
-    static void sprocessTransient( void * thp );
-
-    static void sprocess_00( void * thp );  // bypass > inp<0> -> out
+    virtual void clearState(void) override;
     static void sprocess_01( void * thp );
     static void sprocess_02( void * thp );
 //

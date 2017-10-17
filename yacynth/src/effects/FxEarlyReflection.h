@@ -41,53 +41,22 @@ public:
     ,   coeff {0}
     {
         for( auto& si : slaves ) si.setMasterId(id());
-
-        fillSprocessv<0>(sprocess_00);
-        fillSprocessv<1>(sprocess_01);
-        fillSprocessv<2>(sprocess_02);
-        fillSprocessv<3>(sprocess_03);
-        fillSprocessv<4>(sprocess_04);
-        //std::cout << "\n---- delayLine bufferSize " << std::dec << delayLine.bufferSize << std::endl;
     }
 
     virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
-    // go up to Fx ??
-    // might change -> set sprocessTransient
-    // FIRST TEST WITHOUT TRANSIENT
-    // THEN  WITH TRANSIENT -> all types > out,
-    // 00 is always clear for output or bypass for in-out == effect OFF
-    bool setProcMode( uint16_t ind )  override
-    {
-        if( procMode == ind ) {
-            return true; // no change
-        }
-        if( getMaxMode() < ind ) {
-            return false; // illegal
-        }
-        if( 0 == procMode ) {
-            fadePhase = FadePhase::FPH_fadeInSimple;
-        } else if( 0 == ind ) {
-            fadePhase = FadePhase::FPH_fadeOutSimple;
-        } else {
-            fadePhase = FadePhase::FPH_fadeOutCross;
-        }
-
-        procMode = ind;
-        sprocessp = sprocesspSave = sprocessv[ind];
-        // sprocesspSave = sprocessv[ind];
-        // sprocessp = sprocessTransient;
-        return true;
-    }
+    virtual bool setSprocessNext( uint16_t mode ) override;
 
     virtual bool connect( const FxBase * v, uint16_t ind ) override;
 
 private:
-    virtual void clearTransient(void) override;
+    virtual void clearState(void) override;
+    // do slaves also
+    static void sprocessClear2Nop( void * );
+    static void sprocessFadeOut( void * );
+    static void sprocessFadeIn( void * );
+    static void sprocessCrossFade( void * );
 
-    static void sprocessTransient( void * thp );
-
-    static void sprocess_00( void * thp );  // bypass > inp<0> -> out
     static void sprocess_01( void * thp );
     static void sprocess_02( void * thp );
     static void sprocess_03( void * thp );

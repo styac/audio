@@ -43,12 +43,11 @@ public:
 
     virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override;
 
-    virtual void clearTransient() override;
-    
-    virtual bool connect( const FxBase * v, uint16_t ind ) override
-    {
-        doConnect( v, ind );
-    };
+    virtual void clearState() override;
+
+    virtual bool connect( const FxBase * v, uint16_t ind ) override;
+
+    virtual bool setSprocessNext( uint16_t mode ) override;
 
     void process( const OscillatorOut& inp )
     {
@@ -59,13 +58,13 @@ public:
             for( uint16_t si = 0u; si < oscillatorFrameSize; ++si ) {
                 out().channel[ chA ][ si ] = inp.layer[ 0 ][ si ] * param.gain[ 0 ];
                 out().channel[ chB ][ si ] = inp.layer[ 1 ][ si ] * param.gain[ 1 ];
-            }            
+            }
         } else {
             // mono
             // setAmplitudeSumm( ci, inp.amplitudeSumm[ 0 ] << 1 );
             for( uint16_t si = 0u; si < oscillatorFrameSize; ++si ) {
                 out().channel[ chA ][ si ] = out().channel[ chB ][ si ] = inp.layer[0][si] * param.gain[0];
-            }            
+            }
         }
 
         for( uint16_t ci = 0u; ci < FxOscillatorMixerParam::slaveCount; ++ci ) {
@@ -81,14 +80,14 @@ public:
                 for( uint16_t si = 0u; si < oscillatorFrameSize; ++si ) {
                     slaves[ ci ].out().channel[ chA ][ si ] = inp.layer[ ci2_0 ][ si ] * param.gain[ ci2_0 ];
                     slaves[ ci ].out().channel[ chB ][ si ] = inp.layer[ ci2_1 ][ si ] * param.gain[ ci2_1 ];
-                }            
+                }
             } else {
                 // setAmplitudeSumm( ci, inp.amplitudeSumm[ ci2_0 ] << 1 );
                 // mono
                 for( uint16_t si = 0u; si < oscillatorFrameSize; ++si ) {
                     slaves[ ci ].out().channel[ chA ][ si ] = slaves[ ci ].out().channel[ chB ][ si ] = inp.layer[ ci2_0 ][si] * param.gain[ ci2_0 ];
-                }            
-            }                
+                }
+            }
         }
     }
 

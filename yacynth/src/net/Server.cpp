@@ -33,15 +33,16 @@
 #include    "sha3.h"
 
 namespace yacynth {
-
+        
 // --------------------------------------------------------------------
 
-Server::Server( Sysman&  sysmanP, const uint16_t portP  )
+Server::Server( Sysman&  sysmanP, const uint16_t portP, yaxp::CONN_MODE connModeP )
 :   sysman(sysmanP)
 ,   logger(spdlog::stdout_color_mt("console"))
 ,   socketListen(-1)
 ,   socketAccept(-1)
 ,   errnoNet(0)
+,   connMode(connModeP)
 ,   connected(false)
 ,   authenticated(false)
 ,   stopServer(false)
@@ -115,14 +116,21 @@ void Server::execute()
     std::string str;
     lastSequenceNumber = 0;
     while( doRecv() ) {
-        if( lastSequenceNumber++ != message.sequenceNr ) {
+        if( ++lastSequenceNumber != message.sequenceNr ) {
             logger->warn( "** seq nr diff {0} {1}", lastSequenceNumber, message.sequenceNr );
         }
         // execute received command
         // logger->warn("** execute command {0}", message.print(str).data() );
+        lastMessageType = message.messageType;
         switch( message.messageType ) {
         case yaxp::MessageT::requestC2E:
             sysman.evalMessage( message );
+// TODO > TEST            
+//            if( lastMessageType == message.messageType) {
+//                // the response was not set 
+//                message.messageType = yaxp::MessageT::internalError;
+//                message.length = 0;
+//            }
             break;
 
         case yaxp::MessageT::stopServer:

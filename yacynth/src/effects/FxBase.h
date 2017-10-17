@@ -57,7 +57,7 @@ class FxCollector;
 
 
 class FxCollector {
-public:    
+public:
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
     static FxCollector& getInstance(void)
@@ -81,11 +81,11 @@ public:
     {
         return nodes.at(id); // may throw !!!
     }
-    
+
 private:
     // create a new instance of an effect
     bool factory( TagEffectType effectType );
-    
+
     // destroys all dynamic effects and restore static instance counters
     bool cleanup();
 
@@ -108,21 +108,17 @@ private:
 
 class FxBase : public EIObuffer {
 public:
+    using MyType = FxBase;
+    using SpfT = void (*)( void * );
+
+    friend class FxNode;
+    friend class FxCollector;
+
     FxBase()                        = delete;
     FxBase(FxBase const &)          = delete;
     void operator=(FxBase const &t) = delete;
     FxBase(FxBase &&)               = delete;
     virtual ~FxBase();
-
-    using SpfT = void (*)( void * );
-    enum class FadePhase : uint8_t {
-        FPH_fadeNo, // no fading
-        FPH_fadeOutClear,
-        FPH_fadeOutSimple,
-        FPH_fadeInSimple,
-        FPH_fadeOutCross,
-        FPH_fadeInCross,
-    };
 
     FxBase( const char * name,
             uint16_t maxM = 0,
@@ -130,21 +126,22 @@ public:
             TagEffectType type = TagEffectType::FxNop )
     :   EIObuffer()
     ,   sprocessp(sprocessNop)
-    ,   sprocesspSave(sprocessNop)
+    ,   sprocesspCurr(sprocessNop)
+    ,   sprocesspNext(sprocessNop)
+    ,   nextSetPocModeCycle(-1)
     ,   myName(name)
     ,   myId(++count)
-    ,   fadePhase(FadePhase::FPH_fadeNo)
     ,   procMode(0)
     ,   inCount(iC)
     ,   maxMode(maxM)
     ,   masterId(0)
     ,   myType(type)
     ,   myInstance(0)
-    ,   dynamic(0)    
+    ,   dynamic(0)
     {
         FxCollector::getInstance().put(*this);
     };
-    
+
     inline const FxBase& get(void) const { return *this; };
     inline const std::string& name(void) const { return myName; };
     inline uint16_t id(void) const { return myId; };
@@ -155,44 +152,40 @@ public:
     inline TagEffectType getType(void) const { return myType; };
     inline bool isSlave(void) const { return masterId != 0; };
     inline uint8_t isDynamic() { return dynamic; }
-    inline  void exec(void) { sprocessp(this); }
     inline EIObuffer& out(void) { return *static_cast<EIObuffer *>(this); }
-
     static inline uint16_t getMaxId(void) { return count; };
 
-    virtual bool connect( const FxBase * v, uint16_t ind );
-    virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
-    virtual void clearTransient();
-    virtual bool setProcMode( uint16_t ind ); // might be non virtual
-    
-    friend class FxNode;
-    friend class FxCollector;
+    bool setProcessingMode( uint16_t ind );                                     // control thread
+    virtual bool connect( const FxBase * v, uint16_t ind );                     // control thread
+    virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); // control thread
 
+    inline  void exec(void) { sprocessp(this); }                                // RT thread
+    
 protected:
+    virtual void clearState();                                                  // RT thread
+
+    virtual bool setSprocessNext( uint16_t mode );                              // control thread
     // called by FxCollector::factory to manage dynamic instances
-    inline void setDynamic() { dynamic = 1; }    
+    inline void setDynamic() { dynamic = 1; }
     inline void setCount( uint16_t val ) { count = val; }
     inline uint16_t getCount() { return count; }
-    
-//    virtual SpfT getProcMode( uint16_t ind ) const { return sprocessp; };
 
-    SpfT                sprocessp;
-    SpfT                sprocesspSave;
-//    SpfT                sprocesspNext;
+    SpfT                sprocessp;      // called by exec
+    SpfT                sprocesspCurr;  // copy of sprocessp for fadeOut,fadeIn
+    SpfT                sprocesspNext;  // next processing mode after crossfade
+    int64_t             nextSetPocModeCycle;
     const std::string   myName;
     const uint8_t       myId;
     const uint8_t       inCount;
     const TagEffectType myType;
     const uint8_t       maxMode;
     uint8_t             masterId;       // 0 - master , 0 < slave -- value is the id of master
-    uint8_t             myInstance;     // 
-    uint8_t             procMode;       // might go up the base
+    uint8_t             myInstance; 
+    uint8_t             procMode; 
     uint8_t             dynamic;        // instance was created dynamically
-    FadePhase           fadePhase;      // might go  up the base
 
-
-    // add some statistics counters here (conditional)
 #if DO_FX_STATISTICS==1
+    // add some statistics counters here (conditional)
     uint64_t            cycleCount; // number of cycles from start
     uint64_t            spentTime;  // nanosec of spent time
     uint64_t            maxTime;    // max cycle time
@@ -201,7 +194,11 @@ protected:
 #endif
 
     static uint16_t     count;      // static counter to make unique id
-    static void sprocessNop( void * ) { return; };
+    static void sprocessNop( void * );                                          // RT thread
+    static void sprocessClear2Nop( void * );                                    // RT thread
+    static void sprocessFadeOut( void * );                                      // RT thread
+    static void sprocessFadeIn( void * );                                       // RT thread
+    static void sprocessCrossFade( void * );                                    // RT thread
 };
 
 // --------------------------------------------------------------------
@@ -222,8 +219,8 @@ public:
     FxSlave()
     :   FxBase(Tparam::slavename, 0, 0, TagEffectType::FxSlave )
     {}
-    virtual ~FxSlave() 
-    {        
+    virtual ~FxSlave()
+    {
     }
     inline void setMasterId( uint8_t val )
     {
@@ -235,6 +232,10 @@ public:
         myInstance = val;
     }
 
+    virtual bool setSprocessNext( uint16_t mode ) override
+    {
+        return false;
+    }
     // this could be here -- no parameter at all
     virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override
     {
@@ -242,13 +243,12 @@ public:
         return false;
     };
     // this could be here -- clear out
-    virtual void clearTransient() override
+    virtual void clearState() override
     {
         out().clear();
     };
-    
+
 protected:
-  //  virtual void decInstance() override {}
 };
 
 // --------------------------------------------------------------------
@@ -461,15 +461,15 @@ public:
     :   FxBase( Tparam::name, Tparam::maxMode, Tparam::inputCount, Tparam::type )
     ,   param()
     {
-        for( auto& ip : inpFx )     ip = &fxNil;
-        for( auto& ip : sprocessv ) ip = sprocessNop;
+        for( auto& ip : inpFx )  ip = &fxNil;
         myInstance = instanceCount++;
     }
+    
     virtual ~Fx()
-    {        
+    {
         --instanceCount;
     }
-    
+
 private:
     Fx(Fx const &)              = delete;
     void operator=(Fx const &t) = delete;
@@ -495,12 +495,6 @@ protected:
         return true;
     };
 
-    template<uint16_t ind>
-    inline void fillSprocessv( SpfT p )
-    {
-        static_assert (ind <= Tparam::maxMode,"fillSprocessv: illegal index" );
-        sprocessv[ind]=p;
-    }
     // usage: inp<0>, inp<1> ...
     template< std::size_t n=0 >
     inline const EIObuffer& inp(void) const
@@ -509,50 +503,30 @@ protected:
         static_assert( n<Tparam::inputCount, "inp: non existent input" );
         return *static_cast<const EIObuffer *>(inpFx[n]);
     }
-    
+
     // n not checked
     inline const EIObuffer& inp( uint8_t n ) const
     {
         return *static_cast<const EIObuffer *>(inpFx[n]);
     }
-    
+
+    static void sprocessCopy0( void * thp )
+    {
+        static_cast< Fx * >(thp)->processCopy0();
+    }
+
     inline void processCopy0(void)
     {
         static_assert( 0<Tparam::inputCount, "sprocessCopy0: non existent input" );
         out().copy( inp() );
     }
-//    bool setProcMode( uint16_t ind )  override;
-//    static void sprocess0( void * thp );
-//    static void sprocessTransient( void * thp );
+
     const FxBase      * inpFx[Tparam::inputCount];
-    SpfT                sprocessv[Tparam::maxMode+1];
     Tparam              param;
     static uint16_t     instanceCount;      // static counter to make unique id
 };
 
 template< typename Tparam  > uint16_t Fx< Tparam  >::instanceCount = 0;
 
-// --------------------------------------------------------------------
-// transient:
-//  setProcMode ->
-//      sprocessp = sprocessTransient
-//      procModeNext = proceMode
-// sprocessTransient
-//      procModeNext == 0 -> fade out
-//      procModeCurr == 0 -> fade in
-//      else fade out,fade in
-//
-//
-//
-//      fade out/in - frame 1
-//          run sprocesspSave
-//          mult fade out
-//          set sprocesspSave -> new mode
-//      fade out/in - frame 2
-//          run sprocesspSave
-//          mult fade in
-//          set sprocessp = sprocessp
-//          set procModeCurr = procModeNext
-// --------------------------------------------------------------------
 } // end namespace yacynth
 

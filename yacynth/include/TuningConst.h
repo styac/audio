@@ -37,6 +37,13 @@ constexpr double ycent2cent         = centOctave / ycentOctave;
 
 constexpr double ycentET12Semitone  = ycentOctave / 12;
 constexpr double interval2ycent( double interval ) { return std::log2(interval) * ycentOctave; };
+constexpr double interval2ycent( double nom, double denom ) { return std::log2(nom/denom) * ycentOctave; };
+
+constexpr double ycentTritave       = interval2ycent( 3.0 );        // Bohlen–Pierce scale
+constexpr double ycentFifth         = interval2ycent( 3.0 / 2.0 );  //
+constexpr double ycentFourth        = interval2ycent( 4.0 / 3.0 );  //
+constexpr double ycentThirdMaj      = interval2ycent( 5.0 / 4.0 );  //
+constexpr double ycentThirdMin      = interval2ycent( 6.0 / 5.0 );  //
 
 // 21 - octave 2:1
 // 31 - tritave 3:1 -- Bohlen–Pierce scale
@@ -70,14 +77,6 @@ enum class TuningTypes {
     TM_21_XX_Shruti,
     TM_21_XX_Gamelan,
 };
-
-
-
-constexpr double ycentTritave       = interval2ycent( 3.0 );        // Bohlen–Pierce scale
-constexpr double ycentFifth         = interval2ycent( 3.0 / 2.0 );  //
-constexpr double ycentFourth        = interval2ycent( 4.0 / 3.0 );  //
-constexpr double ycentThirdMaj      = interval2ycent( 5.0 / 4.0 );  //
-constexpr double ycentThirdMin      = interval2ycent( 6.0 / 5.0 );  //
 
 template< TuningTypes typeIdentifier > 
 struct TuningGenerator {};
@@ -238,6 +237,31 @@ struct TuningGenerator<TuningTypes::TM_21_ET_15> {
 };
 
 // tritave
+
+// for user types
+template < typename T >
+struct Ratio {
+    T n; // numerator
+    T d; // denumerator
+};
+
+template < uint16_t s >
+struct TuningTypeDynamic {
+    static constexpr uint16_t size = s;
+    double rate;   
+    double deltaInterval;
+    uint16_t intervalCount;    // intervalCount <= size
+    double getYcentN( uint8_t N ) 
+    { 
+        const auto index = N % intervalCount;
+        if( index >= size ) {
+            return 0.0000001;
+        }        
+        const auto k = noteFreqRate[index];
+        return interval2ycent( k.n, k.d ) * deltaInterval;
+    }
+    Ratio<uint16_t> noteFreqRate[ size ];
+};
 
 } // end namespace Tuning 
 

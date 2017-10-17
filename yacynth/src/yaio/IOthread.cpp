@@ -24,14 +24,14 @@
  */
 
 #include    "../yaio/IOthread.h"
+#include    "../yaio/CycleCount.h"
 #include    <sys/time.h>
 #include    <ctime>
 #include    <atomic>
 
 namespace yacynth {
 
-IOThread:: IOThread( OscillatorOutVector&    out,
-    AbstractRouter&         router )
+IOThread:: IOThread( OscillatorOutVector& out )
 :   queueOut(out)
 ,   cycleNoise(0)
 ,   fxEndMixer()
@@ -39,9 +39,8 @@ IOThread:: IOThread( OscillatorOutVector&    out,
 ,   fxInput()
 ,   fxRunner(fxEndMixer)
 ,   toClearFxInput(true)
-
 {
-    fxEndMixer.setProcMode(1); // TODO > endMixed mode -- muted function
+    fxEndMixer.setProcessingMode(1); // TODO > endMixed mode -- muted function
 };
 
 // --------------------------------------------------------------------
@@ -76,12 +75,13 @@ void IOThread::audioInOutCB( void *data, uint32_t nframes, float *outp1, float *
     // ------------------- profiling
 
     for( auto fi=0u; fi < thp.bufferSizeRate; ++fi ) {
+        CycleCount::getInstance().inc( 1 );
         thp.fxInput.process( inp1, inp2 );
         inp1 += thp.fxEndMixer.sectionSize;
         inp2 += thp.fxEndMixer.sectionSize;
         InnerController::getInstance().incrementFrameLFOscillatorPhases();
-//        if( thp.queueOut.getFullCount() < 1 ) {   
-//          wait 1 microsec        
+//        if( thp.queueOut.getFullCount() < 1 ) {
+//          wait 1 microsec
 //        }
         const int ri = thp.queueOut.getReadIndex();
         thp.fxOscillatorMixer.process( thp.queueOut.out[ri] );
@@ -136,14 +136,14 @@ void IOThread::audioOutCB( void *data, uint32_t nframes, float *outp1, float *ou
     // ------------------- profiling
     // if muted was changed from unmuted -- create var
     if( thp.toClearFxInput ) {
-        thp.fxInput.clearTransient();
+        thp.fxInput.clear();
         thp.toClearFxInput = false;
     }
 
     for( auto fi=0u; fi < thp.bufferSizeRate; ++fi ) {
         InnerController::getInstance().incrementFrameLFOscillatorPhases();
-//        if( thp.queueOut.getFullCount() < 1 ) {   
-//          wait 1 microsec        
+//        if( thp.queueOut.getFullCount() < 1 ) {
+//          wait 1 microsec
 //        }
         const int ri = thp.queueOut.getReadIndex();
         thp.fxOscillatorMixer.process( thp.queueOut.out[ri] );

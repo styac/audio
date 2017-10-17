@@ -40,88 +40,23 @@ public:
     :   Fx<FxOutOscillatorParam>()
     {
         for( auto& si : slaves ) si.setMasterId(id());
-
-        fillSprocessv<0>(sprocess_00);
-        fillSprocessv<1>(sprocess_01);
-        fillSprocessv<2>(sprocess_02);
-        fillSprocessv<3>(sprocess_03);
-        fillSprocessv<4>(sprocess_04);
-        fillSprocessv<5>(sprocess_05);
-        fillSprocessv<6>(sprocess_06);
-        fillSprocessv<7>(sprocess_07);
-        fillSprocessv<8>(sprocess_08);
-
-        fillSprocessv<9>(sprocess_09);
-        fillSprocessv<10>(sprocess_10);
-        fillSprocessv<11>(sprocess_11);
-        fillSprocessv<12>(sprocess_12);
-        fillSprocessv<13>(sprocess_13);
     }
 
     virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
-
-    // go up to Fx ??
-    // might change -> set sprocessTransient
-    // FIRST TEST WITHOUT TRANSIENT
-    // THEN  WITH TRANSIENT -> all types > out,
-    // 00 is always clear for output or bypass for in-out == effect OFF
-    bool setProcMode( uint16_t ind )  override
-    {
-        if( procMode == ind ) {
-            return true; // no change
-        }
-        if( getMaxMode() < ind ) {
-            return false; // illegal
-        }
-        if( 0 == procMode ) {
-            fadePhase = FadePhase::FPH_fadeInSimple;
-        } else if( 0 == ind ) {
-            fadePhase = FadePhase::FPH_fadeOutSimple;
-        } else {
-            fadePhase = FadePhase::FPH_fadeOutCross;
-        }
-
-        procMode = ind;
-        sprocessp = sprocesspSave = sprocessv[ind];
-        // sprocesspSave = sprocessv[ind];
-        // sprocessp = sprocessTransient;
-        return true;
-    }
-#if 0
-    // go up to Fx ?? virtual ?
-    SpfT getProcMode( uint16_t ind ) const override
-    {
-        switch( ind ) {
-        case 0:
-            return sprocess_00;
-        case 1:
-            return sprocess_01;
-        case 2:
-            return sprocess_02;
-        case 3:
-            return sprocess_03;
-        case 4:
-            return sprocess_04;
-        case 5:
-            return sprocess_05;
-        default:
-            return sprocessp; // illegal index no change
-        }
-    }
-#endif
+    virtual bool setSprocessNext( uint16_t mode ) override;
     // no input !
     virtual bool connect( const FxBase * v, uint16_t ind ) override;
 
     // bool connectSlaves( const FxBase * v, uint16_t ind );
 
-
 private:
-    // go up to Fx ???
-    // this should interpolate the old and new
-    static void sprocessTransient( void * thp );
-
-    static void sprocess_00( void * thp );  // bypass > inp<0> -> out
+    // do slaves also
+    static void sprocessClear2Nop( void * );
+    static void sprocessFadeOut( void * );
+    static void sprocessFadeIn( void * );
+    static void sprocessCrossFade( void * );
+    
     static void sprocess_01( void * thp );
     static void sprocess_02( void * thp );
     static void sprocess_03( void * thp );
@@ -136,6 +71,7 @@ private:
     static void sprocess_12( void * thp );
     static void sprocess_13( void * thp );
 
+    
     // for testing > dirac / 2^18
 #if 0
     inline void processTestDirac(void)
@@ -148,6 +84,11 @@ private:
         }
     }
 #endif
+
+    // TODO : cleanup
+    //  sinTable[(phase[0][0])>>16] -> sinTable[ uint16_t( phase[0][0] >> scalePhaseIndexExp )  ]
+    //  freq2deltaPhase(20000.0);
+    //
     inline void processTestSine20000(void)
     {
         constexpr uint32_t dphase = freq2deltaPhase(20000.0);
@@ -327,7 +268,7 @@ private:
 
         if( phaseDeltaValue[0].update( param.mode01.indexPhaseDelta ) ) {
             // get the ycent value
-            const auto freqYcent = param.mode01.freqMapper.getOffseted( 
+            const auto freqYcent = param.mode01.freqMapper.getOffseted(
                 param.mode01.freqMapper.getScaled( phaseDeltaValue[0].getValueI32() ) );
             phaseDelta[0][1] = phaseDelta[0][0] = tables::ExpTable::getInstance().ycent2deltafi( freqYcent );
         }
@@ -339,7 +280,7 @@ private:
         if( phasePhaseFreqDiffValue[0].update( param.mode01.indexPhaseFreqDiff[0] ) ) {
             // smooth transition
             phaseDiff[0] = phasePhaseFreqDiffValue[0].getValueI32();
-            const auto freqYcent1 = param.mode01.freqMapper.getOffseted( 
+            const auto freqYcent1 = param.mode01.freqMapper.getOffseted(
                 param.mode01.freqMapper.getScaled( phaseDeltaValue[0].getValueI32() + phaseDiff[0] ) );
             phaseDelta[0][1] = tables::ExpTable::getInstance().ycent2deltafi( freqYcent1 );
             std::cout << "  updateParamPhaseDiff phaseDiff " << phaseDiff[0] << std::endl;
@@ -386,7 +327,7 @@ private:
         phase[4][1] += phaseDelta[3][1];
     }
 
-    virtual void clearTransient(void) override;
+    virtual void clearState(void) override;
 
     uint32_t                        phaseDiff[  FxOutOscillatorParam::slaveCount + 1 ];     // needed to store the current value
     union {

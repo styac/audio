@@ -59,9 +59,9 @@ bool FxOutOscillatorParam::parameter( yaxp::Message& message, uint8_t tagIndex, 
 
 }
 
-void FxOutOscillator::clearTransient()
+void FxOutOscillator::clearState()
 {
-    out().clear();        
+    // out().clear();        
 }
 
 bool FxOutOscillator::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
@@ -77,12 +77,12 @@ bool FxOutOscillator::parameter( yaxp::Message& message, uint8_t tagIndex, uint8
     const uint8_t tag = message.getTag(++tagIndex);
     switch( TagEffectFxOutOscillatorMode( tag ) ) {
     case TagEffectFxOutOscillatorMode::ClearState:
-        clearTransient(); // this must be called to cleanup
+        clearState(); // this must be called to cleanup
         message.setStatusSetOk();
         return true;
         
     case TagEffectFxOutOscillatorMode::Clear:
-        clearTransient(); // this must be called to cleanup
+        clearState(); // this must be called to cleanup
         break;
     }
     // forward to param
@@ -94,60 +94,6 @@ bool FxOutOscillator::connect( const FxBase * v, uint16_t ind )
     doConnect(v,ind);
 };
 
-
-void FxOutOscillator::sprocessTransient( void * thp )
-{
-    auto& th = *static_cast< MyType * >(thp);
-    switch( th.fadePhase ) {
-    // 1 phase
-    case FadePhase::FPH_fadeNo:
-        th.sprocessp = th.sprocesspSave =  th.sprocessv[ th.procMode ];
-        th.sprocesspSave(thp);
-        return;
-
-    // clear then switch to nop
-    case FadePhase::FPH_fadeOutClear:
-        th.clear();
-        th.procMode = 0;
-        th.sprocessp = th.sprocesspSave = sprocessNop;
-        return;
-
-    case FadePhase::FPH_fadeOutSimple:
-        th.sprocesspSave(thp);
-        th.fadeOut();   // then clear -- then nop
-        th.sprocessp = th.sprocesspSave =  th.sprocessv[ th.procMode ];
-        return;
-
-    // 1 phase
-    case FadePhase::FPH_fadeInSimple:
-        th.sprocessp = th.sprocesspSave =  th.sprocessv[ th.procMode ];
-        th.sprocesspSave(thp);
-        th.fadeIn();
-        return;
-
-    // 1 of 2 phase
-    case FadePhase::FPH_fadeOutCross:
-        th.sprocesspSave(thp);
-        th.fadeOut();
-        th.sprocesspSave =  th.sprocessv[ th.procMode ];
-        th.fadePhase = FadePhase::FPH_fadeInCross;
-        return;
-
-    // 2 of 2 phase
-    case FadePhase::FPH_fadeInCross: // the same as FPH_fadeInSimple ???
-        th.sprocessp = th.sprocesspSave =  th.sprocessv[ th.procMode ];
-        th.sprocesspSave(thp);
-        th.fadeIn();
-        return;
-    }
-
-}
-
-// 00 is always clear for output or bypass for in-out
-void FxOutOscillator::sprocess_00( void * thp )
-{
-//        static_cast< MyType * >(thp)->clear();
-}
 void FxOutOscillator::sprocess_01( void * thp )
 {
     static_cast< MyType * >(thp)->updateParamPhaseDiff();
@@ -226,31 +172,111 @@ void FxOutOscillator::sprocess_13( void * thp )
     static_cast< MyType * >(thp)->processTestSine20000();
 }
 
-#if 0
-template<>
-bool FxSlave<FxOutOscillatorParam>::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+
+bool FxOutOscillator::setSprocessNext( uint16_t mode ) 
 {
-    // 1st tag is tag effect type
-    const uint8_t tagType = message.getTag(tagIndex);
-    if( uint8_t(TagEffectType::FxSlave) != tagType ) {
-        message.setStatus( yaxp::MessageT::illegalTagEffectType );
+    switch( mode ) {
+    case 0:
+        procMode = 0;
+        sprocesspNext = FxOutOscillator::sprocessClear2Nop;  // TODO : FxOutOscillator
+        sprocessp = FxOutOscillator::sprocessFadeOut;        // TODO : FxOutOscillator   
+        return true;
+        
+    case 1:
+        sprocesspNext = sprocess_01;
+        break;
+    case 2:
+        sprocesspNext = sprocess_02;
+        break;
+    case 3:
+        sprocesspNext = sprocess_03;
+        break;
+    case 4:
+        sprocesspNext = sprocess_04;
+        break;
+    case 5:
+        sprocesspNext = sprocess_05;
+        break;
+    case 6:
+        sprocesspNext = sprocess_06;
+        break;
+    case 7:
+        sprocesspNext = sprocess_07;
+        break;
+    case 8:
+        sprocesspNext = sprocess_08;
+        break;
+    case 9:
+        sprocesspNext = sprocess_09;
+        break;
+    case 10:
+        sprocesspNext = sprocess_10;
+        break;
+    case 11:
+        sprocesspNext = sprocess_11;
+        break;
+    case 12:
+        sprocesspNext = sprocess_12;
+        break;
+    case 13:
+        sprocesspNext = sprocess_13;
+        break;
+    default:
         return false;
     }
-    // 2nd tag is tag operation
-    const uint8_t tag = message.getTag(++tagIndex);
-//    if( uint8_t(TagEffectFxFilterMode::Clear) == tag ) {
-//        clearTransient(); // this must be called to cleanup
-//    }
-    // forward to param
+    
+    bool fadeIn = 0 == procMode;
+    procMode = mode;
+    if( fadeIn ) {
+        sprocesspCurr = sprocesspNext;
+        sprocessp = FxOutOscillator::sprocessFadeIn;
+        return true;
+    }
+    sprocessp = FxOutOscillator::sprocessCrossFade; 
     return true;
-};
+}
+// --------------------------------------------------------------------
 
-template<>
-void FxSlave<FxOutOscillatorParam>::clearTransient()
+// TODO : clear fadein fadeout the slaves
+void FxOutOscillator::sprocessClear2Nop( void * data )
 {
-};
-
-#endif
+    FxOutOscillator& thp = * static_cast<FxOutOscillator *> ( data );
+    thp.sprocessp = FxBase::sprocessNop;
+    thp.EIObuffer::clear();
+// TODO : clear fadein fadeout the slaves
+}
+// --------------------------------------------------------------------
+void FxOutOscillator::sprocessFadeOut( void * data )
+{
+    FxOutOscillator& thp = * static_cast<FxOutOscillator *> ( data );
+    thp.sprocessp = FxOutOscillator::sprocessClear2Nop;
+    thp.sprocesspCurr( data );
+    thp.EIObuffer::fadeOut();
+// TODO : clear fadein fadeout the slaves
+}
+// --------------------------------------------------------------------
+void FxOutOscillator::sprocessFadeIn( void * data )
+{
+    FxOutOscillator& thp = * static_cast<FxOutOscillator *> ( data ) ;
+    thp.clearState(); // clears the internal state but not the output - new mode starts
+// TODO : clear fadein fadeout the slaves    
+    SpfT sprocessX( thp.sprocesspNext );
+    thp.sprocessp = sprocessX;
+    thp.sprocesspCurr = sprocessX;
+    sprocessX( data );
+    thp.EIObuffer::fadeIn();
+// TODO : clear fadein fadeout the slaves
+}
+// --------------------------------------------------------------------
+// not real cross fade at the moment but fade out - fade in
+void FxOutOscillator::sprocessCrossFade( void * data )
+{
+    FxOutOscillator& thp = * static_cast<FxOutOscillator *> ( data );
+    thp.sprocessp = FxOutOscillator::sprocessFadeIn;
+    thp.sprocesspCurr( data );
+    thp.EIObuffer::fadeOut();
+// TODO : clear fadein fadeout the slaves
+}
 
 } // end namespace yacynth
 

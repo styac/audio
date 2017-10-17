@@ -50,9 +50,9 @@ bool FxModulatorParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint
     return false;    
 }
 
-void FxModulator::clearTransient()
+void FxModulator::clearState()
 {
-    out().clear();    
+    // out().clear();    
     // + internal state
 }
 
@@ -69,12 +69,12 @@ bool FxModulator::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t p
     const uint8_t tag = message.getTag(++tagIndex);
     switch( TagEffectFxModulatorMode( tag ) ) {
     case TagEffectFxModulatorMode::ClearState:
-        clearTransient(); // this must be called to cleanup
+        clearState(); // this must be called to cleanup
         message.setStatusSetOk();
         return true;
         
     case TagEffectFxModulatorMode::Clear:
-        clearTransient(); // this must be called to cleanup
+        clearState(); // this must be called to cleanup
         break;
     }
     // forward to param
@@ -88,59 +88,7 @@ bool FxModulator::connect( const FxBase * v, uint16_t ind )
     doConnect(v,ind);
 };
 
-void FxModulator::sprocessTransient( void * thp )
-{
-    auto& th = *static_cast< MyType * >(thp);
-    switch( th.fadePhase ) {
-    // 1 phase
-    case FadePhase::FPH_fadeNo:
-        th.sprocessp = th.sprocesspSave =  th.sprocessv[ th.procMode ];
-        th.sprocesspSave(thp);
-        return;
 
-    // clear then switch to nop
-    case FadePhase::FPH_fadeOutClear:
-        th.clear();
-        th.procMode = 0;
-        th.sprocessp = th.sprocesspSave = sprocessNop;
-        return;
-
-    case FadePhase::FPH_fadeOutSimple:
-        th.sprocesspSave(thp);
-        th.fadeOut();   // then clear -- then nop
-        th.sprocessp = th.sprocesspSave =  th.sprocessv[ th.procMode ];
-        return;
-
-    // 1 phase
-    case FadePhase::FPH_fadeInSimple:
-        th.sprocessp = th.sprocesspSave =  th.sprocessv[ th.procMode ];
-        th.sprocesspSave(thp);
-        th.fadeIn();
-        return;
-
-    // 1 of 2 phase
-    case FadePhase::FPH_fadeOutCross:
-        th.sprocesspSave(thp);
-        th.fadeOut();
-        th.sprocesspSave =  th.sprocessv[ th.procMode ];
-        th.fadePhase = FadePhase::FPH_fadeInCross;
-        return;
-
-    // 2 of 2 phase
-    case FadePhase::FPH_fadeInCross: // the same as FPH_fadeInSimple ???
-        th.sprocessp = th.sprocesspSave =  th.sprocessv[ th.procMode ];
-        th.sprocesspSave(thp);
-        th.fadeIn();
-        return;
-    }
-
-}
-
-// 00 is bypass
-void FxModulator::sprocess_00( void * thp )
-{
-    static_cast< MyType * >(thp)->processCopy0();
-}
 void FxModulator::sprocess_01( void * thp )
 {
     static_cast< MyType * >(thp)->processModulation();
@@ -166,6 +114,45 @@ void FxModulator::sprocess_06( void * thp )
     static_cast< MyType * >(thp)->processRingMono();
 }
 
+bool FxModulator::setSprocessNext( uint16_t mode ) 
+{
+    switch( mode ) {
+    case 0:
+        procMode = 0;
+        sprocesspNext = FxBase::sprocessClear2Nop;
+        sprocessp = FxBase::sprocessFadeOut;        
+        return true;
+    case 1:         // TODO : Bypass
+        sprocesspNext = sprocess_01;
+        break;
+    case 2:
+        sprocesspNext = sprocess_02;
+        break;
+    case 3:
+        sprocesspNext = sprocess_03;
+        break;
+    case 4:
+        sprocesspNext = sprocess_04;
+        break;
+    case 5:
+        sprocesspNext = sprocess_05;
+        break;
+    case 6:
+        sprocesspNext = sprocess_06;
+        break;
+    default:
+        return false;
+    }
+    bool fadeIn = 0 == procMode;
+    procMode = mode;
+    if( fadeIn ) {
+        sprocesspCurr = sprocesspNext;
+        sprocessp = FxBase::sprocessFadeIn;
+        return true;
+    }
+    sprocessp = FxBase::sprocessCrossFade;
+    return true;
+}
 
 } // end namespace yacynth
 

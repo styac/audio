@@ -163,9 +163,9 @@ bool FxEchoParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t p
 
 // --------------------------------------------------------------------
 
-void FxEcho::clearTransient()
+void FxEcho::clearState()
 {
-    out().clear();    
+    // out().clear();    
     delay.clear();
 }
 
@@ -187,22 +187,18 @@ bool FxEcho::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramI
     const uint8_t tag = message.getTag(++tagIndex);
     switch( TagEffectFxEchoMode( tag ) ) {
     case TagEffectFxEchoMode::ClearState:
-        clearTransient(); // this must be called to cleanup
+        clearState(); // this must be called to cleanup
         message.setStatusSetOk();
         return true;
         
     case TagEffectFxEchoMode::Clear:
-        clearTransient(); // this must be called to cleanup
+        clearState(); // this must be called to cleanup
         break;
     }
     // forward to param
     return param.parameter( message, tagIndex, paramIndex );
 }
 
-void FxEcho::sprocess_00( void * thp )
-{
-//    static_cast< MyType * >(thp)->clearTransient();
-}
 void FxEcho::sprocess_01( void * thp )
 {
     static_cast< MyType * >(thp)->process_clear_dry();
@@ -215,6 +211,33 @@ void FxEcho::sprocess_02( void * thp )
     static_cast< MyType * >(thp)->process_echo_wet();
 }
 
+bool FxEcho::setSprocessNext( uint16_t mode ) 
+{
+    switch( mode ) {
+    case 0:
+        procMode = 0;
+        sprocesspNext = FxBase::sprocessClear2Nop;
+        sprocessp = FxBase::sprocessFadeOut;        
+        return true;
+    case 1:
+        sprocesspNext = sprocess_01;
+        break;
+    case 2:
+        sprocesspNext = sprocess_02;
+        break;
+    default:
+        return false;
+    }
+    bool fadeIn = 0 == procMode;
+    procMode = mode;
+    if( fadeIn ) {
+        sprocesspCurr = sprocesspNext;
+        sprocessp = FxBase::sprocessFadeIn;
+        return true;
+    }
+    sprocessp = FxBase::sprocessCrossFade;
+    return true;
+}
 
 } // end namespace yacynth
 

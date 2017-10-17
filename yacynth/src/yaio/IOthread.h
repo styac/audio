@@ -29,7 +29,6 @@
 #include    "../oscillator/OscillatorOutput.h"
 #include    "../message/Midi.h"
 #include    "../control/Controllers.h"
-#include    "../router/SimpleMidiRouter.h"
 #include    "../utils/GaloisNoiser.h"
 #include    "../effects/FxMixer.h"
 #include    "../effects/FxOscillatorMixer.h"
@@ -51,10 +50,10 @@ namespace yacynth {
 class IOThread {
 public:
     IOThread()  = delete;
-    IOThread( OscillatorOutVector & out, AbstractRouter & router );
+    IOThread( OscillatorOutVector & out );
     static void audioOutCB(     void *data, uint32_t nframes, float *outp1, float *outp2 );
     static void audioInOutCB(   void *data, uint32_t nframes, float *outp1, float *outp2, float *inp1, float *inp2 );
-    inline FxRunner&        getFxRunner(void) 
+    inline FxRunner&        getFxRunner(void)
         { return fxRunner; }
     inline void setBufferSizeRate( int16_t val )
         { bufferSizeRate = val; }
@@ -67,8 +66,8 @@ private:
     FxOscillatorMixer       fxOscillatorMixer;
     FxInput                 fxInput;
     FxRunner                fxRunner;
-    int16_t                 bufferSizeRate; // get it from IO interface external / internal frame size 
-    bool                    toClearFxInput; 
+    int16_t                 bufferSizeRate; // get it from IO interface external / internal frame size
+    bool                    toClearFxInput;
 
     // profiling
     uint64_t    timer;

@@ -44,12 +44,12 @@ public:
     bool initialize(    void );
     void shutdown(      void );
     bool run(           void );
-    
+
     // process
     // static JackProcessCallback             processCB;
     // void *arg == this
-    static int processAudioMidiCB( jack_nframes_t nframes, void *arg ); 
-    static int processAudioCB( jack_nframes_t nframes, void *arg ); 
+    static int processAudioMidiCB( jack_nframes_t nframes, void *arg );
+    static int processAudioCB( jack_nframes_t nframes, void *arg );
 
     // not really needed yet
     static JackThreadInitCallback          threadInitCB;
@@ -65,7 +65,13 @@ public:
         static YaIoJack inst;
         return inst;
     }
-    
+
+    // TODO : global singleton to store cycleCount
+    int64_t getCycleCount() const
+    {
+        return cycleCount;
+    }
+
 protected:
     inline void processJackMidiIn()
     {
@@ -80,14 +86,14 @@ protected:
             midi.channel            = ( in_event.buffer[ 0 ] ) & 0x0F;
             if( 2 < in_event.size ) {
                 midi.velocity_val   = (in_event.buffer[ 2 ]);
-                midi.note_cc_val    = (in_event.buffer[ 1 ]);        
+                midi.note_cc_val    = (in_event.buffer[ 1 ]);
             } else if ( 1 < in_event.size ) {
-                midi.note_cc_val    = (in_event.buffer[ 1 ]);                
+                midi.note_cc_val    = (in_event.buffer[ 1 ]);
             }
             midiOutProcessing( midiProcessorData, midi );
-        }    
+        }
     }
-    
+
     void printEvent( uint8_t *eventp, uint32_t eventSize, bool lastEvent)
     {
         std::cout << "ev: " << std::hex;
@@ -100,7 +106,7 @@ protected:
         }
         std::cout << std::endl;
     }
-    
+
     jack_client_t   *client;
     jack_options_t  jackOptions;
     jack_status_t   jackStatus;
@@ -112,6 +118,7 @@ protected:
     jack_nframes_t  nframes;
 
 private:
+    int64_t                 cycleCount;
     YaIoJack();
     NON_COPYABLE_NOR_MOVABLE(YaIoJack)
 };

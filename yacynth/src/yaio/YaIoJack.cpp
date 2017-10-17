@@ -23,16 +23,16 @@
  */
 
 #include    "YaIoJack.h"
+#include    "CycleCount.h"
 #include    "../control/global.h"
 #include    <thread>
-
-
 
 namespace yacynth {
 
 // --------------------------------------------------------------------
 YaIoJack::YaIoJack()
 :   YaIo()
+,   cycleCount(0)
 ,   client(0)
 ,   jackOptions(JackNoStartServer)
 ,   midiInPort(     "midi_in_1",    JACK_DEFAULT_MIDI_TYPE,     JackPortIsInput|JackPortIsTerminal)
@@ -80,7 +80,7 @@ bool YaIoJack::initialize( void )
         shutdown();
         return false;
     }
-    
+
     bufferSizeJack = jack_get_buffer_size( client );
     if( bufferSizeJack < bufferSizeMin || bufferSizeJack > bufferSizeMax) {
         errorString   += ":illegal buffer size " + std::to_string(bufferSizeJack);
@@ -139,8 +139,9 @@ int YaIoJack::processAudioMidiCB( jack_nframes_t nframes, void *arg )
     thp.nframes = nframes;
     jack_default_audio_sample_t *audioOut1 = (jack_default_audio_sample_t *) thp.audioOutPort1.getBuffer( nframes );
     jack_default_audio_sample_t *audioOut2 = (jack_default_audio_sample_t *) thp.audioOutPort2.getBuffer( nframes );
-    
+
     if( thp.mutedOutput ) {
+        CycleCount::getInstance().inc( thp.bufferSizeMult );
         // obsolete  - use EndMixer setProcMode(0) after processJackMidiIn is there
         for( auto i=0; i < nframes; ++i ) {
             *audioOut1++ = 0.0f;
@@ -151,11 +152,11 @@ int YaIoJack::processAudioMidiCB( jack_nframes_t nframes, void *arg )
     }
     thp.processJackMidiIn();
     if( thp.mutedInput ) {
-        thp.audioOutProcesing ( thp.audioProcessorData, nframes, audioOut1, audioOut2 );                
+        thp.audioOutProcesing ( thp.audioProcessorData, nframes, audioOut1, audioOut2 );
     } else {
         jack_default_audio_sample_t *audioIn1  = (jack_default_audio_sample_t *) thp.audioInPort1.getBuffer( nframes );
         jack_default_audio_sample_t *audioIn2  = (jack_default_audio_sample_t *) thp.audioInPort2.getBuffer( nframes );
-        thp.audioInOutProcesing ( thp.audioProcessorData, nframes, audioOut1, audioOut2, audioIn1, audioIn2 );                        
+        thp.audioInOutProcesing ( thp.audioProcessorData, nframes, audioOut1, audioOut2, audioIn1, audioIn2 );
     }
     return 0;
 } // end YaIoJack::processAudioMidiCB
@@ -168,7 +169,7 @@ int YaIoJack::processAudioCB( jack_nframes_t nframes, void *arg )
     YaIoJack& thp  = * static_cast<YaIoJack *> ( arg) ;
     thp.nframes = nframes;
     jack_default_audio_sample_t *audioOut1 = (jack_default_audio_sample_t *) thp.audioOutPort1.getBuffer( nframes );
-    jack_default_audio_sample_t *audioOut2 = (jack_default_audio_sample_t *) thp.audioOutPort2.getBuffer( nframes );    
+    jack_default_audio_sample_t *audioOut2 = (jack_default_audio_sample_t *) thp.audioOutPort2.getBuffer( nframes );
     if( thp.mutedOutput ) {
         // obsolete  - use EndMixer setProcMode(0) after processJackMidiIn is there
         for( auto i=0; i < nframes; ++i ) {
@@ -178,11 +179,11 @@ int YaIoJack::processAudioCB( jack_nframes_t nframes, void *arg )
         return 0;
     }
     if( thp.mutedInput ) {
-        thp.audioOutProcesing ( thp.audioProcessorData, nframes, audioOut1, audioOut2 );                
+        thp.audioOutProcesing ( thp.audioProcessorData, nframes, audioOut1, audioOut2 );
     } else {
         jack_default_audio_sample_t *audioIn1  = (jack_default_audio_sample_t *) thp.audioInPort1.getBuffer( nframes );
         jack_default_audio_sample_t *audioIn2  = (jack_default_audio_sample_t *) thp.audioInPort2.getBuffer( nframes );
-        thp.audioInOutProcesing ( thp.audioProcessorData, nframes, audioOut1, audioOut2, audioIn1, audioIn2 );                        
+        thp.audioInOutProcesing ( thp.audioProcessorData, nframes, audioOut1, audioOut2, audioIn1, audioIn2 );
     }
     return 0;
 } // end YaIoJack::processAudioCB

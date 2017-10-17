@@ -40,128 +40,19 @@ public:
     FxOutNoise()
     :   NoiseFrame<Fx<FxOutNoiseParam>>( GaloisShifterSingle<seedThreadEffect_noise>::getInstance() )
     {
-        fillSprocessv<0>(sprocess_00);
-        fillSprocessv<1>(sprocess_01);
-        fillSprocessv<2>(sprocess_02);
-        fillSprocessv<3>(sprocess_03);
-        fillSprocessv<4>(sprocess_04);
-        fillSprocessv<5>(sprocess_05);
-        fillSprocessv<6>(sprocess_06);
-        fillSprocessv<7>(sprocess_07);
-        fillSprocessv<8>(sprocess_08);
-        fillSprocessv<9>(sprocess_09);
-        fillSprocessv<10>(sprocess_10);
     }
 
     virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override;
 
-    virtual void clearTransient() override;
+    virtual void clearState() override;
 
+    virtual bool setSprocessNext( uint16_t mode ) override;
 
-    // go up to Fx ??
-    // might change -> set sprocessTransient
-    // FIRST TEST WITHOUT TRANSIENT
-    // THEN  WITH TRANSIENT -> all types > out,
-    // 00 is always clear for output or bypass for in-out == effect OFF
-    bool setProcMode( uint16_t ind )  override
-    {
-        if( procMode == ind ) {
-            return true; // no change
-        }
-        if( getMaxMode() < ind ) {
-            return false; // illegal
-        }
-        if( 0 == procMode ) {
-            fadePhase = FadePhase::FPH_fadeInSimple;
-        } else if( 0 == ind ) {
-            fadePhase = FadePhase::FPH_fadeOutSimple;
-        } else {
-            fadePhase = FadePhase::FPH_fadeOutCross;
-        }
-
-        procMode = ind;
-        sprocessp = sprocesspSave = sprocessv[ind];
-        // sprocesspSave = sprocessv[ind];
-        // sprocessp = sprocessTransient;
-        return true;
-    }
-#if 0
-    // go up to Fx ?? virtual ?
-    SpfT getProcMode( uint16_t ind ) const override
-    {
-        switch( ind ) {
-        case 0:
-            return sprocess_00;
-        case 1:
-            return sprocess_01;
-        case 2:
-            return sprocess_02;
-        default:
-            return sprocessp; // illegal index no change
-        }
-    }
-#endif
-    virtual bool connect( const FxBase * v, uint16_t ind ) override
-    {
-        doConnect(v,ind);
-    };
+    virtual bool connect( const FxBase * v, uint16_t ind ) override;
 
 private:
-    // go up to Fx ???
-    static void sprocessTransient( void * thp )
-    {
-        auto& th = *static_cast< MyType * >(thp);
-        switch( th.fadePhase ) {
-        // 1 phase
-        case FadePhase::FPH_fadeNo:
-            th.sprocessp = th.sprocesspSave =  th.sprocessv[ th.procMode ];
-            th.sprocesspSave(thp);
-            return;
-
-        // clear then switch to nop
-        case FadePhase::FPH_fadeOutClear:
-            th.clear();
-            th.procMode = 0;
-            th.sprocessp = th.sprocesspSave = sprocessNop;
-            return;
-
-        case FadePhase::FPH_fadeOutSimple:
-            th.sprocesspSave(thp);
-            th.fadeOut();   // then clear -- then nop
-            th.sprocessp = th.sprocesspSave =  th.sprocessv[ th.procMode ];
-            return;
-
-        // 1 phase
-        case FadePhase::FPH_fadeInSimple:
-            th.sprocessp = th.sprocesspSave =  th.sprocessv[ th.procMode ];
-            th.sprocesspSave(thp);
-            th.fadeIn();
-            return;
-
-        // 1 of 2 phase
-        case FadePhase::FPH_fadeOutCross:
-            th.sprocesspSave(thp);
-            th.fadeOut();
-            th.sprocesspSave =  th.sprocessv[ th.procMode ];
-            th.fadePhase = FadePhase::FPH_fadeInCross;
-            return;
-
-        // 2 of 2 phase
-        case FadePhase::FPH_fadeInCross: // the same as FPH_fadeInSimple ???
-            th.sprocessp = th.sprocesspSave =  th.sprocessv[ th.procMode ];
-            th.sprocesspSave(thp);
-            th.fadeIn();
-            return;
-        }
-
-    }
-
     // 00 is always clear for output or bypass for in-out
-    // clearTransient should clear and this would be a nop
-    static void sprocess_00( void * thp )
-    {
-        static_cast< MyType * >(thp)->clear();
-    }
+    // clearState should clear and this would be a nop
     static void sprocess_01( void * thp )
     {
     //    constexpr float gain = 1.0f/(1<<26);

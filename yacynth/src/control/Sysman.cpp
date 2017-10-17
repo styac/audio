@@ -49,9 +49,9 @@ using namespace TagEffectFxLateReverbModeLevel_03;
 // --------------------------------------------------------------------
 
 Sysman::Sysman(
-    AbstractRouter      &routerP,
-    OscillatorArray&    oscillatorArrayP,
-    IOThread&           iOThreadP  )
+    Router          & routerP,
+    OscillatorArray & oscillatorArrayP,
+    IOThread        & iOThreadP  )
 :   router( routerP )
 ,   oscillatorArray( oscillatorArrayP )
 ,   iOThread( iOThreadP )

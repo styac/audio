@@ -48,6 +48,13 @@ const char * const dbDir        = "db";             // $HOME/.yacynth/db
 const char * const seedFile     = ".yaxp.seed";     // $HOME/.yacynth/.yaxp.seed
 const char * const config       = "config";         // $HOME/.yacynth/config
 
+
+enum class CONN_MODE {
+    REMOTE_IP,          // AF_INET
+    LOCAL_IP,           // AF_UNIX
+    LOCAL_PIPE          // 2 x pipe
+};
+
 enum class MessageT : uint8_t {
     // short messages - only header > length is not used
     nop,                // 0 is illegal
@@ -85,6 +92,7 @@ enum class MessageT : uint8_t {
     dataCheckError,                 // 143
     illegalContext,                 // 144
     nothingToDo,                    // 145
+    internalError,                  // 146
 };
 
 struct alignas(16) Header

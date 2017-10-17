@@ -103,7 +103,7 @@ bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, 
             int32_t filterCenterFreq;
             int16_t filterBandwith;
             uint8_t outChannel = toneshaper.outChannel & oscOutputChannelCountMsk;
-            
+
             const auto oscillatorType  = toneshaper.oscillatorType;
             switch( oscillatorType ) {
             case ToneShaper::OSC_NONE:
@@ -275,6 +275,19 @@ L_innerloop:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
                     *layp++ += ( tables::waveSinTable[ uint16_t( tables::waveSinTable[ uint16_t(( phase += deltaPhase ) >> scalePhaseIndexExp)])]
                             * amplitudoOsc ) >> scaleAmplitudeOscExp;
+                    amplitudoOsc += deltaAmpl;
+                }
+                break;
+
+//---------------------------
+            case ToneShaper::OSC_TRIANGLE:
+                for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
+                    // averaged
+                    const int32_t a0 = int32_t(phase) >> 1;
+                    phase += deltaPhase;
+                    const int32_t a1 = int32_t(phase) >> 1;
+                    const int32_t triangle = ((a0>>30) ^ a0 ) + ((a1>>30) ^ a1 ) - 0x3FFFFFFF;
+                    *layp++ += ( triangle * amplitudoOsc ) >> ( scaleAmplitudeOscExp + 15 );
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
@@ -639,7 +652,7 @@ void Oscillator::voiceRun( const OscillatorInChange& in )
     std::cout
         << "\n  ***  freq " << freq
         << " dph "     << dph
-        << std::endl;    
+        << std::endl;
 
     // monitoring
     std::cout
@@ -695,7 +708,7 @@ void Oscillator::voiceRelease( const OscillatorInChange& in )
     } else if ( runCount < 0 ) {
         runCount = 0;
     }
-    
+
     voiceState  = VOICE_RELEASE;
     for( auto oscindex = 0; oscindex < oscillatorCountUsed; ++oscindex ) {
         auto& stateOsc = state[ oscindex ];
