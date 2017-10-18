@@ -125,7 +125,8 @@ struct alignas(int64_t) OscillatorState { // or cacheLineSize ?
     int64_t             amplitudoOsc;                   // must be signed to handle underflows can be i32
     int64_t             envelopeTargetValueVelocity;    // can be i32
     OscillatorNoise     noiseNarrow;                    // 1x overtone ?
-    uint32_t            phase;
+    uint32_t            phase_0;
+    uint32_t            phase_1;
     int32_t             tickFrame;  // int16_t ???
     int32_t             amplitudeDetunePitch;
     uint16_t            velocityBoosted;

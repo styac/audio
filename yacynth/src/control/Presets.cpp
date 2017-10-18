@@ -132,7 +132,8 @@ void preset0( Sysman  * sysman )
     ts.transient[ 1 ].tickFrame.setPar( 300, 0, 1 );
     ts.transient[ 1 ].targetValue = uint32_t( 20000.0 * 65535.0 );
 
-    ts.oscillatorType = ToneShaper::OSC_TRIANGLE; // OSC_SIN;
+    ts.oscillatorType = ToneShaper::OSC_SIN_2CH_FR; // OSC_SIN;
+    ts.detune2CH = 1<<11;
     // filter test
     // ts.oscillatorType = ToneShaper::OSC_NOISE_SV3x4_PEEK;
     ts.filterBandwidth = 0x60;

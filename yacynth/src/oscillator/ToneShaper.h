@@ -195,6 +195,43 @@ struct ToneShaper {
         OSC_13OV1,      // tone 1 + 3 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>14)]>>1));};
         OSC_13OV2,      // tone 1 + 3 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>14)]>>2));};
 
+        // 2CH tones with phase shift of PI/2
+        OSC_SIN_2CH_PH,         
+        OSC_SINSIN_2CH_PH,     // waveSinTable[ uint16_t( waveSinTable[phase >>16] )]
+        OSC_TRIANGLE_2CH_PH,
+
+        OSC_PD00_2CH_PH,       // phase distorsion0 waveSinTable[ uint16_t((waveSinTable[phase >>16]) + (phase >>16))]
+        OSC_PD01_2CH_PH,       // phase distorsion1 waveSinTable[ uint16_t((waveSinTable[phase >>16]>>1) + (phase >>16))]
+        OSC_PD02_2CH_PH,       // phase distorsion2 waveSinTable[ uint16_t((waveSinTable[phase >>16]>>2) + (phase >>16))]
+        OSC_PD03_2CH_PH,       // phase distorsion3 waveSinTable[ uint16_t((waveSinTable[phase >>16]>>3) + (phase >>16))]
+
+        OSC_12OV0_2CH_PH,      // tone 1 + 2 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>15)]));};
+        OSC_12OV1_2CH_PH,      // tone 1 + 2 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>15)]>>1));};
+        OSC_12OV2_2CH_PH,      // tone 1 + 2 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>15)]>>2));};
+
+        OSC_13OV0_2CH_PH,      // tone 1 + 3 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>14)]));};
+        OSC_13OV1_2CH_PH,      // tone 1 + 3 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>14)]>>1));};
+        OSC_13OV2_2CH_PH,      // tone 1 + 3 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>14)]>>2));};
+
+        // 2CH tones with frequesncy shift
+        OSC_SIN_2CH_FR,        
+        OSC_SINSIN_2CH_FR,     // waveSinTable[ uint16_t( waveSinTable[phase >>16] )]
+        OSC_TRIANGLE_2CH_FR,
+
+        OSC_PD00_2CH_FR,       // phase distorsion0 waveSinTable[ uint16_t((waveSinTable[phase >>16]) + (phase >>16))]
+        OSC_PD01_2CH_FR,       // phase distorsion1 waveSinTable[ uint16_t((waveSinTable[phase >>16]>>1) + (phase >>16))]
+        OSC_PD02_2CH_FR,       // phase distorsion2 waveSinTable[ uint16_t((waveSinTable[phase >>16]>>2) + (phase >>16))]
+        OSC_PD03_2CH_FR,       // phase distorsion3 waveSinTable[ uint16_t((waveSinTable[phase >>16]>>3) + (phase >>16))]
+
+        OSC_12OV0_2CH_FR,      // tone 1 + 2 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>15)]));};
+        OSC_12OV1_2CH_FR,      // tone 1 + 2 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>15)]>>1));};
+        OSC_12OV2_2CH_FR,      // tone 1 + 2 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>15)]>>2));};
+
+        OSC_13OV0_2CH_FR,      // tone 1 + 3 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>14)]));};
+        OSC_13OV1_2CH_FR,      // tone 1 + 3 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>14)]>>1));};
+        OSC_13OV2_2CH_FR,      // tone 1 + 3 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>14)]>>2));};
+        
+        // TODO need 2CH noises
         // wide noise
         OSC_NOISE_WHITE   = 0x80,
         OSC_NOISE_RED0,
@@ -210,6 +247,7 @@ struct ToneShaper {
         OSC_NOISE_BLUE2,
         OSC_NOISE_BLUE3,
 
+        // TODO need 2CH noises
         // narrow noise - correlated (common input)
         // 4x pole
         OSC_NOISE_4Px1_PEEK,
@@ -236,6 +274,7 @@ struct ToneShaper {
         OSC_NOISE_SV2x4_PEEK,
         OSC_NOISE_SV3x4_PEEK,
 
+        
         // check: experimental
         OSC_SIN_MULT_RED_NOISE,
         // sounds bad  TODO recheck
@@ -276,12 +315,11 @@ struct ToneShaper {
     AmplitudeSustain    sustain;
     InterpolatedTick    tickFrameRelease;
     int16_t             amplitudeDetune;    // special detune parameter -- amplitude dependent -
+    uint16_t            detune2CH;          // special detune parameter -- 2CH_FR tones
     uint8_t             oscillatorType;     // oscillator type : 0 = sine
     uint8_t             outChannel;         // output channel for the overtone - not implemented yet
     uint8_t             filterBandwidth;    // allpass - uint8_t ok --> -int32_t(filterBw) << 23
     uint8_t             veloBoost;
-    uint8_t             rfu1;
-    uint8_t             rfu2;
 };
 // --------------------------------------------------------------------
 struct ToneShaperVector {

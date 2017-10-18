@@ -42,7 +42,7 @@ Oscillator::Oscillator()
 {
     ;
     for( auto i=0; i<overtoneCountOscDef; i++ ) {
-        state[i].phase  = 0;
+        state[i].phase_0  = 0;
         voiceState      = VOICE_DOWN;
     }
 } // end Oscillator::Oscillator
@@ -92,17 +92,15 @@ bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, 
 
         oscillatorCountUsed = toneShaperVecCurr->oscillatorCountUsed;
 
-        // oscOutputChannelCount
-        // if( out.overtoneCount < oscillatorCountUsed ) {  // TODO what is this
-        //    out.overtoneCount = oscillatorCountUsed;
-        // }
         for( auto oscindex = 0; oscindex < oscillatorCountUsed; ++oscindex ) {
             const auto& toneshaper  = toneShaperVecCurr->toneShaper[ oscindex ];
             auto& stateOsc          = state[ oscindex ];
-            uint32_t deltaPhase = 0;
+            uint32_t deltaPhase_0 = 0;
+            uint32_t deltaPhase_1 = 0;
+            int32_t frDetune = int32_t(toneshaper.detune2CH) << 5;
             int32_t filterCenterFreq;
             int16_t filterBandwith;
-            uint8_t outChannel = toneshaper.outChannel & oscOutputChannelCountMsk;
+            uint8_t outChannel_0 = toneshaper.outChannel & oscOutputChannelCountMsk;
 
             const auto oscillatorType  = toneshaper.oscillatorType;
             switch( oscillatorType ) {
@@ -157,15 +155,13 @@ bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, 
             default:
                 // TODOs  fastexp - check it
                 // deltaPhase = ExpTable::ycent2deltafi( basePitch + toneshaper.pitch, in.pitchDelta + stateOsc.amplitudeDetunePitch );
-                deltaPhase = ycent2deltafi( basePitch + toneshaper.pitch, in.pitchDelta + stateOsc.amplitudeDetunePitch );
-                if( 0 == deltaPhase )
+                deltaPhase_0 = ycent2deltafi( basePitch + toneshaper.pitch, in.pitchDelta + stateOsc.amplitudeDetunePitch );
+                if( 0 == deltaPhase_0 )
                     continue; // too high sound
             }
 
             int64_t deltaAmpl = 0;
             bool changeEnvPhase = false;
-            // TODO > should be mapped 256 ovetones -> 16x2 output channels
-            auto& outLayer      = out.layer[ outChannel ]; // this should go to osc down
             // TODO: envelopeKnotRelease = +128 ??
             // this should be before ycent2deltafi() ?
             if( 0 > stateOsc.envelopePhase ) {
@@ -231,9 +227,16 @@ bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, 
                 break;
             }
 //++++++++++++++++++++++++++++
+            // TODO : ONLY IN TRANSIENT PHASE ?
+            // TODO : limit to +- 1 octave -- 1<<24 with wrap around
+            // sign(detune) * (abs(detune) & (1<<25 - 1))
+            // if( isSustain && toneshaper.amplitudeDetune ) {
+            // }
+            // stateOsc.amplitudeDetunePitch = ( stateOsc.amplitudoOsc * toneshaper.amplitudeDetune ) >> detuneRange;
             goto L_innerloop;
 //============================
 L_sustain:
+            // stateOsc.amplitudeDetunePitch = 0;
             deltaAmpl = stateOsc.sustainModulator.decayMod( stateOsc.amplitudoOsc );
             ++stat.cycleCounter[Statistics::COUNTER_SUSTAIN];
 //============================
@@ -241,7 +244,7 @@ L_innerloop:
 
             if( ( hearingThreshold > stateOsc.amplitudoOsc ) && ( 0 >= deltaAmpl )) {
                 stateOsc.amplitudoOsc = 0;
-                stateOsc.phase += deltaPhase<<oscillatorFrameSizeExp; // no signal but move the phase by a tick
+                stateOsc.phase_0 += deltaPhase_0<<oscillatorFrameSizeExp; // no signal but move the phase by a tick
                 ++stat.cycleCounter[Statistics::COUNTER_LOW_AMPLITUDE];
                 continue; // next oscillator
             }
@@ -258,22 +261,52 @@ L_innerloop:
             // 256 voice  +8 -> 42 bit output
 
             int64_t amplitudoOsc = stateOsc.amplitudoOsc;
-            uint32_t phase = stateOsc.phase;
-            out.amplitudeSumm[ outChannel ] += amplitudoOsc;
-            auto layp = &outLayer[ 0 ];
+            uint32_t phase_0 = stateOsc.phase_0;
+            out.amplitudeSumm[ outChannel_0 ] += amplitudoOsc;
+            auto layp_0 = &out.layer[ outChannel_0 ][ 0 ];
+            const auto outChannel_1 = (outChannel_0+1) & oscOutputChannelCountMsk;
+            auto layp_1 = &out.layer[ outChannel_1 ][ 0 ]; // for 2CH tones
+
+//---------------------------
             switch( oscillatorType ) {
             case ToneShaper::OSC_SIN:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-//                    *layp++ +=  ( tables::waveSinTable[ uint16_t(((( phase += deltaPhase ) + 0x8000 ) >> scalePhaseIndexExp))]
-                    *layp++ +=  ( tables::waveSinTable[ uint16_t(((( phase += deltaPhase )) >> scalePhaseIndexExp))]
+                    *layp_0++ +=  ( tables::waveSinTable[ uint16_t(((( phase_0 += deltaPhase_0 )) >> scalePhaseIndexExp))]
                             * amplitudoOsc ) >> scaleAmplitudeOscExp;
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
+//---------------------------
+            case ToneShaper::OSC_SIN_2CH_PH:
+                out.amplitudeSumm[ outChannel_1 ] = out.amplitudeSumm[ outChannel_0 ] ;
+                for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
+                    const uint16_t ph0 = ( phase_0 += deltaPhase_0 ) >> scalePhaseIndexExp;
+                    const uint16_t ph1 = ph0 + (1<<14); // PI / 2 shift
+                    *layp_0++ +=  ( tables::waveSinTable[ ph0 ] * amplitudoOsc ) >> scaleAmplitudeOscExp;
+                    *layp_1++ +=  ( tables::waveSinTable[ ph1 ] * amplitudoOsc ) >> scaleAmplitudeOscExp;
+                    amplitudoOsc += deltaAmpl;
+                }
+                break;
+                
+//---------------------------
+            case ToneShaper::OSC_SIN_2CH_FR:
+                out.amplitudeSumm[ outChannel_1 ] = out.amplitudeSumm[ outChannel_0 ] ;
+                deltaPhase_1 = deltaPhase_0 + frDetune;
+                deltaPhase_0 -= frDetune;
+                for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
+                    const uint16_t ph0 = ( phase_0 += deltaPhase_0 ) >> scalePhaseIndexExp;
+                    const uint16_t ph1 = ( stateOsc.phase_1 += deltaPhase_1 ) >> scalePhaseIndexExp;
+                    *layp_0++ +=  ( tables::waveSinTable[ ph0 ] * amplitudoOsc ) >> scaleAmplitudeOscExp;
+                    *layp_1++ +=  ( tables::waveSinTable[ ph1 ] * amplitudoOsc ) >> scaleAmplitudeOscExp;
+                    amplitudoOsc += deltaAmpl;
+                }
+                break;                
+                
 //---------------------------
             case ToneShaper::OSC_SINSIN:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    *layp++ += ( tables::waveSinTable[ uint16_t( tables::waveSinTable[ uint16_t(( phase += deltaPhase ) >> scalePhaseIndexExp)])]
+                    *layp_0++ += ( tables::waveSinTable[ uint16_t( tables::waveSinTable[ uint16_t(( phase_0 += deltaPhase_0 ) >> scalePhaseIndexExp)])]
                             * amplitudoOsc ) >> scaleAmplitudeOscExp;
                     amplitudoOsc += deltaAmpl;
                 }
@@ -283,140 +316,155 @@ L_innerloop:
             case ToneShaper::OSC_TRIANGLE:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
                     // averaged
-                    const int32_t a0 = int32_t(phase) >> 1;
-                    phase += deltaPhase;
-                    const int32_t a1 = int32_t(phase) >> 1;
+                    const int32_t a0 = int32_t(phase_0) >> 1;
+                    phase_0 += deltaPhase_0;
+                    const int32_t a1 = int32_t(phase_0) >> 1;
                     const int32_t triangle = ((a0>>30) ^ a0 ) + ((a1>>30) ^ a1 ) - 0x3FFFFFFF;
-                    *layp++ += ( triangle * amplitudoOsc ) >> ( scaleAmplitudeOscExp + 15 );
+                    *layp_0++ += ( triangle * amplitudoOsc ) >> ( scaleAmplitudeOscExp + 15 );
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //---------------------------
             case ToneShaper::OSC_PD00:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    const uint16_t phaseC = (phase += deltaPhase ) >> scalePhaseIndexExp;
-                    *layp++ += ( tables::waveSinTable[ uint16_t(phaseC + (uint16_t( tables::waveSinTable[ phaseC ] ))) ]
+                    const uint16_t phaseC = (phase_0 += deltaPhase_0 ) >> scalePhaseIndexExp;
+                    *layp_0++ += ( tables::waveSinTable[ uint16_t(phaseC + (uint16_t( tables::waveSinTable[ phaseC ] ))) ]
                             * amplitudoOsc ) >> scaleAmplitudeOscExp;
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //---------------------------
             case ToneShaper::OSC_PD01:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    const uint16_t phaseC = (phase += deltaPhase ) >> scalePhaseIndexExp;
-                    *layp++ += ( tables::waveSinTable[ uint16_t(phaseC + (uint16_t( tables::waveSinTable[ phaseC ]>>1) )) ]
+                    const uint16_t phaseC = (phase_0 += deltaPhase_0 ) >> scalePhaseIndexExp;
+                    *layp_0++ += ( tables::waveSinTable[ uint16_t(phaseC + (uint16_t( tables::waveSinTable[ phaseC ]>>1) )) ]
                             * amplitudoOsc ) >> scaleAmplitudeOscExp;
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //---------------------------
             case ToneShaper::OSC_PD02:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    const uint16_t phaseC = (phase += deltaPhase ) >> scalePhaseIndexExp;
-                    *layp++ += ( tables::waveSinTable[ uint16_t(phaseC + (uint16_t( tables::waveSinTable[ phaseC ]>>2) )) ]
+                    const uint16_t phaseC = (phase_0 += deltaPhase_0 ) >> scalePhaseIndexExp;
+                    *layp_0++ += ( tables::waveSinTable[ uint16_t(phaseC + (uint16_t( tables::waveSinTable[ phaseC ]>>2) )) ]
                             * amplitudoOsc ) >> scaleAmplitudeOscExp;
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //---------------------------
             case ToneShaper::OSC_PD03:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    const uint16_t phaseC = (phase += deltaPhase ) >> scalePhaseIndexExp;
-                    *layp++ += ( tables::waveSinTable[ uint16_t(phaseC + (uint16_t( tables::waveSinTable[ phaseC ]>>3) )) ]
+                    const uint16_t phaseC = (phase_0 += deltaPhase_0 ) >> scalePhaseIndexExp;
+                    *layp_0++ += ( tables::waveSinTable[ uint16_t(phaseC + (uint16_t( tables::waveSinTable[ phaseC ]>>3) )) ]
                             * amplitudoOsc ) >> scaleAmplitudeOscExp;
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //---------------------------
             case ToneShaper::OSC_PDRED0:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    const uint16_t phaseC = (phase += deltaPhase ) >> scalePhaseIndexExp;
-                    *layp++ += ( tables::waveSinTable[ uint16_t(phaseC + (int16_t( noisePhaseMode.getRed() >> 10 ) )) ]
+                    const uint16_t phaseC = (phase_0 += deltaPhase_0 ) >> scalePhaseIndexExp;
+                    *layp_0++ += ( tables::waveSinTable[ uint16_t(phaseC + (int16_t( noisePhaseMode.getRed() >> 10 ) )) ]
                             * amplitudoOsc ) >> scaleAmplitudeOscExp;
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //---------------------------
             case ToneShaper::OSC_PDRED1:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    const uint16_t phaseC = (phase += deltaPhase ) >> scalePhaseIndexExp;
-                    *layp++ += ( tables::waveSinTable[ uint16_t(phaseC + (int16_t( noisePhaseMode.getRed() >> 11 ) )) ]
+                    const uint16_t phaseC = (phase_0 += deltaPhase_0 ) >> scalePhaseIndexExp;
+                    *layp_0++ += ( tables::waveSinTable[ uint16_t(phaseC + (int16_t( noisePhaseMode.getRed() >> 11 ) )) ]
                             * amplitudoOsc ) >> scaleAmplitudeOscExp;
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //---------------------------
             case ToneShaper::OSC_PDPURPLE0:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    const uint16_t phaseC = (phase += deltaPhase ) >> scalePhaseIndexExp;
-                    *layp++ += ( tables::waveSinTable[ uint16_t(phaseC + (int16_t( noisePhaseMode.getPurple() >> 8 ) )) ]
+                    const uint16_t phaseC = (phase_0 += deltaPhase_0 ) >> scalePhaseIndexExp;
+                    *layp_0++ += ( tables::waveSinTable[ uint16_t(phaseC + (int16_t( noisePhaseMode.getPurple() >> 8 ) )) ]
                             * amplitudoOsc ) >> scaleAmplitudeOscExp;
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //---------------------------
             case ToneShaper::OSC_PDPURPLE1:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    const uint16_t phaseC = (phase += deltaPhase ) >> scalePhaseIndexExp;
-                    *layp++ += ( tables::waveSinTable[ uint16_t(phaseC + (int16_t( noisePhaseMode.getPurple() >> 10 ) )) ]
+                    const uint16_t phaseC = (phase_0 += deltaPhase_0 ) >> scalePhaseIndexExp;
+                    *layp_0++ += ( tables::waveSinTable[ uint16_t(phaseC + (int16_t( noisePhaseMode.getPurple() >> 10 ) )) ]
                             * amplitudoOsc ) >> scaleAmplitudeOscExp;
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //---------------------------
             case ToneShaper::OSC_12OV0:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    const uint32_t phaseC = (phase += deltaPhase );
-                    *layp++ += (( tables::waveSinTable[ uint16_t(phaseC>>16) ] + tables::waveSinTable[ uint16_t(phaseC>>15) ] )
+                    const uint32_t phaseC = (phase_0 += deltaPhase_0 );
+                    *layp_0++ += (( tables::waveSinTable[ uint16_t(phaseC>>16) ] + tables::waveSinTable[ uint16_t(phaseC>>15) ] )
                             * amplitudoOsc ) >> scaleAmplitudeOscExp;
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //---------------------------
             case ToneShaper::OSC_12OV1:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    const uint32_t phaseC = (phase += deltaPhase );
-                    *layp++ += (( tables::waveSinTable[ uint16_t(phaseC>>16) ] + (tables::waveSinTable[ uint16_t(phaseC>>15) ] >> 1 ))
+                    const uint32_t phaseC = (phase_0 += deltaPhase_0 );
+                    *layp_0++ += (( tables::waveSinTable[ uint16_t(phaseC>>16) ] + (tables::waveSinTable[ uint16_t(phaseC>>15) ] >> 1 ))
                             * amplitudoOsc ) >> scaleAmplitudeOscExp;
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //---------------------------
             case ToneShaper::OSC_12OV2:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    const uint32_t phaseC = (phase += deltaPhase );
-                    *layp++ += (( tables::waveSinTable[ uint16_t(phaseC>>16) ] + (tables::waveSinTable[ uint16_t(phaseC>>15) ] >> 2 ))
+                    const uint32_t phaseC = (phase_0 += deltaPhase_0 );
+                    *layp_0++ += (( tables::waveSinTable[ uint16_t(phaseC>>16) ] + (tables::waveSinTable[ uint16_t(phaseC>>15) ] >> 2 ))
                             * amplitudoOsc ) >> scaleAmplitudeOscExp;
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //---------------------------
             case ToneShaper::OSC_13OV0:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    const uint32_t phaseC = (phase += deltaPhase );
-                    *layp++ += (( tables::waveSinTable[ uint16_t(phaseC>>16) ] + tables::waveSinTable[ uint16_t(phaseC>>14) ] )
+                    const uint32_t phaseC = (phase_0 += deltaPhase_0 );
+                    *layp_0++ += (( tables::waveSinTable[ uint16_t(phaseC>>16) ] + tables::waveSinTable[ uint16_t(phaseC>>14) ] )
                             * amplitudoOsc ) >> scaleAmplitudeOscExp;
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //---------------------------
             case ToneShaper::OSC_13OV1:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    const uint32_t phaseC = (phase += deltaPhase );
-                    *layp++ += (( tables::waveSinTable[ uint16_t(phaseC>>16) ] + (tables::waveSinTable[ uint16_t(phaseC>>14) ] >> 1 ))
+                    const uint32_t phaseC = (phase_0 += deltaPhase_0 );
+                    *layp_0++ += (( tables::waveSinTable[ uint16_t(phaseC>>16) ] + (tables::waveSinTable[ uint16_t(phaseC>>14) ] >> 1 ))
                             * amplitudoOsc ) >> scaleAmplitudeOscExp;
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //---------------------------
             case ToneShaper::OSC_13OV2:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    const uint32_t phaseC = (phase += deltaPhase );
-                    *layp++ += (( tables::waveSinTable[ uint16_t(phaseC>>16) ] + (tables::waveSinTable[ uint16_t(phaseC>>14) ] >> 2 ))
+                    const uint32_t phaseC = (phase_0 += deltaPhase_0 );
+                    *layp_0++ += (( tables::waveSinTable[ uint16_t(phaseC>>16) ] + (tables::waveSinTable[ uint16_t(phaseC>>14) ] >> 2 ))
                             * amplitudoOsc ) >> scaleAmplitudeOscExp;
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //-----------------------------------------------------------------------------
 // noise: 1 wide for a voice !!!!!!!!!!!!!!!!
 // only 1 for a voice !!!
@@ -426,29 +474,32 @@ L_innerloop:
 //
             case ToneShaper::OSC_NOISE_WHITE:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    *layp++ +=  ( noiseWide.getWhite() * amplitudoOsc ) >> (scaleAmplitudeOscExp+8);
+                    *layp_0++ +=  ( noiseWide.getWhite() * amplitudoOsc ) >> (scaleAmplitudeOscExp+8);
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //---------------------------
             case ToneShaper::OSC_NOISE_RED1:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    *layp++ +=  ( noiseWide.getRed() * amplitudoOsc ) >> (scaleAmplitudeOscExp+9);
+                    *layp_0++ +=  ( noiseWide.getRed() * amplitudoOsc ) >> (scaleAmplitudeOscExp+9);
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //---------------------------
             case ToneShaper::OSC_NOISE_PURPLE1:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    *layp++ +=  ( noiseWide.getPurple() * amplitudoOsc ) >> (scaleAmplitudeOscExp+7);
+                    *layp_0++ +=  ( noiseWide.getPurple() * amplitudoOsc ) >> (scaleAmplitudeOscExp+7);
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //---------------------------
                 // TODO add diff zero
             case ToneShaper::OSC_NOISE_BLUE1:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    *layp++ +=  ( noiseWide.getBlue() * amplitudoOsc ) >> (scaleAmplitudeOscExp+6);
+                    *layp_0++ +=  ( noiseWide.getBlue() * amplitudoOsc ) >> (scaleAmplitudeOscExp+6);
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
@@ -460,91 +511,103 @@ L_innerloop:
 //---------------------------
             case ToneShaper::OSC_NOISE_SV1x1_PEEK:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    *layp++ +=  ( noiseNarrow.getFilteredSVx1<0>( whiteNoiseFrame.getFrame()[sind], filterCenterFreq ) * amplitudoOsc ) >> (scaleAmplitudeOscExp+8);
+                    *layp_0++ +=  ( noiseNarrow.getFilteredSVx1<0>( whiteNoiseFrame.getFrame()[sind], filterCenterFreq ) * amplitudoOsc ) >> (scaleAmplitudeOscExp+8);
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //---------------------------
             case ToneShaper::OSC_NOISE_SV2x1_PEEK:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    *layp++ +=  ( noiseNarrow.getFilteredSVx1<1>( whiteNoiseFrame.getFrame()[sind], filterCenterFreq ) * amplitudoOsc ) >> (scaleAmplitudeOscExp+8);
+                    *layp_0++ +=  ( noiseNarrow.getFilteredSVx1<1>( whiteNoiseFrame.getFrame()[sind], filterCenterFreq ) * amplitudoOsc ) >> (scaleAmplitudeOscExp+8);
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //---------------------------
             case ToneShaper::OSC_NOISE_SV3x1_PEEK:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    *layp++ +=  ( noiseNarrow.getFilteredSVx1<2>( whiteNoiseFrame.getFrame()[sind], filterCenterFreq ) * amplitudoOsc ) >> (scaleAmplitudeOscExp+8);
+                    *layp_0++ +=  ( noiseNarrow.getFilteredSVx1<2>( whiteNoiseFrame.getFrame()[sind], filterCenterFreq ) * amplitudoOsc ) >> (scaleAmplitudeOscExp+8);
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //---------------------------
             case ToneShaper::OSC_NOISE_SV1x2_PEEK:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    *layp++ +=  ( noiseNarrow.getFilteredSVx2<0>( whiteNoiseFrame.getFrame()[sind], filterCenterFreq ) * amplitudoOsc ) >> (scaleAmplitudeOscExp+8);
+                    *layp_0++ +=  ( noiseNarrow.getFilteredSVx2<0>( whiteNoiseFrame.getFrame()[sind], filterCenterFreq ) * amplitudoOsc ) >> (scaleAmplitudeOscExp+8);
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //---------------------------
             case ToneShaper::OSC_NOISE_SV2x2_PEEK:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    *layp++ +=  ( noiseNarrow.getFilteredSVx2<1>( whiteNoiseFrame.getFrame()[sind], filterCenterFreq ) * amplitudoOsc ) >> (scaleAmplitudeOscExp+8);
+                    *layp_0++ +=  ( noiseNarrow.getFilteredSVx2<1>( whiteNoiseFrame.getFrame()[sind], filterCenterFreq ) * amplitudoOsc ) >> (scaleAmplitudeOscExp+8);
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //---------------------------
             case ToneShaper::OSC_NOISE_SV3x2_PEEK:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    *layp++ +=  ( noiseNarrow.getFilteredSVx2<2>( whiteNoiseFrame.getFrame()[sind], filterCenterFreq ) * amplitudoOsc ) >> (scaleAmplitudeOscExp+8);
+                    *layp_0++ +=  ( noiseNarrow.getFilteredSVx2<2>( whiteNoiseFrame.getFrame()[sind], filterCenterFreq ) * amplitudoOsc ) >> (scaleAmplitudeOscExp+8);
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //---------------------------
             case ToneShaper::OSC_NOISE_SV1x3_PEEK:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    *layp++ +=  ( noiseNarrow.getFilteredSVx3<0>( whiteNoiseFrame.getFrame()[sind], filterCenterFreq ) * amplitudoOsc ) >> (scaleAmplitudeOscExp+8);
+                    *layp_0++ +=  ( noiseNarrow.getFilteredSVx3<0>( whiteNoiseFrame.getFrame()[sind], filterCenterFreq ) * amplitudoOsc ) >> (scaleAmplitudeOscExp+8);
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //---------------------------
             case ToneShaper::OSC_NOISE_SV2x3_PEEK:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    *layp++ +=  ( noiseNarrow.getFilteredSVx3<1>( whiteNoiseFrame.getFrame()[sind], filterCenterFreq ) * amplitudoOsc ) >> (scaleAmplitudeOscExp+8);
+                    *layp_0++ +=  ( noiseNarrow.getFilteredSVx3<1>( whiteNoiseFrame.getFrame()[sind], filterCenterFreq ) * amplitudoOsc ) >> (scaleAmplitudeOscExp+8);
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //---------------------------
             case ToneShaper::OSC_NOISE_SV3x3_PEEK:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    *layp++ +=  ( noiseNarrow.getFilteredSVx3<2>( whiteNoiseFrame.getFrame()[sind], filterCenterFreq ) * amplitudoOsc ) >> (scaleAmplitudeOscExp+10);
+                    *layp_0++ +=  ( noiseNarrow.getFilteredSVx3<2>( whiteNoiseFrame.getFrame()[sind], filterCenterFreq ) * amplitudoOsc ) >> (scaleAmplitudeOscExp+10);
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //---------------------------
             case ToneShaper::OSC_NOISE_SV1x4_PEEK:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    *layp++ += ( noiseNarrow.getFilteredSVx4<0>( whiteNoiseFrame.getFrame()[sind], filterCenterFreq ) * amplitudoOsc ) >> (scaleAmplitudeOscExp+8);
+                    *layp_0++ += ( noiseNarrow.getFilteredSVx4<0>( whiteNoiseFrame.getFrame()[sind], filterCenterFreq ) * amplitudoOsc ) >> (scaleAmplitudeOscExp+8);
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //---------------------------
             case ToneShaper::OSC_NOISE_SV2x4_PEEK:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    *layp++ += ( noiseNarrow.getFilteredSVx4<1>( whiteNoiseFrame.getFrame()[sind], filterCenterFreq ) * amplitudoOsc ) >> (scaleAmplitudeOscExp+8);
+                    *layp_0++ += ( noiseNarrow.getFilteredSVx4<1>( whiteNoiseFrame.getFrame()[sind], filterCenterFreq ) * amplitudoOsc ) >> (scaleAmplitudeOscExp+8);
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //---------------------------
             case ToneShaper::OSC_NOISE_SV3x4_PEEK:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    *layp++ += ( noiseNarrow.getFilteredSVx4<2>( whiteNoiseFrame.getFrame()[sind], filterCenterFreq ) * amplitudoOsc ) >> (scaleAmplitudeOscExp+12);
+                    *layp_0++ += ( noiseNarrow.getFilteredSVx4<2>( whiteNoiseFrame.getFrame()[sind], filterCenterFreq ) * amplitudoOsc ) >> (scaleAmplitudeOscExp+12);
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
+                
 //---------------------------
             case ToneShaper::OSC_NOISE_APx1_PEEK:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    *layp++ += ( noiseNarrow.getFilteredAP2x1( whiteNoiseFrame.getFrame()[sind], filterCenterFreq, filterBandwith ) * amplitudoOsc )
+                    *layp_0++ += ( noiseNarrow.getFilteredAP2x1( whiteNoiseFrame.getFrame()[sind], filterCenterFreq, filterBandwith ) * amplitudoOsc )
                                 >> (scaleAmplitudeOscExp+5);
                     amplitudoOsc += deltaAmpl;
                 }
@@ -553,7 +616,7 @@ L_innerloop:
 //---------------------------
             case ToneShaper::OSC_NOISE_APx2_PEEK:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    *layp++ += ( noiseNarrow.getFilteredAP2x2( whiteNoiseFrame.getFrame()[sind], filterCenterFreq, filterBandwith ) * amplitudoOsc )
+                    *layp_0++ += ( noiseNarrow.getFilteredAP2x2( whiteNoiseFrame.getFrame()[sind], filterCenterFreq, filterBandwith ) * amplitudoOsc )
                                 >> (scaleAmplitudeOscExp+5);
                     amplitudoOsc += deltaAmpl;
                 }
@@ -562,7 +625,7 @@ L_innerloop:
 //---------------------------
             case ToneShaper::OSC_NOISE_APx3_PEEK:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    *layp++ += ( noiseNarrow.getFilteredAP2x3( whiteNoiseFrame.getFrame()[sind], filterCenterFreq, filterBandwith ) * amplitudoOsc )
+                    *layp_0++ += ( noiseNarrow.getFilteredAP2x3( whiteNoiseFrame.getFrame()[sind], filterCenterFreq, filterBandwith ) * amplitudoOsc )
                                 >> (scaleAmplitudeOscExp+5);
                     amplitudoOsc += deltaAmpl;
                 }
@@ -571,7 +634,7 @@ L_innerloop:
 //---------------------------
             case ToneShaper::OSC_NOISE_APx4_PEEK:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    *layp++ += ( noiseNarrow.getFilteredAP2x4( whiteNoiseFrame.getFrame()[sind], filterCenterFreq, filterBandwith ) * amplitudoOsc )
+                    *layp_0++ += ( noiseNarrow.getFilteredAP2x4( whiteNoiseFrame.getFrame()[sind], filterCenterFreq, filterBandwith ) * amplitudoOsc )
                                 >> (scaleAmplitudeOscExp+5);
                     amplitudoOsc += deltaAmpl;
                 }
@@ -580,33 +643,30 @@ L_innerloop:
 //---------------------------
             case ToneShaper::OSC_NOISE_4Px1_PEEK:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    *layp++ +=  ( noiseNarrow.getFiltered4Px1( whiteNoiseFrame.getFrame()[sind], filterCenterFreq, filterBandwith ) * amplitudoOsc )
+                    *layp_0++ +=  ( noiseNarrow.getFiltered4Px1( whiteNoiseFrame.getFrame()[sind], filterCenterFreq, filterBandwith ) * amplitudoOsc )
                                 >> (scaleAmplitudeOscExp+5);
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
-
+                
 //---------------------------
             case ToneShaper::OSC_NOISE_4Px2_PEEK:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
-                    *layp++ +=  ( noiseNarrow.getFiltered4Px2( whiteNoiseFrame.getFrame()[sind], filterCenterFreq, filterBandwith ) * amplitudoOsc )
+                    *layp_0++ +=  ( noiseNarrow.getFiltered4Px2( whiteNoiseFrame.getFrame()[sind], filterCenterFreq, filterBandwith ) * amplitudoOsc )
                                 >> (scaleAmplitudeOscExp+5);
                     amplitudoOsc += deltaAmpl;
                 }
                 break;
-
-
-//---------------------------
-
-                // ToneShaper::OSC_4x_NOISE -- oscindex += 3 --> 4 ??
-//---------------------------
-//            case ToneShaper::OSC_PDxx     sin(sin())
-//            case ToneShaper::OSC_PAIRxx
-
             } // end switch( oscillatorType )
 
             stateOsc.amplitudoOsc = amplitudoOsc;
-            stateOsc.phase = phase;
+            stateOsc.phase_0 = phase_0;
+            // TODO : ONLY IN TRANSIENT PHASE ?
+            // TODO : limit to +- 1 octave -- 1<<24 with wrap around
+            // sign(detune) * (abs(detune) & (1<<25 - 1))
+            // if( isSustain && toneshaper.amplitudeDetune ) {
+            // }
+            // TODO move UP ^^
             stateOsc.amplitudeDetunePitch = ( stateOsc.amplitudoOsc * toneshaper.amplitudeDetune ) >> detuneRange;
             ++stat.cycleCounter[Statistics::COUNTER_INNER_LOOP];
             isEnd = false;
@@ -680,7 +740,7 @@ void Oscillator::voiceRun( const OscillatorInChange& in )
         auto& ts = toneShaperVecCurr->toneShaper[ oscindex ];
 #ifdef OSCILLATOR_PHASE_RANDOMIZER
         // if voice is not running !!
-        stateOsc.phase = gRandom.getRaw();
+        stateOsc.phase_0 = gRandom.getRaw();
 #endif
         stateOsc.sustainModulator.reset( ts.sustain, pitchDepDx );
         stateOsc.tickFrame          = 0;                // feature: must be set to 0
