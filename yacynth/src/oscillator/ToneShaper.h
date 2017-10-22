@@ -213,7 +213,7 @@ struct ToneShaper {
         OSC_13OV1_2CH_PH,      // tone 1 + 3 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>14)]>>1));};
         OSC_13OV2_2CH_PH,      // tone 1 + 3 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>14)]>>2));};
 
-        // 2CH tones with frequesncy shift
+        // 2CH tones with frequency shift
         OSC_SIN_2CH_FR,        
         OSC_SINSIN_2CH_FR,     // waveSinTable[ uint16_t( waveSinTable[phase >>16] )]
         OSC_TRIANGLE_2CH_FR,
@@ -314,12 +314,13 @@ struct ToneShaper {
     AmplitudeTransient  transient[ transientVectorSize ];
     AmplitudeSustain    sustain;
     InterpolatedTick    tickFrameRelease;
-    int16_t             amplitudeDetune;    // special detune parameter -- amplitude dependent -
-    uint16_t            detune2CH;          // special detune parameter -- 2CH_FR tones
+    int16_t             detune2CH;          // special detune parameter -- 2CH_FR tones
     uint8_t             oscillatorType;     // oscillator type : 0 = sine
-    uint8_t             outChannel;         // output channel for the overtone - not implemented yet
+    uint8_t             outChannel;         // output channel
     uint8_t             filterBandwidth;    // allpass - uint8_t ok --> -int32_t(filterBw) << 23
     uint8_t             veloBoost;
+    uint8_t             rfu2;    
+    uint8_t             rfu1;    
 };
 // --------------------------------------------------------------------
 struct ToneShaperVector {

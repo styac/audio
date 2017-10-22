@@ -57,11 +57,11 @@ bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, 
 {
     // under this amplitude value the signal will not be generated
     constexpr uint64_t  hearingThreshold = 1L<<8;
-
-    // 25 bit * 7 bit = 32 -> result 21
-    // TODO this must be set to a resonable value with experiments - 15 bit multiplier
-    constexpr uint8_t   detuneRange = 11; // must be tested
-
+    
+    // magic numbers for stereo diff frequency sound
+    constexpr int32_t frDetune0Magic = 1237;   // min value
+    
+            
     bool        isEnd       = false;
     switch( voiceState ) {
     case VOICE_DOWN:
@@ -97,7 +97,7 @@ bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, 
             auto& stateOsc          = state[ oscindex ];
             uint32_t deltaPhase_0 = 0;
             uint32_t deltaPhase_1 = 0;
-            int32_t frDetune = int32_t(toneshaper.detune2CH) << 5;
+            int32_t frDetune0 = frDetune0Magic + ( int32_t(toneshaper.detune2CH) << 4 );
             int32_t filterCenterFreq;
             int16_t filterBandwith;
             uint8_t outChannel_0 = toneshaper.outChannel & oscOutputChannelCountMsk;
@@ -134,13 +134,13 @@ bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, 
             case ToneShaper::OSC_NOISE_SV1x4_PEEK:
             case ToneShaper::OSC_NOISE_SV2x4_PEEK:
             case ToneShaper::OSC_NOISE_SV3x4_PEEK:
-                filterCenterFreq = noiseNarrow.getFreqSv( basePitch + toneshaper.pitch + in.pitchDelta + stateOsc.amplitudeDetunePitch );
+                filterCenterFreq = noiseNarrow.getFreqSv( basePitch + toneshaper.pitch + in.pitchDelta );
                 filterBandwith = 0x7F + (toneshaper.filterBandwidth<<7); // 1...0.2
                 break;
 
             case ToneShaper::OSC_NOISE_4Px1_PEEK:
             case ToneShaper::OSC_NOISE_4Px2_PEEK:
-                filterCenterFreq = noiseNarrow.getFreq4p( basePitch + toneshaper.pitch + in.pitchDelta + stateOsc.amplitudeDetunePitch );
+                filterCenterFreq = noiseNarrow.getFreq4p( basePitch + toneshaper.pitch + in.pitchDelta );
                 filterBandwith = 0x7F + (toneshaper.filterBandwidth<<7); // max 3.9999 - 3.FC
                 break;
 
@@ -148,14 +148,14 @@ bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, 
             case ToneShaper::OSC_NOISE_APx2_PEEK:
             case ToneShaper::OSC_NOISE_APx3_PEEK:
             case ToneShaper::OSC_NOISE_APx4_PEEK:
-                filterCenterFreq = noiseNarrow.getFreqAp2( basePitch + toneshaper.pitch + in.pitchDelta + stateOsc.amplitudeDetunePitch );
+                filterCenterFreq = noiseNarrow.getFreqAp2( basePitch + toneshaper.pitch + in.pitchDelta );
                 filterBandwith =  0x7000 + (int16_t(toneshaper.filterBandwidth)<<4); // 0.5 ...0.9999
                 break;
 
             default:
                 // TODOs  fastexp - check it
                 // deltaPhase = ExpTable::ycent2deltafi( basePitch + toneshaper.pitch, in.pitchDelta + stateOsc.amplitudeDetunePitch );
-                deltaPhase_0 = ycent2deltafi( basePitch + toneshaper.pitch, in.pitchDelta + stateOsc.amplitudeDetunePitch );
+                deltaPhase_0 = ycent2deltafi( basePitch + toneshaper.pitch, in.pitchDelta );
                 if( 0 == deltaPhase_0 )
                     continue; // too high sound
             }
@@ -227,21 +227,13 @@ bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, 
                 break;
             }
 //++++++++++++++++++++++++++++
-            // TODO : ONLY IN TRANSIENT PHASE ?
-            // TODO : limit to +- 1 octave -- 1<<24 with wrap around
-            // sign(detune) * (abs(detune) & (1<<25 - 1))
-            // if( isSustain && toneshaper.amplitudeDetune ) {
-            // }
-            // stateOsc.amplitudeDetunePitch = ( stateOsc.amplitudoOsc * toneshaper.amplitudeDetune ) >> detuneRange;
             goto L_innerloop;
 //============================
 L_sustain:
-            // stateOsc.amplitudeDetunePitch = 0;
             deltaAmpl = stateOsc.sustainModulator.decayMod( stateOsc.amplitudoOsc );
             ++stat.cycleCounter[Statistics::COUNTER_SUSTAIN];
 //============================
 L_innerloop:
-
             if( ( hearingThreshold > stateOsc.amplitudoOsc ) && ( 0 >= deltaAmpl )) {
                 stateOsc.amplitudoOsc = 0;
                 stateOsc.phase_0 += deltaPhase_0<<oscillatorFrameSizeExp; // no signal but move the phase by a tick
@@ -292,8 +284,8 @@ L_innerloop:
 //---------------------------
             case ToneShaper::OSC_SIN_2CH_FR:
                 out.amplitudeSumm[ outChannel_1 ] = out.amplitudeSumm[ outChannel_0 ] ;
-                deltaPhase_1 = deltaPhase_0 + frDetune;
-                deltaPhase_0 -= frDetune;
+                deltaPhase_1 = deltaPhase_0 + frDetune0;
+                deltaPhase_0 -= frDetune0;
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
                     const uint16_t ph0 = ( phase_0 += deltaPhase_0 ) >> scalePhaseIndexExp;
                     const uint16_t ph1 = ( stateOsc.phase_1 += deltaPhase_1 ) >> scalePhaseIndexExp;
@@ -304,9 +296,42 @@ L_innerloop:
                 break;                
                 
 //---------------------------
+
+//---------------------------
             case ToneShaper::OSC_SINSIN:
                 for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
                     *layp_0++ += ( tables::waveSinTable[ uint16_t( tables::waveSinTable[ uint16_t(( phase_0 += deltaPhase_0 ) >> scalePhaseIndexExp)])]
+                            * amplitudoOsc ) >> scaleAmplitudeOscExp;
+                    amplitudoOsc += deltaAmpl;
+                }
+                break;
+
+//---------------------------
+            case ToneShaper::OSC_SINSIN_2CH_PH:
+                out.amplitudeSumm[ outChannel_1 ] = out.amplitudeSumm[ outChannel_0 ] ;
+                for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
+                    const uint16_t ph0 = ( phase_0 += deltaPhase_0 ) >> scalePhaseIndexExp;
+                    const uint16_t ph1 = ph0 + (1<<14); // PI / 2 shift
+                    *layp_0++ += ( tables::waveSinTable[ uint16_t( tables::waveSinTable[ ph0 ] )]
+                            * amplitudoOsc ) >> scaleAmplitudeOscExp;
+                    *layp_1++ += ( tables::waveSinTable[ uint16_t( tables::waveSinTable[ ph1 ] )]
+                            * amplitudoOsc ) >> scaleAmplitudeOscExp;
+                    amplitudoOsc += deltaAmpl;
+                }
+                break;
+
+
+//---------------------------
+            case ToneShaper::OSC_SINSIN_2CH_FR:
+                out.amplitudeSumm[ outChannel_1 ] = out.amplitudeSumm[ outChannel_0 ] ;
+                deltaPhase_1 = deltaPhase_0 + frDetune0;
+                deltaPhase_0 -= frDetune0;
+                for( auto sind = 0; sind < oscillatorFrameSize; ++sind ) {
+                    const uint16_t ph0 = ( phase_0 += deltaPhase_0 ) >> scalePhaseIndexExp;
+                    const uint16_t ph1 = ( stateOsc.phase_1 += deltaPhase_1 ) >> scalePhaseIndexExp;
+                    *layp_0++ += ( tables::waveSinTable[ uint16_t( tables::waveSinTable[ ph0 ] )]
+                            * amplitudoOsc ) >> scaleAmplitudeOscExp;
+                    *layp_1++ += ( tables::waveSinTable[ uint16_t( tables::waveSinTable[ ph1 ] )]
                             * amplitudoOsc ) >> scaleAmplitudeOscExp;
                     amplitudoOsc += deltaAmpl;
                 }
@@ -661,13 +686,6 @@ L_innerloop:
 
             stateOsc.amplitudoOsc = amplitudoOsc;
             stateOsc.phase_0 = phase_0;
-            // TODO : ONLY IN TRANSIENT PHASE ?
-            // TODO : limit to +- 1 octave -- 1<<24 with wrap around
-            // sign(detune) * (abs(detune) & (1<<25 - 1))
-            // if( isSustain && toneshaper.amplitudeDetune ) {
-            // }
-            // TODO move UP ^^
-            stateOsc.amplitudeDetunePitch = ( stateOsc.amplitudoOsc * toneshaper.amplitudeDetune ) >> detuneRange;
             ++stat.cycleCounter[Statistics::COUNTER_INNER_LOOP];
             isEnd = false;
         }

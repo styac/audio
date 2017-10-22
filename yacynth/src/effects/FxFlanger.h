@@ -67,53 +67,68 @@ private:
     static void sprocess_02( void * thp );
     static void sprocess_03( void * thp );
     static void sprocess_04( void * thp );
+    static void sprocess_05( void * thp );
+    static void sprocess_06( void * thp );
 
     inline void processForward(void)
     {
-        out().mult( inp<0>(), param.mode01.gain );
-        delay.pushSection( inp<0>() );
+        out().mult( inp(), param.mode01.gain );
+        delay.pushSection( inp() );
         for( int64_t si = 0; si < EbufferPar::sectionSize; ++si ) {
-            const int64_t si64 = si<<32;
-            const int64_t delayA = modulatorValue[ chA ].getInc() >> modulatorNorm;
-            const int64_t delayB = modulatorValue[ chB ].getInc() >> modulatorNorm;
-            out().channel[ chA ][ si ] += delay.getInterpolated2Order<chA>( param.mode01.baseDelay + delayA - si64 ) * param.mode01.gain;
-            out().channel[ chB ][ si ] += delay.getInterpolated2Order<chB>( param.mode01.baseDelay + delayB - si64 ) * param.mode01.gain;
-//            out().channel[ chB ][ si ] = delayA * (1.0f/(1LL<<42) ) ;
+            const int64_t si64 = ( si + EbufferPar::sectionSize ) << 32;
+            const int64_t delayA = modulatorValue[ chA ].getInc() - si64;
+            const int64_t delayB = modulatorValue[ chB ].getInc() - si64;
+            out().channel[ chA ][ si ] += delay.getInterpolated2Order<chA>( delayA ) * param.mode01.wetGain;
+            out().channel[ chB ][ si ] += delay.getInterpolated2Order<chB>( delayB ) * param.mode01.wetGain;
         }
     }
 
     inline void processFeedback(void)
     {
         const uint32_t startIndex = delay.getSectionIndex();
-        out().mult( inp<0>(), param.mode01.gain );
-        delay.pushSection( inp<0>() );
+        out().mult( inp(), param.mode01.gain );
+        delay.pushSection( inp() );
         for( int64_t si = 0; si < EbufferPar::sectionSize; ++si ) {
-            const int64_t si64 = si<<32;
-            const int64_t delayA = modulatorValue[ chA ].getInc() >> modulatorNorm;
-            const int64_t delayB = modulatorValue[ chB ].getInc() >> modulatorNorm;
-            const float vA = delay.getInterpolated2Order<chA>( param.mode01.baseDelay + delayA - si64 );
-            const float vB = delay.getInterpolated2Order<chB>( param.mode01.baseDelay + delayB - si64 );
-            out().channel[ chA ][ si ] += vA * param.mode01.gain;
-            out().channel[ chB ][ si ] += vB * param.mode01.gain;
+            const int64_t si64 = ( si + EbufferPar::sectionSize ) << 32;
+            const int64_t delayA = modulatorValue[ chA ].getInc() - si64;
+            const int64_t delayB = modulatorValue[ chB ].getInc() - si64;
+            const float vA = delay.getInterpolated2Order<chA>( delayA );
+            const float vB = delay.getInterpolated2Order<chB>( delayB );
+            out().channel[ chA ][ si ] += vA * param.mode01.wetGain;
+            out().channel[ chB ][ si ] += vB * param.mode01.wetGain;
             delay.channel[ chA ][ startIndex + si ] -= vA * param.mode01.feedbackGain;
             delay.channel[ chB ][ startIndex + si ] -= vB * param.mode01.feedbackGain;
         }
     }
 
-    inline void useSine(void)
+    inline void processVibrato(void)
     {
-        modulatorValue[ chA ].set(( param.mode01.oscMasterIndex.getLfoSinU32()) * int64_t( param.mode01.depth ));
-        modulatorValue[ chB ].set(( param.mode01.oscSlaveIndex.getLfoSinU32())  * int64_t( param.mode01.depth ));
+        delay.pushSection( inp() );        
+        for( int64_t si = 0; si < EbufferPar::sectionSize; ++si ) {
+            const int64_t si64 = ( si + EbufferPar::sectionSize ) << 32;
+            const int64_t delayA = modulatorValue[ chA ].getInc() - si64;
+            const int64_t delayB = modulatorValue[ chB ].getInc() - si64;
+            out().channel[ chA ][ si ] = delay.getInterpolated2Order<chA>( delayA );
+            out().channel[ chB ][ si ] = delay.getInterpolated2Order<chB>( delayB );
+        }
+    }
+        
+    inline void modulateSine(void)
+    {
+        const int64_t depth = param.mode01.sineDepth; // 0..1<<32
+        modulatorValue[ chA ].set(( param.mode01.oscMasterIndex.getLfoSinI16() + 0x7FFFU ) * depth );
+        modulatorValue[ chB ].set(( param.mode01.oscSlaveIndex.getLfoSinI16()  + 0x7FFFU ) * depth );
     }
 
-    inline void useTriangle(void)
+    inline void modulateTriangle(void)
     {
-        modulatorValue[ chA ].set(( param.mode01.oscMasterIndex.getLfoTriangleU32()) * int64_t( param.mode01.depth ));
-        modulatorValue[ chB ].set(( param.mode01.oscSlaveIndex.getLfoTriangleU32())  * int64_t( param.mode01.depth ));
+        const int64_t depth = param.mode01.triangleDepth; // 0..1<<32
+        modulatorValue[ chA ].set(( param.mode01.oscMasterIndex.getLfoTriangleU32()) * depth );
+        modulatorValue[ chB ].set(( param.mode01.oscSlaveIndex.getLfoTriangleU32() ) * depth );
     }
 
     EDelayLine  delay;
-    ControllerLinearIterator<int64_t,EbufferPar::sectionSizeExp> modulatorValue[2];
+    ControllerLinearIterator<int64_t,EbufferPar::sectionSizeExp> modulatorValue[ 2 ];
 };
 
 

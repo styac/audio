@@ -39,12 +39,12 @@ bool FxFlangerParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_
 
     case TagEffectFxFlangerMode::SetParametersMode01 :
         TAG_DEBUG(TagEffectFxFlangerMode::SetParametersMode01, tagIndex, paramIndex, "TagEffectFxFlangerMode" );
-        if( !message.checkTargetData(mode01) ) {
+        if( ! message.checkTargetData(mode01) ) {
             message.setStatus( yaxp::MessageT::illegalData );
             return false;
         }
 
-        if( !message.setTargetData(mode01) ) {
+        if( ! message.setTargetData(mode01) ) {
             message.setStatus( yaxp::MessageT::illegalDataLength );
             return false;
         }
@@ -95,26 +95,38 @@ bool FxFlanger::connect( const FxBase * v, uint16_t ind )
 
 void FxFlanger::sprocess_01( void * thp )
 {
-    static_cast< MyType * >(thp)->useSine();
+    static_cast< MyType * >(thp)->modulateSine();
     static_cast< MyType * >(thp)->processForward();
 }
 
 void FxFlanger::sprocess_02( void * thp )
 {
-    static_cast< MyType * >(thp)->useTriangle();
+    static_cast< MyType * >(thp)->modulateTriangle();
     static_cast< MyType * >(thp)->processForward();
 }
 
 void FxFlanger::sprocess_03( void * thp )
 {
-    static_cast< MyType * >(thp)->useSine();
+    static_cast< MyType * >(thp)->modulateSine();
     static_cast< MyType * >(thp)->processFeedback();
 }
 
 void FxFlanger::sprocess_04( void * thp )
 {
-    static_cast< MyType * >(thp)->useTriangle();
+    static_cast< MyType * >(thp)->modulateTriangle();
     static_cast< MyType * >(thp)->processFeedback();
+}
+
+void FxFlanger::sprocess_05( void * thp )
+{
+    static_cast< MyType * >(thp)->modulateSine();
+    static_cast< MyType * >(thp)->processVibrato();
+}
+
+void FxFlanger::sprocess_06( void * thp )
+{
+    static_cast< MyType * >(thp)->modulateTriangle();
+    static_cast< MyType * >(thp)->processVibrato();
 }
 
 bool FxFlanger::setSprocessNext( uint16_t mode ) 
@@ -136,6 +148,12 @@ bool FxFlanger::setSprocessNext( uint16_t mode )
         break;
     case 4:
         sprocesspNext = sprocess_04;
+        break;
+    case 5:
+        sprocesspNext = sprocess_05;
+        break;
+    case 6:
+        sprocesspNext = sprocess_06;
         break;
     default:
         return false;

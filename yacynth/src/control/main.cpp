@@ -94,22 +94,25 @@ static void teststuff(void)
         << "\nrefA440ycentDouble:       "   << refA440ycentDouble
         << "\n--------------------"
         << std::hex
-        << "\nfreq2deltaPhase( 1.0 )    "   << freq2deltaPhase( 1.0 )
-        << "\nrefA440ycent:             "   << refA440ycent
-        << "\nrefA440ycentDouble:       "   << uint64_t(std::llround(refA440ycentDouble))
-        << "\n19990:                    "   << ref19900ycent
-        << "\n0.01:                     "   << ref0_01ycent
+        << "\n refA440ycent:            "   << refA440ycent
+        << "\n refA440ycentDouble:      "   << uint64_t(std::llround(refA440ycentDouble))
+        << "\n 19990:                   "   << ref19900ycent
+        << "\n 0.01:                    "   << ref0_01ycent
+        << "\n ycent1Hz_48000:          "   << int32_t(TuningTable::ycent1Hz_48000) 
         << "\n ycentA400_48000:         "   << int32_t(TuningTable::ycentA400_48000) 
         << "\n ycentMidi0_48000:        "   << int32_t(TuningTable::ycentMidi0_48000) 
         << "\n ycentMidi127_48000:      "   << int32_t(TuningTable::ycentMidi127_48000) 
         << "\n deltaPhaseA400_48000:    "   << ycent2deltafi(TuningTable::ycentA400_48000 ,0)
         << "\n deltaPhaseMidi0_48000:   "   << ycent2deltafi(TuningTable::ycentMidi0_48000,0)
         << "\n deltaPhaseMidi127_48000: "   << ycent2deltafi(TuningTable::ycentMidi127_48000,0)
-        << "\ncent2ycent:               "   << cent2ycent
-        << "\nycent2cent:               "   << ycent2cent
-        << "\nmidi res:                 "   << (100.0/16384.0)            
+        << "\n cent2ycent:              "   << cent2ycent
+        << "\n ycent2cent:              "   << ycent2cent
+        << "\n midi res:                "   << (100.0/16384.0)            
         << "\n\n"
         << std::dec
+        << "\n freq2deltaPhase( 1.0 )   "   << freq2deltaPhase( 1.0 )
+        << "\n freq2deltaPhase( 0.125 ) "   << freq2deltaPhase( 0.125 )
+        << "\n freq2deltaPhase( 8.0 )   "   << freq2deltaPhase( 8.0 )
         << std::endl;        
 }
 

@@ -57,9 +57,10 @@ struct ChannelTable {
 // any number of TuningTable for fast change : lets 4 or 8
 struct TuningTable {    
     // absolute values (relative to sampling frequency)
-    static constexpr double ycentA400_48000    = freq2ycentDouble(440.0);  // MIDI 69
-    static constexpr double ycentMidi0_48000   = ycentA400_48000 - 69 * ycentET12Semitone;
-    static constexpr double ycentMidi127_48000 = ycentA400_48000 + (127-69) * ycentET12Semitone;
+    static constexpr double ycent1Hz_48000      = freq2ycentDouble(1.0);    // 1Hz
+    static constexpr double ycentA400_48000     = freq2ycentDouble(440.0);  // MIDI 69
+    static constexpr double ycentMidi0_48000    = ycentA400_48000 - 69 * ycentET12Semitone;
+    static constexpr double ycentMidi127_48000  = ycentA400_48000 + (127-69) * ycentET12Semitone;
 
     TuningTable()
     :   baseTransposition(ycentMidi0_48000)

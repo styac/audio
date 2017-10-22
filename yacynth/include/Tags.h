@@ -476,6 +476,7 @@ namespace TagEffectFxChorusModeLevel_03 {
         // ---
         GetFeatures,
         SetParametersMode01,
+        SetParametersMode02,
     };
     
     enum class ProcModesEffectFxChorus : uint8_t {
@@ -492,7 +493,8 @@ namespace TagEffectFxFlangerModeLevel_03 {
         Preset,     // param[0] - presetnumber
         // ---
         GetFeatures,
-        SetParametersMode01,
+        SetParametersMode01,    // flanger
+        SetParametersMode02,    // vibrato
     };
     
     enum class ProcModesEffectFxFlanger : uint8_t {

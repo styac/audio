@@ -795,10 +795,14 @@ public:
 
     inline void set( T v )
     {
-       lastValue = currValue;
-       currValue = v;
-        delta = ( currValue - lastValue ) >> itCountExp;
-//        delta = ( currValue - lastValue + (1LL<<(itCountExp)) ) >> itCountExp;
+        constexpr T corr = (1LL<<(itCountExp-1));
+        lastValue = currValue;
+        currValue = v;
+        const T t = currValue - lastValue;
+        if( t < 0 )           
+            delta = ( t + corr ) >> itCountExp;
+        else 
+            delta = t >> itCountExp;
     }
 
     inline T getInc()

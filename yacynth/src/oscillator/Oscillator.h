@@ -128,7 +128,6 @@ struct alignas(int64_t) OscillatorState { // or cacheLineSize ?
     uint32_t            phase_0;
     uint32_t            phase_1;
     int32_t             tickFrame;  // int16_t ???
-    int32_t             amplitudeDetunePitch;
     uint16_t            velocityBoosted;
     uint8_t             envelopDeltaDividerExp;
     int8_t              envelopePhase;
@@ -219,8 +218,8 @@ private:
 
     const ToneShaperVector        * toneShaperVecCurr;
     OscillatorState                 state[ overtoneCountOscDef ];
-    NoiseSample                     noiseWide;          // only 1 for a voice
-    NoiseSample                     noisePhaseMode;     // only 1 for a voice -- TODO recheck
+    NoiseSample1CH                     noiseWide;          // only 1 for a voice
+    NoiseSample1CH                     noisePhaseMode;     // only 1 for a voice -- TODO recheck
     OscillatorNoise                 noiseNarrow;        // only 1 for a voice -- or 1x overtone -- TODO 
     int32_t                         basePitch;
     int32_t                         targetPitch;        // for glissando

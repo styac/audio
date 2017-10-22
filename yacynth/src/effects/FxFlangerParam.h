@@ -45,17 +45,13 @@ public:
     static constexpr std::size_t maxMode            = 4;
     static constexpr std::size_t inputCount         = 1;
 
-    // static constexpr std::size_t tapSize            = 4;
-    static constexpr std::size_t delayLngExp        = 5; // 2048
+    static constexpr std::size_t delayLngExp        = 5; // 1024
     static constexpr std::size_t delayLng           = 1<<(delayLngExp+effectFrameSizeExp);
     static constexpr std::size_t delayOffsMaxLng    = delayLng - 1;
     static constexpr std::size_t delayOffsMinLng    = 0; // 0 ?
 
-    static constexpr uint64_t minBaseDelay          = 128LL << 32;  // ca 2.5 msec
-    static constexpr uint64_t maxBaseDelay          = 1000LL << 32; // ca 20 msec
-
-    static constexpr int32_t  depthHighLimit        = 1<<29;
-    static constexpr int32_t  depthLowLimit         = 1<<4;
+    static constexpr int32_t  sineDepthLimit        = 1<<(16+5);
+    static constexpr int32_t  triangleDepthLimit    = 1<<(2+5);
 
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
@@ -64,17 +60,17 @@ public:
 
         bool check()
         {
-            if( baseDelay < minBaseDelay ) {
-                baseDelay = minBaseDelay;
-            }
-            if( baseDelay > maxBaseDelay ) {
-                baseDelay = maxBaseDelay;
-            }
             if( gain < -1.0 ) {
                 gain = -1.0;
             }
             if( gain > 1.0 ) {
                 gain = 1.0;
+            }
+            if( wetGain < -1.0 ) {
+                wetGain = -1.0;
+            }
+            if( wetGain > 1.0 ) {
+                wetGain = 1.0;
             }
             if( feedbackGain < -0.99 ) {
                 feedbackGain = -0.99;
@@ -82,22 +78,20 @@ public:
             if( feedbackGain > 0.99 ) {
                 feedbackGain = 0.99;
             }
-            if( depth > depthHighLimit ) {
-                depth = depthHighLimit;
+            if( sineDepth > sineDepthLimit ) {
+                sineDepth = sineDepthLimit;
             }
-            if( depth < depthLowLimit ) {
-                depth = depthLowLimit;
+            if( triangleDepth > triangleDepthLimit ) {
+                triangleDepth = triangleDepthLimit;
             }
-
             return true;
         }
 
-        // use minDelay + unipolar function > sin, triangle
-
-        uint64_t        baseDelay;          // controller ?
-        float           gain;            // wetIndex
+        float           gain;               // 
+        float           wetGain;            // 
         float           feedbackGain;       // feedbackIndex
-        int32_t         depth;              // depthIndex
+        int32_t         sineDepth;          // depthIndex
+        int32_t         triangleDepth;      // depthIndex
 
         // TODO : check max range with baseDelay !
         // manual

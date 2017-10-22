@@ -40,10 +40,12 @@ namespace yacynth {
 class FxChorus : public Fx<FxChorusParam>  {
 public:
     using MyType = FxChorus;
+    static constexpr uint8_t poleExp = 6;
     FxChorus()
     :   Fx<FxChorusParam>()
-    ,   delay(FxChorusParam::delayLngExp)   // 8192 * 64 sample - 10 sec
-    ,   noiseSample( GaloisShifterSingle<seedThreadEffect_noise>::getInstance() )
+    ,   delay(FxChorusParam::delayLngExp - effectFrameSizeExp)   // 8192 * 64 sample - 10 sec
+//    ,   noiseSample( GaloisShifterSingle<seedThreadEffect_noise>::getInstance() )
+    ,   galoisShifter( GaloisShifterSingle<seedThreadEffect_noise>::getInstance() )
     {
     }
 
@@ -57,50 +59,99 @@ private:
     virtual void clearState(void) override;
     static void sprocess_01( void * thp );
     static void sprocess_02( void * thp );
+    static void sprocess_03( void * thp );
 //
 // http://web.arch.usyd.edu.au/~wmar0109/DESC9115/DAFx_chapters/03.PDF
 //
-    // modulation signal = sine + noise
-
-    inline void process_01(void)
+    inline void process_test(void)
     {
         delay.pushSection( inp<0>() );
-        out().clear();
-        // sine : normalize to 28 bit
-        const int64_t sineRange = param.mode01.sineRange;
-        const int64_t noiseRange = param.mode01.noiseRange;
-        const int64_t sineChA = ( param.mode01.oscMasterIndex.getLfoSinI16() << 12 ) * sineRange;
-        const int64_t sineChB = ( param.mode01.oscSlaveIndex.getLfoSinI16() << 12 ) * sineRange;
-        for( auto ti = 0u; ti < param.mode01.tapCount; ++ti ) {
-            // noise : normalize to 28 bit
-            // getAvg -- 25 bit noise
-            const int64_t noiseChA = ( noiseSample.getRed() << 3 ) * noiseRange;
-            const int64_t noiseChB = ( noiseSample.getRed() << 3 ) * noiseRange;
-            // fill noiseFrame or noiseSample ????
-            // add noiseFrame +
+        
+        const int64_t sineDepth = param.mode01.sineDepth; // 0..1<<32
+        const int64_t noiseDepth = param.mode01.noiseDepth;
+        const int64_t sineChA = param.mode01.oscMasterIndex.getLfoSinI16() * sineDepth;
+        const int64_t sineChB = param.mode01.oscSlaveIndex.getLfoSinI16()  * sineDepth;
 
-            modulatorValue[ ti ][ chA ].set( sineChA + noiseChA );
-            modulatorValue[ ti ][ chB ].set( sineChB + noiseChB );
+        const int64_t noiseChA = galoisShifter.getWhite24();
+        const int64_t noiseChB = galoisShifter.getWhite24();
+
+        modulatorValue[ 0 ][ chA ].set( sineChA + noiseChA * noiseDepth );
+        modulatorValue[ 0 ][ chB ].set( sineChB + noiseChB * noiseDepth );
+        for( int64_t si = 0; si < EbufferPar::sectionSize; ++si ) {
+            const int64_t si64 = si<<32;
+            const int64_t delayA = modulatorValue[ 0 ][ chA ].getInc();
+            const int64_t delayB = modulatorValue[ 0 ][ chB ].getInc();
+            pole[ 0 ][ chA ] += (delayA>>4) - ( pole[ 0 ][ chA ] >> poleExp );
+            pole[ 0 ][ chB ] += (delayB>>4) - ( pole[ 0 ][ chB ] >> poleExp );
+//            out().channel[ chA ][ si ] = delay.getInterpolated2Order<chA>( param.mode01.baseDelay + pole[ 0 ][ chA ] - si64 );
+//            out().channel[ chB ][ si ] = delay.getInterpolated2Order<chB>( param.mode01.baseDelay + delayB - si64 );
+//            out().channel[ chA ][ si ] = sineChA * (1.0f/(1LL<<32));
+//            out().channel[ chB ][ si ] = inp().channel[ chA ][ si ];
+            out().channel[ chA ][ si ] = ( pole[ 0 ][ chA ] )  * (1.0f/(1LL<<38));
+            out().channel[ chB ][ si ] = ( pole[ 0 ][ chB ] )  * (1.0f/(1LL<<38));
+        }
+    }
+
+    // modulation signal = sine + noise
+
+    inline void processChorusSine(void)
+    {
+        delay.pushSection( inp() );
+        out().clear();
+        //out().copy( inp() );
+        const int64_t sineRange = param.mode01.sineDepth;
+        const int64_t noiseRange = param.mode01.noiseDepth;
+        const int64_t sineChA = param.mode01.oscMasterIndex.getLfoSinI16() * sineRange;
+        const int64_t sineChB = param.mode01.oscSlaveIndex.getLfoSinI16()  * sineRange;
+        for( auto ti = 0u; ti < param.mode01.tapCount; ++ti ) {
+            const int64_t noiseChA = galoisShifter.getWhite24();
+            const int64_t noiseChB = galoisShifter.getWhite24();
+            modulatorValue[ ti ][ chA ].set( sineChA + noiseChA * noiseRange );
+            modulatorValue[ ti ][ chB ].set( sineChB + noiseChB * noiseRange );
             for( int64_t si = 0; si < EbufferPar::sectionSize; ++si ) {
                 const int64_t si64 = si<<32;
-                // modulatorValue = 28 + 31 = 59 bit
-                // 59-32 = 27
-                // max 10 bit
-                const int64_t delayA = modulatorValue[ ti ][ chA ].getInc() >> 17;
-                const int64_t delayB = modulatorValue[ ti ][ chB ].getInc() >> 17;
-                // out().channel[ chA ][ si ] = delayA * (1.0f/(1LL<<42));
-                // out().channel[ chB ][ si ] = delayB * (1.0f/(1LL<<42));
+                const int64_t delayA = modulatorValue[ ti ][ chA ].getInc();
+                const int64_t delayB = modulatorValue[ ti ][ chB ].getInc();
+                pole[ ti ][ chA ] += (delayA>>4) - ( pole[ ti ][ chA ] >> poleExp );
+                pole[ ti ][ chB ] += (delayB>>4) - ( pole[ ti ][ chB ] >> poleExp );
+                out().channel[ chA ][ si ] += delay.getInterpolated2Order<chA>( param.mode01.baseDelay + pole[ ti ][ chA ] - si64 );
+                out().channel[ chB ][ si ] += delay.getInterpolated2Order<chB>( param.mode01.baseDelay + pole[ ti ][ chB ] - si64 );
+            }
+        }
+        out().multAdd( param.mode01.wetgain, inp() ); // mult
+    }
 
-                // float xx = ( ( modulatorValue[ ti ][ chA ].getInc() )) * ( 1.0f / (1LL<<44));
-                //out().channel[ chA ][ si ] = xx;
-                //out().channel[ chB ][ si ] = sineChA * (1.0f / (1LL<<44));
-                out().channel[ chA ][ si ] += delay.getInterpolated2Order<chA>( param.mode01.baseDelay + delayA - si64 );
-                out().channel[ chB ][ si ] += delay.getInterpolated2Order<chB>( param.mode01.baseDelay + delayB - si64 );
+    // feedback from middle delay 
+    // forward and back gain : 0.7071
+    inline void processWhiteChorusSine(void)
+    {
+        const float fgain(0.7071)
+        ;
+        delay.pushSection( inp() );
+        //out().clear();
+        out().copy( inp() );
+        const int64_t sineRange = param.mode01.sineDepth;
+        const int64_t noiseRange = param.mode01.noiseDepth;
+        const int64_t sineChA = param.mode01.oscMasterIndex.getLfoSinI16() * sineRange;
+        const int64_t sineChB = param.mode01.oscSlaveIndex.getLfoSinI16()  * sineRange;
+        for( auto ti = 0u; ti < param.mode01.tapCount; ++ti ) {
+            const int64_t noiseChA = galoisShifter.getWhite24();
+            const int64_t noiseChB = galoisShifter.getWhite24();
+            modulatorValue[ ti ][ chA ].set( sineChA + noiseChA * noiseRange );
+            modulatorValue[ ti ][ chB ].set( sineChB + noiseChB * noiseRange );
+            for( int64_t si = 0; si < EbufferPar::sectionSize; ++si ) {
+                const int64_t si64 = si<<32;
+                const int64_t delayA = modulatorValue[ ti ][ chA ].getInc();
+                const int64_t delayB = modulatorValue[ ti ][ chB ].getInc();
+                pole[ ti ][ chA ] += (delayA>>4) - ( pole[ ti ][ chA ] >> poleExp );
+                pole[ ti ][ chB ] += (delayB>>4) - ( pole[ ti ][ chB ] >> poleExp );
+                out().channel[ chA ][ si ] += delay.getInterpolated2Order<chA>( param.mode01.baseDelay + pole[ ti ][ chA ] - si64 );
+                out().channel[ chB ][ si ] += delay.getInterpolated2Order<chB>( param.mode01.baseDelay + pole[ ti ][ chB ] - si64 );
             }
         }
         out().multAdd( param.mode01.wetgain, inp<0>() );
     }
-
+    
     // test with triangle clean modulation
     //
     inline int64_t getTriangle(void)
@@ -128,11 +179,12 @@ private:
         }
     }
 
-
+    GaloisShifter&  galoisShifter;
     EDelayLine  delay;
     // to iterate in the
-    ControllerLinearIterator<int64_t,EbufferPar::sectionSizeExp> modulatorValue[FxChorusParam::tapSize][2];
-    NoiseSample     noiseSample;
+    ControllerLinearIterator<int64_t,EbufferPar::sectionSizeExp> modulatorValue[ FxChorusParam::tapSize ][ 2 ];
+    int64_t pole[ FxChorusParam::tapSize ][ 2 ];
+  //  NoiseSample2CH     noiseSample;
 
     // test mode helper variables
     uint64_t    testPhase;

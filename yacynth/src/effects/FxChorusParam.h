@@ -43,14 +43,13 @@ public:
     static constexpr std::size_t maxMode            = 2;
     static constexpr std::size_t inputCount         = 1;
 
-    static constexpr std::size_t tapSize            = 4;
-    static constexpr std::size_t delayLngExp        = 7;
-    static constexpr std::size_t delayLng           = 1<<(delayLngExp+effectFrameSizeExp);
-    static constexpr std::size_t delayOffsMaxLng    = delayLng - 1;
-    static constexpr std::size_t delayOffsMinLng    = effectFrameSize * 2;
+    static constexpr std::size_t delayLngExp        = 11;   // 2048*20nsec 
+    static constexpr std::size_t delayLng           = 1<<delayLngExp;
+    static constexpr std::size_t delayMask          = delayLng - 1;
+    static constexpr int64_t minBaseDelay           = 64LL << 32;           // integer part of delay
+    static constexpr int64_t maxBaseDelay           = (delayLng/2) << 32;   // integer part of delay middle of max
 
-    static constexpr uint64_t minBaseDelay          = 256LL << 32;  // ca 6 msec
-    static constexpr uint64_t maxBaseDelay          = 4000LL << 32; // ca 80 msec
+    static constexpr std::size_t tapSize            = 8;
 
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
@@ -62,8 +61,69 @@ public:
     // oscillator: base sine (16 bit) + red noise (24 bit)
     // osc << 16+n + noise << 7
     //
+    // chorus
     struct Mode01 {
         static constexpr uint8_t subtype         = uint8_t(TagEffectFxChorusMode::SetParametersMode01);
+
+        bool check()
+        {
+            static_assert( delayLng >= (maxBaseDelay>>32)+64, "illegal delay length" );
+
+            const int64_t maxSineAmpl   = int64_t(sineDepth) << 16;   // sine is 16 bit
+            const int64_t maxNoiseAmpl  = int64_t(noiseDepth) << 8;   // noise is 24 bit
+            const int64_t maxChorusAmpl = maxSineAmpl + maxNoiseAmpl;
+            
+            // baseDelay - maxChorusAmpl > 0
+            // baseDelay + maxChorusAmpl < maxBaseDelay
+            
+            if( baseDelay < minBaseDelay ) {
+                baseDelay = minBaseDelay;
+            }
+            
+            if( baseDelay > maxBaseDelay ) {
+                baseDelay = maxBaseDelay;
+            }
+            // check sineRange, noiseRange .. max , min baseDelay
+            // max amplitude ( sineRange << 16 ) >> 32
+            
+            if( wetgain < -1.0 ) {
+                wetgain = -1.0;
+            }
+
+            if( wetgain > 1.0 ) {
+                wetgain = 1.0;
+            }
+            if( tapCount < 1 ) {
+                tapCount = 1;
+            }
+            if( tapCount > tapSize ) {
+                tapCount = tapSize;
+            }
+            wetgain /= tapCount;
+            return true;
+        }
+        int64_t         baseDelay;          // chorus tap base delay ( fractional value -- high 32 bit delay in samples !)
+        float           wetgain;
+        uint32_t        sineDepth;          
+        uint32_t        triangleDepth;          
+        uint32_t        noiseDepth;         
+        // manual
+        ControllerIndex depthIndex;         // to set the mod depth
+        ControllerIndex deltaPhaseIndex;    // to set the freq
+        ControllerIndex phaseDiffIndex;     // to set the phase diff A-B
+
+        // get the sine component of the modulation signal
+        ControllerIndex oscMasterIndex;     // to get the osc phase chA
+        ControllerIndex oscSlaveIndex;      // to get the osc phase chB
+
+        // noise freq limit - pole for low cut
+        uint8_t         basaeDepthNoiseExp; // noise amplitude - controller
+        uint8_t         tapCount;
+    } mode01;
+
+    // vibrato
+    struct Mode02 {
+        static constexpr uint8_t subtype         = uint8_t(TagEffectFxChorusMode::SetParametersMode02);
 
         bool check()
         {
@@ -79,20 +139,11 @@ public:
                 return false;
             }
 
-            if( wetgain < -1.0 ) {
-                wetgain = -1.0;
-            }
-
-            if( wetgain > 1.0 ) {
-                wetgain = 1.0;
-            }
-            wetgain /= tapCount;
             return true;
         }
-        uint64_t        baseDelay;          // chorus tap delay
-        float           wetgain;
-        int32_t         sineRange;       // iterator multiplier -- rename depth - controller
-        int32_t         noiseRange;       // iterator multiplier -- rename depth - controller
+
+        int64_t         baseDelay;          // chorus tap base delay ( fractional value -- high 32 bit delay in samples !)
+        uint32_t        sineRange;          // iterator multiplier -- rename depth - controller
         // manual
         ControllerIndex depthIndex;         // to set the mod depth
         ControllerIndex deltaPhaseIndex;    // to set the freq
@@ -102,11 +153,7 @@ public:
         ControllerIndex oscMasterIndex;     // to get the osc phase chA
         ControllerIndex oscSlaveIndex;      // to get the osc phase chB
 
-        // noise freq limit - pole for low cut
-        uint8_t         basaeDepthNoiseExp; // noise amplitude - controller
-        uint8_t         tapCount;
-    } mode01;
-
+    } mode02;
 };
 
 
