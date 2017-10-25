@@ -60,6 +60,9 @@ constexpr   std::size_t controllerPageExp   = 8+3; // 8 * 256
 // class InnerMultiController   -- multivalue --> bank select
 
 // range 0 .. +N
+
+// TODO > random phase controller 
+
 class InnerController : public V4size<controllerPageExp-2> {
 
 public:
@@ -327,6 +330,8 @@ k 9 f 14.9358  -- 20.6
     // delta6
 
     // V4 processing !!
+    // TODO > random phase controller -- add noise to phase ( 0 .. positive )
+    
     inline void incrementFrameLFOscillatorPhases(void)
     {
         uint16_t currentPhaseInd = CC_LFO_MASTER_PHASE_BEGIN/4;
@@ -814,6 +819,44 @@ private:
     T delta;
     T lastValue;
     T currValue;
+};
+
+
+
+template< std::size_t itCountExp, uint8_t poleExp >
+class ControllerLinearIteratorAddNoise {
+public:
+    ControllerLinearIteratorAddNoise()
+    : delta(0)
+    , lastValue(0)
+    , currValue(0)
+    , s(0)
+    {}
+
+    inline void set( int64_t v )
+    {
+        constexpr int64_t corr = (1LL<<(itCountExp-1));
+        lastValue = currValue;
+        currValue = v;
+        const auto t = currValue - lastValue;
+        if( t < 0 )           
+            delta = ( t + corr ) >> itCountExp;
+        else 
+            delta = t >> itCountExp;
+    }
+
+    inline int64_t getInc( int64_t noiseSample )
+    {
+         lastValue += delta;
+         s += noiseSample - ( s >> poleExp );
+         return s + lastValue;
+    }
+
+private:
+    int64_t delta;
+    int64_t lastValue;
+    int64_t currValue;
+    int64_t s;
 };
 
 // --------------------------------------------------------------------

@@ -43,117 +43,75 @@ public:
     static constexpr std::size_t maxMode            = 2;
     static constexpr std::size_t inputCount         = 1;
 
-    static constexpr std::size_t delayLngExp        = 11;   // 2048*20nsec 
-    static constexpr std::size_t delayLng           = 1<<delayLngExp;
-    static constexpr std::size_t delayMask          = delayLng - 1;
-    static constexpr int64_t minBaseDelay           = 64LL << 32;           // integer part of delay
-    static constexpr int64_t maxBaseDelay           = (delayLng/2) << 32;   // integer part of delay middle of max
+    static constexpr int64_t delayLngExp            = 13;   // 8192 sample * 20 nsec - 160msec
+    static constexpr int64_t delayLng               = 1<<delayLngExp;
+
+    // fractional delay values: (1<<32)
+    static constexpr int64_t minBaseDelay           = 1LL << 32;
+    static constexpr int64_t maxBaseDelay           = 5 * (delayLng << 28) ;
 
     static constexpr std::size_t tapSize            = 8;
 
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
-    //
-    // delay center value
-    // mod freq controller
-    // mod depth controller
-    // osc mode > sin, rand
-    // oscillator: base sine (16 bit) + red noise (24 bit)
-    // osc << 16+n + noise << 7
-    //
-    // chorus
     struct Mode01 {
         static constexpr uint8_t subtype         = uint8_t(TagEffectFxChorusMode::SetParametersMode01);
 
         bool check()
         {
-            static_assert( delayLng >= (maxBaseDelay>>32)+64, "illegal delay length" );
-
-            const int64_t maxSineAmpl   = int64_t(sineDepth) << 16;   // sine is 16 bit
-            const int64_t maxNoiseAmpl  = int64_t(noiseDepth) << 8;   // noise is 24 bit
-            const int64_t maxChorusAmpl = maxSineAmpl + maxNoiseAmpl;
-            
-            // baseDelay - maxChorusAmpl > 0
-            // baseDelay + maxChorusAmpl < maxBaseDelay
-            
-            if( baseDelay < minBaseDelay ) {
-                baseDelay = minBaseDelay;
+            const int64_t maxSineAmpl   = int64_t(depth) << 16;   // sine is 16 bit
+            for( auto i=0; i<tapSize; ++i ) {
+                for( auto j=0; j<2; ++j ) {
+                    if( baseDelay[ i ][ j ] < minBaseDelay ) {
+                        baseDelay[ i ][ j ] = minBaseDelay;
+                    }
+                    if( baseDelay[ i ][ j ] > maxBaseDelay ) {
+                        baseDelay[ i ][ j ] = maxBaseDelay;               
+                    }
+                }                
             }
             
-            if( baseDelay > maxBaseDelay ) {
-                baseDelay = maxBaseDelay;
-            }
-            // check sineRange, noiseRange .. max , min baseDelay
-            // max amplitude ( sineRange << 16 ) >> 32
-            
-            if( wetgain < -1.0 ) {
-                wetgain = -1.0;
+            if( wetGain < -1.0 ) {
+                wetGain = -1.0;
             }
 
-            if( wetgain > 1.0 ) {
-                wetgain = 1.0;
+            if( wetGain > 1.0 ) {
+                wetGain = 1.0;
             }
+            
             if( tapCount < 1 ) {
                 tapCount = 1;
             }
             if( tapCount > tapSize ) {
                 tapCount = tapSize;
             }
-            wetgain /= tapCount;
+            // wetgain /= tapCount;
             return true;
         }
-        int64_t         baseDelay;          // chorus tap base delay ( fractional value -- high 32 bit delay in samples !)
-        float           wetgain;
-        uint32_t        sineDepth;          
-        uint32_t        triangleDepth;          
-        uint32_t        noiseDepth;         
+        int64_t         baseDelay[ tapSize ][ 2 ]; // chorus tap base delay ( fractional value -- high 32 bit delay in samples !)
+        int32_t         depth[ tapSize ][ 2 ];          
+        float           wetGain;
+
         // manual
+        // how to handle all parameters ?
         ControllerIndex depthIndex;         // to set the mod depth
         ControllerIndex deltaPhaseIndex;    // to set the freq
         ControllerIndex phaseDiffIndex;     // to set the phase diff A-B
 
         // get the sine component of the modulation signal
+        
+        // TODO yet
+//        ControllerIndex oscMasterIndex[ tapSize ]; // to get the osc phase chA
+//        ControllerIndex oscSlaveIndex[ tapSize ];  // to get the osc phase chB
+        
+        // TODO > random phase controller
+        
         ControllerIndex oscMasterIndex;     // to get the osc phase chA
         ControllerIndex oscSlaveIndex;      // to get the osc phase chB
 
-        // noise freq limit - pole for low cut
-        uint8_t         basaeDepthNoiseExp; // noise amplitude - controller
         uint8_t         tapCount;
+        
     } mode01;
-
-    // vibrato
-    struct Mode02 {
-        static constexpr uint8_t subtype         = uint8_t(TagEffectFxChorusMode::SetParametersMode02);
-
-        bool check()
-        {
-            static_assert( delayLng >= (maxBaseDelay>>32)+64, "illegal delay length" );
-
-            if( baseDelay < minBaseDelay ) {
-                baseDelay = minBaseDelay;
-            }
-            if( baseDelay > maxBaseDelay ) {
-                baseDelay = maxBaseDelay;
-            }
-            if( baseDelay < (256LL<<32)) {
-                return false;
-            }
-
-            return true;
-        }
-
-        int64_t         baseDelay;          // chorus tap base delay ( fractional value -- high 32 bit delay in samples !)
-        uint32_t        sineRange;          // iterator multiplier -- rename depth - controller
-        // manual
-        ControllerIndex depthIndex;         // to set the mod depth
-        ControllerIndex deltaPhaseIndex;    // to set the freq
-        ControllerIndex phaseDiffIndex;     // to set the phase diff A-B
-
-        // get the sine component of the modulation signal
-        ControllerIndex oscMasterIndex;     // to get the osc phase chA
-        ControllerIndex oscSlaveIndex;      // to get the osc phase chB
-
-    } mode02;
 };
 
 

@@ -45,13 +45,12 @@ public:
     static constexpr std::size_t maxMode            = 4;
     static constexpr std::size_t inputCount         = 1;
 
-    static constexpr std::size_t delayLngExp        = 5; // 1024
-    static constexpr std::size_t delayLng           = 1<<(delayLngExp+effectFrameSizeExp);
-    static constexpr std::size_t delayOffsMaxLng    = delayLng - 1;
-    static constexpr std::size_t delayOffsMinLng    = 0; // 0 ?
+    static constexpr std::size_t delayLngExp        = 11; // 2048
+    static constexpr std::size_t delayLng           = 1<<delayLngExp;
+//    static constexpr std::size_t delayOffsMaxLng    = delayLng - 1;
+//    static constexpr std::size_t delayOffsMinLng    = 0; // 0 ?
 
-    static constexpr int32_t  sineDepthLimit        = 1<<(16+5);
-    static constexpr int32_t  triangleDepthLimit    = 1<<(2+5);
+    static constexpr int32_t  depthLimit            = 0x7C000000;
 
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
@@ -78,11 +77,11 @@ public:
             if( feedbackGain > 0.99 ) {
                 feedbackGain = 0.99;
             }
-            if( sineDepth > sineDepthLimit ) {
-                sineDepth = sineDepthLimit;
+            if( depth > depthLimit ) {
+                depth = depthLimit;
             }
-            if( triangleDepth > triangleDepthLimit ) {
-                triangleDepth = triangleDepthLimit;
+            if( depth < -depthLimit ) {
+                depth = -depthLimit;
             }
             return true;
         }
@@ -90,8 +89,7 @@ public:
         float           gain;               // 
         float           wetGain;            // 
         float           feedbackGain;       // feedbackIndex
-        int32_t         sineDepth;          // depthIndex
-        int32_t         triangleDepth;      // depthIndex
+        int32_t         depth;              // depthIndex
 
         // TODO : check max range with baseDelay !
         // manual
@@ -103,7 +101,6 @@ public:
         // get the sine component of the modulation signal
         ControllerIndex oscMasterIndex;     // to get the osc phase chA
         ControllerIndex oscSlaveIndex;      // to get the osc phase chB
-
     } mode01;
 
 };

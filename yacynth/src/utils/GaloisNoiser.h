@@ -344,14 +344,13 @@ public:
             int32_t  res;
             int16_t  res16[2];
         };
-        inc();
         res16[1] = lfsr8[6];//^lfsr8[7];
         res16[0] = lfsr16[3];//^lfsr16[2];
         const int32_t r0 = res;
         inc();
         res16[1] = lfsr8[6];//^lfsr8[7];
         res16[0] = lfsr16[3];//^lfsr16[2];
-        return r0 - res;
+        return r0 + res;
     };
 
     inline int32_t getWhiteRaw(void)

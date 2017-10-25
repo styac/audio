@@ -33,13 +33,7 @@
 #include    "../oscillator/NoiseSample.h"
 #include    "../effects/FxBase.h"
 
-//     0.3 mS to 14.4 ms -- 0 .. 1024
-// + feedback
-// sine triangle-lin triangle-exp
-
 using namespace tables;
-
-// #define CHECK_DEBUG_FLANGER
 
 namespace yacynth {
 
@@ -50,7 +44,7 @@ public:
     using MyType = FxFlanger;
     FxFlanger()
     :   Fx<FxFlangerParam>()
-    ,   delay(FxFlangerParam::delayLngExp)
+    ,   delay(FxFlangerParam::delayLngExp - effectFrameSizeExp)
     {
     }
 
@@ -75,23 +69,39 @@ private:
         out().mult( inp(), param.mode01.gain );
         delay.pushSection( inp() );
         for( int64_t si = 0; si < EbufferPar::sectionSize; ++si ) {
-            const int64_t si64 = ( si + EbufferPar::sectionSize ) << 32;
-            const int64_t delayA = modulatorValue[ chA ].getInc() - si64;
-            const int64_t delayB = modulatorValue[ chB ].getInc() - si64;
+            const int64_t si64 = int64_t( EbufferPar::sectionSize - si ) << 32;
+            const int64_t delayA = modulatorValue[ chA ].getInc() + si64;
+            const int64_t delayB = modulatorValue[ chB ].getInc() + si64;
             out().channel[ chA ][ si ] += delay.getInterpolated2Order<chA>( delayA ) * param.mode01.wetGain;
             out().channel[ chB ][ si ] += delay.getInterpolated2Order<chB>( delayB ) * param.mode01.wetGain;
         }
     }
 
+    // TODO check middle point -- 
     inline void processFeedback(void)
+    {
+        out().mult( inp(), param.mode01.gain );
+        delay.pushSection( inp() );
+        for( int64_t si = 0; si < EbufferPar::sectionSize; ++si ) {
+            const int64_t si64 = int64_t( EbufferPar::sectionSize - si ) << 32;
+            const int64_t delayA = modulatorValue[ chA ].getInc() + si64;
+            const int64_t delayB = modulatorValue[ chB ].getInc() + si64;
+            out().channel[ chA ][ si ] += delay.getInterpolated2Order<chA>( delayA ) * param.mode01.wetGain;
+            out().channel[ chB ][ si ] += delay.getInterpolated2Order<chB>( delayB ) * param.mode01.wetGain;
+        }
+        delay.feedbackSection( middleDelay, param.mode01.feedbackGain );  // NON FRACTIONAL !!
+    }
+    
+#if 0
+    inline void processFeedbackX(void)
     {
         const uint32_t startIndex = delay.getSectionIndex();
         out().mult( inp(), param.mode01.gain );
         delay.pushSection( inp() );
         for( int64_t si = 0; si < EbufferPar::sectionSize; ++si ) {
-            const int64_t si64 = ( si + EbufferPar::sectionSize ) << 32;
-            const int64_t delayA = modulatorValue[ chA ].getInc() - si64;
-            const int64_t delayB = modulatorValue[ chB ].getInc() - si64;
+            const int64_t si64 = int64_t( EbufferPar::sectionSize - si ) << 32;
+            const int64_t delayA = modulatorValue[ chA ].getInc() + si64;
+            const int64_t delayB = modulatorValue[ chB ].getInc() + si64;
             const float vA = delay.getInterpolated2Order<chA>( delayA );
             const float vB = delay.getInterpolated2Order<chB>( delayB );
             out().channel[ chA ][ si ] += vA * param.mode01.wetGain;
@@ -100,14 +110,15 @@ private:
             delay.channel[ chB ][ startIndex + si ] -= vB * param.mode01.feedbackGain;
         }
     }
-
+#endif
+    
     inline void processVibrato(void)
     {
         delay.pushSection( inp() );        
         for( int64_t si = 0; si < EbufferPar::sectionSize; ++si ) {
-            const int64_t si64 = ( si + EbufferPar::sectionSize ) << 32;
-            const int64_t delayA = modulatorValue[ chA ].getInc() - si64;
-            const int64_t delayB = modulatorValue[ chB ].getInc() - si64;
+            const int64_t si64 = int64_t( EbufferPar::sectionSize - si ) << 32;
+            const int64_t delayA = modulatorValue[ chA ].getInc() + si64;
+            const int64_t delayB = modulatorValue[ chB ].getInc() + si64;
             out().channel[ chA ][ si ] = delay.getInterpolated2Order<chA>( delayA );
             out().channel[ chB ][ si ] = delay.getInterpolated2Order<chB>( delayB );
         }
@@ -115,20 +126,27 @@ private:
         
     inline void modulateSine(void)
     {
-        const int64_t depth = param.mode01.sineDepth; // 0..1<<32
-        modulatorValue[ chA ].set(( param.mode01.oscMasterIndex.getLfoSinI16() + 0x7FFFU ) * depth );
-        modulatorValue[ chB ].set(( param.mode01.oscSlaveIndex.getLfoSinI16()  + 0x7FFFU ) * depth );
+        constexpr uint8_t maxAmplExp = 16+31-32; // sine 16 bit, multiplier 31 bit signed fractional part 32
+        constexpr uint8_t corrAmplExp = maxAmplExp - param.delayLngExp;
+        const int64_t depth = param.mode01.depth;
+        middleDelay = ( depth >> ( corrAmplExp + 16 + 1));
+        modulatorValue[ chA ].set((( param.mode01.oscMasterIndex.getLfoSinI16() + 0x7FFFU ) * depth ) >> corrAmplExp );
+        modulatorValue[ chB ].set((( param.mode01.oscSlaveIndex.getLfoSinI16()  + 0x7FFFU ) * depth ) >> corrAmplExp );
     }
-
+    
     inline void modulateTriangle(void)
     {
-        const int64_t depth = param.mode01.triangleDepth; // 0..1<<32
-        modulatorValue[ chA ].set(( param.mode01.oscMasterIndex.getLfoTriangleU32()) * depth );
-        modulatorValue[ chB ].set(( param.mode01.oscSlaveIndex.getLfoTriangleU32() ) * depth );
+        constexpr uint8_t maxAmplExp = 30+31-32; // triangle 30 bit, multiplier 31 bit signed fractional part 32
+        constexpr uint8_t corrAmplExp = maxAmplExp - param.delayLngExp;
+        const int64_t depth = param.mode01.depth; 
+        middleDelay = ( depth >> ( corrAmplExp + 30 + 1));
+        modulatorValue[ chA ].set(( param.mode01.oscMasterIndex.getLfoTriangleU32() * depth ) >> corrAmplExp );
+        modulatorValue[ chB ].set(( param.mode01.oscSlaveIndex.getLfoTriangleU32()  * depth ) >> corrAmplExp );
     }
 
     EDelayLine  delay;
     ControllerLinearIterator<int64_t,EbufferPar::sectionSizeExp> modulatorValue[ 2 ];
+    uint32_t middleDelay; // NON FRACTIONAL !!
 };
 
 

@@ -90,16 +90,20 @@ bool FxChorus::connect( const FxBase * v, uint16_t ind )
 
 void FxChorus::sprocess_01( void * thp )
 {
-    static_cast< MyType * >(thp)->processChorusSine();
+    static_cast< MyType * >(thp)->modulateSine();
+    static_cast< MyType * >(thp)->processChorus();
 }
 
 void FxChorus::sprocess_02( void * thp )
 {
-    static_cast< MyType * >(thp)->processWhiteChorusSine();
+    static_cast< MyType * >(thp)->modulateTriangle();
+    static_cast< MyType * >(thp)->processChorus();
 }
 
-void FxChorus::sprocess_03( void * thp )
-{
+void FxChorus::sprocess_05( void * thp )
+{    
+    static_cast< MyType * >(thp)->modulateSine();
+    static_cast< MyType * >(thp)->process_test();
 }
 
 bool FxChorus::setSprocessNext( uint16_t mode ) 
@@ -117,7 +121,7 @@ bool FxChorus::setSprocessNext( uint16_t mode )
         sprocesspNext = sprocess_02;
         break;
     case 3:
-        sprocesspNext = sprocess_03;
+        sprocesspNext = sprocess_05;
         break;
     default:
         return false;

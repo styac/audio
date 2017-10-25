@@ -151,7 +151,7 @@ void preset0( Sysman  * sysman )
 
     // velo BOOST test
     int32_t overtoneDetune = 10000;
-    constexpr   int overToneCount = 1;
+    constexpr   int overToneCount = 15;
     for( auto vi=1u; vi < overToneCount; ++vi ) {
 //        const float onevi = 1.0f/float(vi+1);
 //        ts.pitch = relFreq2pitch( vi+1 );
