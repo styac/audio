@@ -61,7 +61,6 @@ private:
     OscillatorInChange      oscillatorParamChange;
     int32_t                 commonFMPitch;
     int16_t                 fastReleaseTick;
-//    int16_t                 toneBank;
     uint8_t                 minVoice;
     uint8_t                 maxVoice;
     bool                    monoPhone;

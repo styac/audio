@@ -71,6 +71,8 @@ bool FxFilterParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t
         message.setStatus( yaxp::MessageT::illegalDataLength );
         return false;
     // more modes
+    default:
+        break;                
     }
             
     message.setStatus( yaxp::MessageT::illegalTag );
@@ -102,6 +104,8 @@ bool FxFilter::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t para
     case TagEffectFxFilterMode::Clear:
         clearState(); // this must be called to cleanup
         break;
+    default:
+        break;        
     }
     clearState();
     // forward to param
@@ -110,7 +114,7 @@ bool FxFilter::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t para
 
 bool FxFilter::connect( const FxBase * v, uint16_t ind ) 
 {
-    doConnect(v,ind);
+    return doConnect(v,ind);
 };
 
 void FxFilter::sprocess_01( void * thp )

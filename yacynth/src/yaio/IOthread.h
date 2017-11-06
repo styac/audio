@@ -66,7 +66,7 @@ private:
     FxOscillatorMixer       fxOscillatorMixer;
     FxInput                 fxInput;
     FxRunner                fxRunner;
-    int16_t                 bufferSizeRate; // get it from IO interface external / internal frame size
+    uint16_t                bufferSizeRate; // get it from IO interface external / internal frame size
     bool                    toClearFxInput;
 
     // profiling

@@ -79,7 +79,7 @@ protected:
         void * midiIn = midiInPort.getBuffer( nframes );
         jack_midi_event_t in_event;
         jack_nframes_t event_count = jack_midi_get_event_count( midiIn );
-        for( auto i=0; i < event_count; ++i ) {
+        for( auto i=0u; i < event_count; ++i ) {
             jack_midi_event_get( &in_event, midiIn , i );
             printEvent( in_event.buffer, in_event.size, ( event_count-1 ) == i );
             midi.op                 = ( in_event.buffer[ 0 ] ) >> 4;
@@ -97,7 +97,7 @@ protected:
     void printEvent( uint8_t *eventp, uint32_t eventSize, bool lastEvent)
     {
         std::cout << "ev: " << std::hex;
-        for( auto i=0; i< eventSize; ++i, ++eventp ){
+        for( auto i=0u; i< eventSize; ++i, ++eventp ){
             const uint16_t val = *eventp;
             std::cout << " " <<  val ;
         }
@@ -108,13 +108,13 @@ protected:
     }
 
     jack_client_t   *client;
-    jack_options_t  jackOptions;
-    jack_status_t   jackStatus;
     YaIoJackPort    midiInPort;
     YaIoJackPort    audioOutPort1;
     YaIoJackPort    audioOutPort2;
     YaIoJackPort    audioInPort1;
     YaIoJackPort    audioInPort2;
+    jack_options_t  jackOptions;
+    jack_status_t   jackStatus;
     jack_nframes_t  nframes;
 
 private:

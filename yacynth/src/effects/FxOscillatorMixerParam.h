@@ -63,7 +63,7 @@ public:
     
     bool check()
     {
-        
+        return true;
     }
     
     union {

@@ -54,6 +54,8 @@ bool FxChorusParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t
         // --------------
         message.setStatusSetOk();
         return true;
+    default:
+        break;
     }
     message.setStatus( yaxp::MessageT::illegalTag );
     return false;
@@ -85,7 +87,7 @@ bool FxChorus::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t para
 
 bool FxChorus::connect( const FxBase * v, uint16_t ind )
 {
-    doConnect(v,ind);
+    return doConnect(v,ind);
 };
 
 void FxChorus::sprocess_01( void * thp )

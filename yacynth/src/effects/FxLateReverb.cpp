@@ -49,6 +49,8 @@ bool FxLateReverbParam::parameter( yaxp::Message& message, uint8_t tagIndex, uin
         }
         message.setStatusSetOk();
         return true;
+    default:
+        break;        
     }
     message.setStatus( yaxp::MessageT::illegalTag );
     return false;
@@ -79,6 +81,9 @@ bool FxLateReverb::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t 
     case TagEffectFxLateReverbMode::Clear:
         clearState(); // this must be called to cleanup
         break;
+        
+    default:
+        break;        
     }
     // forward to param
     return param.parameter( message, tagIndex, paramIndex );
@@ -86,7 +91,7 @@ bool FxLateReverb::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t 
 
 bool FxLateReverb::connect( const FxBase * v, uint16_t ind )
 {
-    doConnect(v,ind);
+    return doConnect(v,ind);
 };
 
 void FxLateReverb::sprocess_01( void * thp )

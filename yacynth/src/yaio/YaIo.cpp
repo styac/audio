@@ -28,16 +28,17 @@
 namespace yacynth {
 
 YaIo::YaIo()
-:   nameClient("yacsynth")
-,   sampleRateMin(48000)
+:   sampleRateMin(48000)
 ,   sampleRateMax(48000) // TODO 88200, 96000
 ,   bufferSizeMin(64)
 ,   bufferSizeMax(256)
-,   audioProcessorData(nullptr)
-,   midiProcessorData(nullptr)
 ,   midiOutProcessing(noMidiProcessing)
 ,   audioOutProcesing(noAudioOutProcesing)
 ,   audioInOutProcesing(noAudioInOutProcesing)
+,   audioProcessorData(nullptr)
+,   midiProcessorData(nullptr)
+,   nameClient("yacsynth")
+,   nameClientReal("yacsynth")
 ,   errorString("err: ")
 ,   mutedOutput(true)
 ,   mutedInput(true)

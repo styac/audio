@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-/* 
+/*
  * File:   Router.h
  * Author: Istvan Simon -- stevens37 at gmail dot com
  *
@@ -30,6 +30,7 @@
 #include    "../control/Controllers.h"
 #include    "../router/ControlQueue.h"
 #include    "../router/TuningTables.h"
+#include    "../router/MidiTuning.h"
 
 #include    <iostream>
 #include    <fstream>
@@ -37,26 +38,25 @@
 
 namespace yacynth {
 
-
 class Router {
 public:
     static constexpr uint16_t   midiChannelCount = 16;
-    
+
     enum NotePlayMode : uint8_t {
         // 1 channel in poliphonicNote - oscNr = noteNr 0..127
         // other controlNote
-        poliphonicNote,   
-        
-        // 0..15 channel in monophonicNote - oscNr = ( channelNr 0..15 ) + 112 highest 16 osc 
+        poliphonicNote,
+
+        // 0..15 channel in monophonicNote - oscNr = ( channelNr 0..15 ) + 112 highest 16 osc
         // other controlNote
         monophonicNote,
-        
+
         // if any channel in monophonicNote the 1 can be in monopoliphonicNote
-        // 
+        //
         monopoliphonicNote,     // oscNr = noteNr 16..127 for poli channel (only 1) 0..15 mono
         controlNote             // note is control
     };
-    
+
     // check - 1 channel poliphonicNote + 15 channel controlNote
     // check - 1 channel monopoliphonicNote + 15 channel monophonicNote or controlNote
     bool checkChannelMode() const
@@ -70,13 +70,15 @@ public:
                 ++poliphonicNoteCount;
                 break;
 
-            case monophonicNote:            
+            case monophonicNote:
                 ++monophonicNoteCount;
                 break;
 
             case monopoliphonicNote:
                 ++monopliphonicNoteCount;
-                break;                
+                break;
+            default:
+                break;
             }
         }
         if( ( poliphonicNoteCount + monopoliphonicNote ) > 1 ) {
@@ -87,22 +89,24 @@ public:
         }
         return true;
     }
-        
+
     Router() = delete;
     Router( ControlQueueVector& inQueue );
 
     ~Router() = default;
 
     void clear(void);
-    
+
     static void midiInCB( void *, RouteIn in ); // callback
-   
+
     inline MidiController&  getMidiController(void) { return midiController; }
 
-    bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
-    
+    inline MidiTuning&  getTuner(void) { return midiTuningTables; }
+
+    bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
+
 protected:
-    
+
     void inline processMidi( RouteIn in )
     {
         Yamsgrt out;
@@ -117,33 +121,33 @@ protected:
         switch( notePlayMode[ channel ] ) {
         case poliphonicNote:
             break;
-            
-        case monophonicNote:            
+
+        case monophonicNote:
             // osc 0..15 would ok under 20 Hz
             oscillatorNr = channel + (127-15);  // highest oscillators above 6kHz not used
             break;
-            
+
         case monopoliphonicNote:
             if( oscillatorNr >= (127-15) ) {
                 return; // reserved for monophonic
             }
             break;
-            
+
         case controlNote:
             switch( instruction ) {
             case MIDI_NOTE_OFF:
             case MIDI_NOTE_ON:
-            case MIDI_CHANNEL_AFTERTOUCH:                
+            case MIDI_CHANNEL_AFTERTOUCH:
             case MIDI_POLY_AFTERTOUCH:
                 instruction = MIDI_CONTROL_CHANGE;
                 break;
             }
             break;
-            
+
         default:
             return;
         }
-        
+
         switch( instruction ) {
         case MIDI_NOTE_OFF:
             out.voiceRelease.opcode         = YAMOP_VOICE_RELEASE;
@@ -222,11 +226,11 @@ protected:
 
     ControlQueueVector&     queueIn;
     MidiController          midiController;
-    MidiTuningTables        midiTuningTables;
+    MidiTuning        midiTuningTables;
     NotePlayMode            notePlayMode[ midiChannelCount ];
 };
 
 
-} // end namespace yacynth 
+} // end namespace yacynth
 
 

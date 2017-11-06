@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-/* 
+/*
  * File:   TuningTables.h
  * Author: Istvan Simon -- stevens37 at gmail dot com
  *
@@ -37,142 +37,88 @@ using namespace Tuning;
 
 namespace yacynth {
 
-// 1 ChannelTable for each MIDI channel: 16
-struct ChannelTable {    
-    ChannelTable()
-    :   transientTransposition(0)
-    ,   tuningTableSelect(0)
-    ,   currentMicroModifier(0)
-    {}
-    
-    bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
-        
-    int32_t     transientTransposition; // = detune + transposition
-    uint8_t     tuningTableSelect;      // tuning table index
-    //  encoded     bbb, bb, b,     0,      #,  ##, ### 
-    //              7    6   5     0,4      1   2   3
-    uint8_t     currentMicroModifier;   // index of microtonal modifier   
-};
-
-// any number of TuningTable for fast change : lets 4 or 8
-struct TuningTable {    
+class TuningTable {
+public:
     // absolute values (relative to sampling frequency)
-    static constexpr double ycent1Hz_48000      = freq2ycentDouble(1.0);    // 1Hz
-    static constexpr double ycentA400_48000     = freq2ycentDouble(440.0);  // MIDI 69
-    static constexpr double ycentMidi0_48000    = ycentA400_48000 - 69 * ycentET12Semitone;
-    static constexpr double ycentMidi127_48000  = ycentA400_48000 + (127-69) * ycentET12Semitone;
+    static constexpr double ycent1Hz_48000          = freq2ycentDouble(1.0);    // 1Hz
+    static constexpr double ycentA400_48000         = freq2ycentDouble(440.0);  // MIDI 69
+    static constexpr double ycentMidi0_48000_ET12   = ycentA400_48000 - 69 * ycentET12Semitone;
+    static constexpr double ycentMidi127_48000_ET12 = ycentA400_48000 + (127-69) * ycentET12Semitone;
 
-    TuningTable()
-    :   baseTransposition(ycentMidi0_48000)
-    {}
-    
     static constexpr uint16_t noteCountExp = 7;                 // 128 MIDI note
     static constexpr uint16_t noteCount = 1 << noteCountExp;
     static constexpr uint16_t noteCountMask = noteCount-1;
-    static constexpr uint16_t modifierCountExp = 3;             // for each 6 mod value -3...+3 (0,4 base value)
+    static constexpr uint16_t modifierCountExp = 3;             // 0 + 7 modified scale
     static constexpr uint16_t modifierCount = 1 << modifierCountExp;
     static constexpr uint16_t modifierCountMask = modifierCount-1;
     static constexpr uint16_t size = noteCount  * modifierCount;
+    static constexpr uint16_t sizeMask = size-1;
 
-    bool fill( TuningTypes ttype );
-    
+    TuningTable()
+    :   transientTransposition(0)
+    ,   tuningType(TuningType::TM_NIL)
+    {}
+
+
+    bool fill( TuningType ttype, TuningVariation tv );
+
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
-        
-    // modifier = 0     : 0
-    // modifier = 1     : 1
-    // modifier = 2     : 2
-    // modifier = 3     : 3
-    // modifier = 4     : 0
-    // modifier = 5     : -1
-    // modifier = 6     : -2
-    // modifier = 7     : -3
 
-    inline int32_t get( uint8_t baseNote, uint8_t modifier ) const 
+    inline int32_t get( uint8_t baseNote, uint8_t modifier ) const
     {
-        uint16_t note = uint16_t(baseNote) << modifierCountExp;
+        uint16_t note = uint16_t( baseNote & noteCountMask ) << modifierCountExp;
         return relativeYcent[ note | ( modifier & modifierCountMask ) ];
     }
+
+    // linear
+    inline int32_t get( uint16_t note ) const
+    {
+        return relativeYcent[ note & sizeMask ];
+    }
+
+    void setTransposition( int32_t ycent )
+    {
+        transientTransposition = ycent;
+    }
     
-    double  baseTransposition;  // base of the table for the generator
-    int32_t relativeYcent[  size  ];
+private:
+    // fill cont. all keys : ET12, ET13, alpha, beta, delta
+    void fillETContinuous( uint32_t intervalCount, uint32_t rateNom, uint32_t rateDenom, uint8_t step );
+
+    // fill cont. white keys : ET 5,6,7
+    void fillETWhitesContinuous( uint32_t intervalCount, uint32_t rateNom, uint32_t rateDenom );
+
+    void setBaseTransposition();
+
+    int32_t     relativeYcent[  size  ];
+    int32_t     transientTransposition; // = detune + transposition -- controller ?
+    TuningType  tuningType;
 };
 
-class TuningTableArray {
+class TuningManager {
 public:
-    static constexpr uint16_t tuningTableCountExp = 4;
+    static constexpr uint16_t tuningTableCountExp = 0;
     static constexpr uint16_t tuningTableCount = 1 << tuningTableCountExp;
     static constexpr uint16_t tuningTableCountMask = tuningTableCount - 1;
-    
-    inline static TuningTableArray& getInstance(void)
+
+    inline static TuningManager& getInstance(void)
     {
-        static TuningTableArray instance;
+        static TuningManager instance;
         return instance;
     }
 
-    inline int32_t get( uint8_t baseNote, uint8_t modifier, uint8_t tableIndex ) const 
+    inline int32_t get( uint8_t baseNote, uint8_t modifier ) const
     {
-        return tuningTables[ tableIndex & tuningTableCountMask ].get( baseNote, modifier );
-    }    
-    
-private:
-    TuningTableArray();
-    TuningTable     tuningTables [ tuningTableCount ];
-};
+        return tuningTables.get( baseNote, modifier );
+    }
 
-class MidiTuningTables {
-public:   
-    MidiTuningTables();
-    
-    static constexpr uint16_t channelTableCountExp = 4; 
-    static constexpr uint16_t channelTableCount = 1 << channelTableCountExp;
-    static constexpr uint16_t channelTableCountMask = channelTableCount-1;
-    static constexpr uint16_t tuningTableCountExp = 4;
-    static constexpr uint16_t tuningTableCount = 1 << tuningTableCountExp;
-    static constexpr uint8_t  oneShotMicromodifier = 0x80; 
-    
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
-    
-    inline int32_t get( uint8_t baseNote, uint8_t channel ) 
-    {
-        const uint8_t ch = channel & channelTableCountMask;
-        const uint8_t tuningTableIndex = channelTable[ ch  ].tuningTableSelect;
-        const uint8_t microModifier = channelTable[ ch  ].currentMicroModifier;
-        const int32_t baseYcent = channelTable[ ch  ].transientTransposition;        
-        if( microModifier & oneShotMicromodifier ) {
-            channelTable[ ch  ].currentMicroModifier = 0;            
-        }
-        const int32_t relYcent = TuningTableArray::getInstance().get( baseNote, microModifier, tuningTableIndex );
-        return relYcent + baseYcent;
-    }
 
-    void setTransposition( int32_t ycent, uint8_t channel ) 
-    {
-        const uint8_t ch = channel & channelTableCountMask;
-        channelTable[ ch  ].transientTransposition = ycent;
-    }
-
-    void setTuningTableSelect( uint8_t tableIndex, uint8_t channel ) 
-    {
-        const uint8_t ch = channel & channelTableCountMask;
-        channelTable[ ch  ].tuningTableSelect = tableIndex;
-    }
-    
-    void setMicromodifier( uint8_t microModifier, uint8_t channel ) 
-    {
-        const uint8_t ch = channel & channelTableCountMask;
-        channelTable[ ch  ].currentMicroModifier = microModifier;
-    }
-
-    void setOneShotMicromodifier( uint8_t microModifier, uint8_t channel ) 
-    {
-        const uint8_t ch = channel & channelTableCountMask;
-        channelTable[ ch  ].currentMicroModifier = microModifier | oneShotMicromodifier;
-    }
-
-private:    
-    ChannelTable    channelTable[ channelTableCount ];
+private:
+    TuningManager();
+    TuningTable     tuningTables;
 };
-    
-} // end namespace yacynth 
+
+} // end namespace yacynth
 
 

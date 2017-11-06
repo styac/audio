@@ -50,7 +50,9 @@ bool FxEarlyReflectionParam::parameter( yaxp::Message& message, uint8_t tagIndex
         }
         message.setStatus( yaxp::MessageT::illegalData );
         return false;
-
+        
+    default:    // suppress warning
+        break;
     }
     message.setStatus( yaxp::MessageT::illegalTag );
     return false;
@@ -81,6 +83,8 @@ bool FxEarlyReflection::parameter( yaxp::Message& message, uint8_t tagIndex, uin
     case TagEffectFxEarlyReflectionMode::Clear:
         clearState(); // this must be called to cleanup
         break;
+    default:    // supress warning
+        break;
     }
     // forward to param
     return param.parameter( message, tagIndex, paramIndex );
@@ -88,7 +92,7 @@ bool FxEarlyReflection::parameter( yaxp::Message& message, uint8_t tagIndex, uin
 
 bool FxEarlyReflection::connect( const FxBase * v, uint16_t ind )
 {
-    doConnect(v,ind);
+    return doConnect(v,ind);
 };
 
 
@@ -125,14 +129,14 @@ void generator_FxEarlyReflectionParam( float gain, float modampl, float decay )
             << " decay " << decay
             << std::endl;
 
-    for( int ci=0; ci<FxEarlyReflectionParam::coeffSetCount; ++ci ) {
+    for( auto ci=0u; ci<FxEarlyReflectionParam::coeffSetCount; ++ci ) {
         float fi = deltafi * ci;
         float am0 = ( 1.0f - modampl * std::sin(fi) ) * gain;
         float am1 = ( 1.0f - modampl * std::cos(fi) ) * gain;
 
         std::cout << "// ----  " <<  ci << std::endl;
 
-        for( int ti=0; ti<FxEarlyReflectionParam::tapCount; ++ti ) {
+        for( auto ti=0u; ti<FxEarlyReflectionParam::tapCount; ++ti ) {
             // exponential decay
             am0 -= am0 * decay;
             am1 -= am1 * decay;

@@ -57,7 +57,7 @@ public:
     using MyType = FxEcho;
     FxEcho()
     :   Fx<FxEchoParam>()
-    ,   delay(FxEchoParam::delayLngExp)   // 8192 * 64 sample - 10 sec
+    ,   delay(FxEchoParam::delayLngExp - effectFrameSizeExp)   // 8192 * 64 sample - 10 sec
     {
         delay.clear();
     };

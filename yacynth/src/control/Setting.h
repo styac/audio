@@ -26,6 +26,7 @@
  */
 
 #include    "yacynth_globals.h"
+#include    "protocol.h"
 
 #include    <array>
 #include    <map>
@@ -41,19 +42,20 @@ namespace yacynth {
 // -option1 value1a value1b -option2 value2a .. value2n -option3 value3 -option4 value4 ....
 //  -confd /home/x/y -port 7777 -midi jack
 
+
+// $base/.yacconfig/<profile>/conf
+// $base/.yacconfig/<profile>/.yyauth.key
+//
+
 class Setting {
 public:
-    static constexpr const char * const configDirName = "/.yacconfig/";
-    static constexpr const char * const authKeyName = ".yyauth.key";
-    static constexpr const char * const confName = "default.conf";
-    static constexpr uint16_t defaultCOntrolPort = 7373;
-    static constexpr uint16_t minCOntrolPort = 2000;
-    static constexpr uint16_t maxCOntrolPort = 40000;
-
     enum class OptionTag {
         CONFD,
+        PROFILE,
         MIDI,
-        PORT,
+        CONN,
+        IPPORT,
+        LOCPORT
     };
 
     typedef struct { OptionTag tag; const char * usage; } OptionData;
@@ -69,19 +71,19 @@ public:
 
     bool initialize( int argc, char** argv );
 
-    std::string getHomeDir() const
+    const std::string& getHomeDir() const
     {
         return homeDir;
     }
 
     std::string getConfDir() const
     {
-        return homeDir + configDirName;
+        return homeDir + "/" + yaxp::configDirName;
     }
 
-    std::string getAuthKey() const
+    std::string getAuthKeyFile() const
     {
-        return homeDir + configDirName + authKeyName;
+        return getConfDir() + "/" + profile + "/" + yaxp::authKeyName;
     }
 
     bool isOk() const
@@ -89,11 +91,20 @@ public:
         return ok;
     }
 
-    uint16_t getControlPort()
+    uint16_t getControlPortRemote() const
     {
-        return controlPort;
+        return controlPortRemote;
     }
 
+    const char * getControlPortLocal() const
+    {
+        return controlPortLocal.data();
+    }
+
+    yaxp::CONN_MODE getConnMode() const
+    {
+        return connMode;
+    }
 
 private:
     void usage( const char* option, const char* info ) const;
@@ -101,11 +112,20 @@ private:
     // TODO extend to accept multiple values
     bool setOption( Setting::OptionTag tag, const std::string& optionValue );
 
-    OptionType  options;
-    std::string homeDir;
-    uint16_t    controlPort;
-    OptMidi     optMidi;
-    bool        ok;
+    bool readConfigFile();
+    bool readOptions( int argc, char** argv );
+    bool createConfigFile( const std::string& config );
+    bool createAuthFile( const std::string& config );
+
+    std::string     homeDir;
+    std::string     profile;
+    std::string     configDir;
+    std::string     controlPortLocal;
+    OptMidi         optMidi;
+    OptionType      options;
+    uint16_t        controlPortRemote;
+    yaxp::CONN_MODE connMode;
+    bool            ok;
 };
 
 

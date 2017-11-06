@@ -98,27 +98,31 @@ static void teststuff(void)
         << "\n refA440ycentDouble:      "   << uint64_t(std::llround(refA440ycentDouble))
         << "\n 19990:                   "   << ref19900ycent
         << "\n 0.01:                    "   << ref0_01ycent
-        << "\n ycent1Hz_48000:          "   << int32_t(TuningTable::ycent1Hz_48000) 
-        << "\n ycentA400_48000:         "   << int32_t(TuningTable::ycentA400_48000) 
-        << "\n ycentMidi0_48000:        "   << int32_t(TuningTable::ycentMidi0_48000) 
-        << "\n ycentMidi127_48000:      "   << int32_t(TuningTable::ycentMidi127_48000) 
+        << "\n ycent1Hz_48000:          "   << int32_t(TuningTable::ycent1Hz_48000)
+        << "\n ycentA400_48000:         "   << int32_t(TuningTable::ycentA400_48000)
+        << "\n ycentMidi0_48000:        "   << int32_t(TuningTable::ycentMidi0_48000_ET12)
+        << "\n ycentMidi127_48000:      "   << int32_t(TuningTable::ycentMidi127_48000_ET12)
         << "\n deltaPhaseA400_48000:    "   << ycent2deltafi(TuningTable::ycentA400_48000 ,0)
-        << "\n deltaPhaseMidi0_48000:   "   << ycent2deltafi(TuningTable::ycentMidi0_48000,0)
-        << "\n deltaPhaseMidi127_48000: "   << ycent2deltafi(TuningTable::ycentMidi127_48000,0)
+        << "\n deltaPhaseMidi0_48000:   "   << ycent2deltafi(TuningTable::ycentMidi0_48000_ET12,0)
+        << "\n deltaPhaseMidi127_48000: "   << ycent2deltafi(TuningTable::ycentMidi127_48000_ET12,0)
         << "\n cent2ycent:              "   << cent2ycent
         << "\n ycent2cent:              "   << ycent2cent
-        << "\n midi res:                "   << (100.0/16384.0)            
+        << "\n midi res:                "   << (100.0/16384.0)
         << "\n\n"
         << std::dec
         << "\n freq2deltaPhase( 1.0 )   "   << freq2deltaPhase( 1.0 )
         << "\n freq2deltaPhase( 0.125 ) "   << freq2deltaPhase( 0.125 )
         << "\n freq2deltaPhase( 8.0 )   "   << freq2deltaPhase( 8.0 )
-        << std::endl;        
+        << std::endl;
 }
 
 // --------------------------------------------------------------------
 //  -- MAIN --
 // --------------------------------------------------------------------
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
 int main( int argc, char** argv )
 {
     // init singletons
@@ -135,16 +139,12 @@ int main( int argc, char** argv )
     SinTable::table();
     VelocityBoostTable::getInstance();
     YaIoJack::getInstance();
-    TuningTableArray::getInstance();
-    
-    // OBSOLETE
-    // LowOscillatorArray::getInstance().reset();
+    TuningManager::getInstance();
 
     ControlQueueVector&     queuein    = ControlQueueVector::getInstance();
     OscillatorOutVector&    oscOutVec   = OscillatorOutVector::getInstance();
     InnerController&        controller  = InnerController::getInstance();
     FxCollector::getInstance();
-    
 
     struct sigaction sigact;
     memset( &sigact, 0, sizeof(sigact) );
@@ -155,12 +155,14 @@ int main( int argc, char** argv )
     // uint16_t   port( yaxp::defaultPort ); // from param
 
     Setting settings;
-    settings.initialize( argc, argv );
+    if( ! settings.initialize( argc, argv ) ) {
+        exit(-1);
+    }
 
     std::cout << "\n\n============ settings =============="
         << "\n homedir  : "  << settings.getHomeDir()
         << "\n confir   : "  << settings.getConfDir()
-        << "\n auth     : "  << settings.getAuthKey()
+        << "\n auth     : "  << settings.getAuthKeyFile()
         << std::endl;
 
     teststuff();
@@ -171,49 +173,53 @@ int main( int argc, char** argv )
     Router          * midiRouter = new Router(queuein);
 
     // threads
-    // TODO IOThread: separate audio and midi 
+    // TODO IOThread: separate audio and midi
     IOThread        * iOThread   = new IOThread( oscOutVec );
     SynthFrontend   * synthFe    = new SynthFrontend( queuein, oscOutVec, oscArray );
     Sysman          * sysman     = new Sysman( *midiRouter, *oscArray, *iOThread ); // + oscOutVec to control
-    Server            uiServer( *sysman, settings.getControlPort(), yaxp::CONN_MODE::REMOTE_IP );
-    auto& fxRunner  = iOThread->getFxRunner();
-    
+    // auto& fxRunner  = iOThread->getFxRunner();
+
     createStaticEfects();
-        
+
+
     try {
         preset0( sysman );
         //-------------------------
         // start jack thread
-        YaIoJack::getInstance().registerAudioProcessor( iOThread, IOThread::audioOutCB, IOThread::audioInOutCB );        
+        YaIoJack::getInstance().registerAudioProcessor( iOThread, IOThread::audioOutCB, IOThread::audioInOutCB );
         YaIoJack::getInstance().registerMidiProcessor( midiRouter, Router::midiInCB );
-        
+
         if( ! synthFe->initialize() )
             exit(-1);
         if( ! YaIoJack::getInstance().initialize() )
             exit(-1);
 
-        iOThread->setBufferSizeRate( YaIoJack::getInstance().getBufferSizeRate() ); 
+        iOThread->setBufferSizeRate( YaIoJack::getInstance().getBufferSizeRate() );
 
         if( ! YaIoJack::getInstance().run() )
             exit(-1);
-        
+
         //-------------------------
         // start synth fe thread
-        std::thread   synthFrontendThread( SynthFrontend::exec, synthFe );
-        // use :   int nanosleep(const struct timespec *req, struct timespec *rem);
-        sleep(1); // wait to relax
+        std::thread  synthFrontendThread( SynthFrontend::exec, synthFe );
+        timespec req;
+        req.tv_nsec = 1000*1000*10;
+        req.tv_sec = 0;
+        nanosleep(&req,nullptr); // wait to relax
         std::cout << "\n\n============LETS GO==============\n\n" << std::endl;
         YaIoJack::getInstance().unmute(); // in - out running
 
         //-------------------------
-        // start ui server -- cmd processor thread
-        uiServer.run();  // command processor
+        net::Server::Type uiServer = net::Server::create( *sysman, settings );
+        uiServer->run();
+
         std::cout << "\n\n============END==============\n\n" << std::endl;
         YaIoJack::getInstance().mute();
         synthFe->stop();
         synthFrontendThread.join();
         YaIoJack::getInstance().shutdown();
     } catch (...) {
+        std::cout << "runtime error" << std::endl;
         YaIoJack::getInstance().mute();
         synthFe->stop();
         YaIoJack::getInstance().shutdown();
@@ -224,5 +230,6 @@ int main( int argc, char** argv )
     return 0;
 };
 
+#pragma GCC diagnostic pop
 
 //-----------------------------------------------------------

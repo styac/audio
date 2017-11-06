@@ -44,13 +44,6 @@ bool FxCollector::factory( TagEffectType effectType )
     // check if can be created
     FxBase * fxBasep;
     switch( effectType ) {
-    case TagEffectType::FxNop:
-    case TagEffectType::FxNil:
-    case TagEffectType::FxSlave:
-    case TagEffectType::FxOscillatorMixer:
-    case TagEffectType::FxInput:
-        return  false;
-
     case TagEffectType::FxMixer: {
         FxMixer * p = new FxMixer();
         fxBasep = static_cast<FxBase *> (p);
@@ -110,6 +103,8 @@ bool FxCollector::factory( TagEffectType effectType )
         fxBasep = static_cast<FxBase *> (p);
         }
         break;
+    default: // types that cannot be created
+        return  false;
     }
 
     if( 0 == firstDynamicInstance ) {
@@ -132,7 +127,6 @@ bool FxCollector::cleanup()
     if( firstDynamicInstance > nodes.size() ) {
         return false; // nothing to delete
     }
-    bool res = false;
     auto firstNodeToDelete = nodes.size() - 1;
     auto lastNodeToDelete = firstDynamicInstance;
     for( auto nodeind = firstNodeToDelete; nodeind >= lastNodeToDelete; --nodeind ) {  

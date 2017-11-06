@@ -23,33 +23,57 @@
  * Created on February 6, 2016, 10:42 PM
  */
 
-#include "Setting.h"
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
+#include    "Setting.h"
+#include    <sys/types.h>
+#include    <sys/stat.h>
+#include    <unistd.h>
+#include    <linux/random.h>
+#include    <iostream>
+#include    <fstream>
 
 namespace yacynth {
 
-
-static int is_regular_file( const char *path )
+static bool isRegularFile( const char *path )
 {
     struct stat path_stat;
-    lstat(path, &path_stat);
-    return S_ISREG(path_stat.st_mode);
+    if( 0 != lstat(path, &path_stat) ) {
+        return false;
+    }
+    return S_ISREG(path_stat.st_mode) != 0;
 }
-// check if key exists if not create one with random data
+
+static bool isDirectory( const char *path )
+{
+    struct stat path_stat;
+    if( 0 != lstat(path, &path_stat) ) {
+        return false;
+    }
+    return S_ISDIR(path_stat.st_mode) != 0;
+}
 
 Setting::Setting()
 :   homeDir(".")
+,   profile(yaxp::profileDirName)
+,   controlPortLocal(yaxp::localDefaultPort)
 ,   optMidi(OptMidi::JACK)
-,   controlPort(defaultCOntrolPort)
+,   options()
+,   controlPortRemote(yaxp::remoteDefaultPort)
+,   connMode(yaxp::CONN_MODE::CONNECTION_REMOTE)
 ,   ok(false)
 {
-    static const char * usageCONFD = "configuration directory: path";
-    static const char * usageMIDI = "midi interface: jack (default) or alsaraw";
+    static const char * usageCONFD      = "configuration directory: path";
+    static const char * usageMIDI       = "midi interface: jack (default) or alsaraw";
+    static const char * usageCONN       = "connection: remote (default) or local";
+    static const char * usageIPPORT     = "remote(ip) port (int): 5000..50000";
+    static const char * usageLOCALPORT  = "local port : valid filename";
+    static const char * usagePROFILE    = "profile name: valid file name";
 
-    options.emplace( "confd", OptionData{OptionTag::CONFD,usageCONFD} );
-    options.emplace( "midi", OptionData{OptionTag::MIDI,usageMIDI} );
+    options.emplace( "confd",   OptionData{OptionTag::CONFD,usageCONFD} );
+    options.emplace( "profile", OptionData{OptionTag::PROFILE,usagePROFILE} );
+    options.emplace( "midi",    OptionData{OptionTag::MIDI,usageMIDI} );
+    options.emplace( "conn",    OptionData{OptionTag::CONN,usageCONN} );
+    options.emplace( "ipport",  OptionData{OptionTag::IPPORT,usageIPPORT} );
+    options.emplace( "locport", OptionData{OptionTag::LOCPORT,usageLOCALPORT} );
 
     const char *hdp = getenv("HOME");
     if( hdp != nullptr) {
@@ -59,7 +83,7 @@ Setting::Setting()
 
 void Setting::usage( const char* option, const char* info ) const
 {
-
+    std::cout << option << info << std::endl;
 }
 
 // TODO extend to accept multiple values
@@ -77,41 +101,159 @@ bool Setting::setOption( Setting::OptionTag tag, const std::string& optionValue 
             optMidi = OptMidi::ALSARAW;
             return true;
         }
-        usage( optionValue.data(), "illegal option value for -midi");
+        usage( optionValue.data(), " : illegal option value for -midi");
         return false;
 
-    case OptionTag::PORT:
+    case OptionTag::CONN:
+        if( optionValue == "remote" ) {
+            return true;
+        }
+        if( optionValue == "local" ) {
+            connMode = yaxp::CONN_MODE::CONNECTION_LOCAL;
+            return true;
+        }
+        usage( optionValue.data(), " : illegal option value for -conn");
+        return false;
+
+    case OptionTag::IPPORT:
         return true;
-        
+
+    case OptionTag::LOCPORT:
+        return true;
+
+    default:
+        return false;
     }
-    usage( "may not happen", "internal error" );
+    usage( "may not happen", " : internal error" );
     return false;
 }
 
 bool Setting::initialize( int argc, char** argv )
 {
-    for( auto oind=1u; oind<argc; ++oind ) {
+    if( ! readOptions( argc, argv )) {
+        return false;
+    }
+    if( ! readConfigFile()) {
+        return false;
+    }
+    // reread to override file options
+    if( ! readOptions( argc, argv )) {
+        return false;
+    }
+    return  true;
+}
+
+bool Setting::readConfigFile()
+{
+    mode_t dirmode = S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH;
+    configDir = homeDir + "/" + yaxp::configDirName;
+    if( ! isDirectory( configDir.data()) ) {
+        // no directory -- try to make if
+        if( mkdir(configDir.data(), dirmode ) != 0 ) {
+            std::cerr << "can't create config dir:" << configDir << " errno: " << errno << std::endl;
+            return false;
+        }
+    }
+
+    configDir += "/" + profile;
+    if( ! isDirectory( configDir.data()) ) {
+        if( mkdir(configDir.data(), dirmode ) != 0 ) {
+            std::cerr << "can't create config dir:" << configDir << " errno: " << errno << std::endl;
+            return false;
+        }
+    }
+
+    std::string config( configDir + "/" + yaxp::confName );
+    if( ! isRegularFile(config.data()) ) {
+        return createConfigFile(configDir);
+    }
+
+    // read content
+
+    return  true;
+}
+
+bool Setting::createAuthFile( const std::string& configDir )
+{
+    char seedAuth[ yaxp::seedLength ];
+    std::string config( getAuthKeyFile() );
+    std::ofstream conf ( config );
+    if ( ! conf.is_open() ) {
+        std::cerr << "can't create auth file:" << config << " errno: " << errno << std::endl;
+        return false;
+    }
+    {
+        mode_t authmode = S_IRUSR | S_IWUSR;
+        chmod( config.data(), authmode );
+    }
+
+    std::ifstream random ( "/dev/urandom" );
+    if( random.fail() ) {
+        random.close();
+        conf.close();
+        return false;
+    }
+
+    random.read( seedAuth, yaxp::seedLength );
+    if( random.fail() ) {
+        random.close();
+        conf.close();
+        return false;
+    }
+    random.close();
+    conf.write( seedAuth, yaxp::seedLength);
+    {
+        mode_t authmode = S_IRUSR;
+        chmod( config.data(), authmode );
+    }
+    if ( conf.fail() ) {
+        std::cerr << "can't create auth file:" << config << " errno: " << errno << std::endl;
+        return false;
+    }
+    conf.close();
+    return  true;
+}
+
+bool Setting::createConfigFile( const std::string& configDir )
+{
+    std::string config( configDir + "/" + yaxp::confName );
+    std::ofstream conf ( config );
+    if ( ! conf.is_open() ) {
+        std::cerr << "can't create config file:" << config << " errno: " << errno << std::endl;
+        return false;
+    }
+    conf << "# config file" << std::endl;
+    conf.close();
+
+    return  createAuthFile( configDir );
+}
+
+bool Setting::readOptions( int argc, char** argv )
+{
+    for( auto oind=1; oind<argc; ++oind ) {
         const char * par = argv[oind];
-        if( argc < (oind+1) ) {
-            usage( par, "missing value" );
+        if( argc <= (oind+1) ) {
+            usage( par, " : missing value" );
             return false;
         }
 
         // check duplicates -- only 1 is accepted
+        // -conf must be first if exists
+        // -profile must be next after -conf if exists
 
         if( *par == '-' ) {
-            auto found =  options.find(par);
+            auto found =  options.find(par+1);
             if( found == options.end() ) {
-                usage( par, "illegal option" );
+                usage( par, " : illegal option" );
                 return false;
             }
             if( ! setOption( found->second.tag, argv[oind+1] ) ) {
-                usage( par, "illegal option value" );
+                usage( par, " : illegal option value" );
                 return false;
             }
             ++oind; // jump over option value
         } else {
-            usage( par, "not an option: missing '-'" );
+            usage( par, " : not an option: missing '-'" );
             return false;
         }
     }

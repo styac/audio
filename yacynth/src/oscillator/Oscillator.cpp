@@ -33,17 +33,25 @@ const ToneShaperMatrix  Oscillator::toneShaperMatrix;
 
 // --------------------------------------------------------------------
 Oscillator::Oscillator()
-:   noiseWide(GaloisShifterSingle<seedThreadOscillator_noise>::getInstance())
+:   toneShaperVecCurr(&toneShaperMatrix.toneShapers[ 0 ])
+,   noiseWide(GaloisShifterSingle<seedThreadOscillator_noise>::getInstance())
 ,   noisePhaseMode(GaloisShifterSingle<seedThreadOscillator_noise>::getInstance())
+,   noiseNarrow()
+,   basePitch(0)
+,   targetPitch(0)
+,   deltaPitch(0)
+,   glissandoTick(0)
+,   velocity(0)
+,   delay(0)
 ,   toneShaperSelect(0)
-,   toneShaperVecCurr(&toneShaperMatrix.toneShapers[ 0 ])
 ,   oscillatorCountUsed( overtoneCountOscDef )
+,   pitchDepDx(0)
 ,   runCount(0)
+,   voiceState(VOICE_DOWN)
 {
     ;
     for( auto i=0; i<overtoneCountOscDef; i++ ) {
         state[i].phase_0  = 0;
-        voiceState      = VOICE_DOWN;
     }
 } // end Oscillator::Oscillator
 // --------------------------------------------------------------------
@@ -56,7 +64,7 @@ void Oscillator::initialize( void )
 bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, Statistics& stat )
 {
     // under this amplitude value the signal will not be generated
-    constexpr uint64_t  hearingThreshold = 1L<<8;
+    constexpr int64_t  hearingThreshold = 1L<<8;
     
     // magic numbers for stereo diff frequency sound
     constexpr int32_t frDetune0Magic = 1237;   // min value
@@ -98,8 +106,8 @@ bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, 
             uint32_t deltaPhase_0 = 0;
             uint32_t deltaPhase_1 = 0;
             int32_t frDetune0 = frDetune0Magic + ( int32_t(toneshaper.detune2CH) << 4 );
-            int32_t filterCenterFreq;
-            int16_t filterBandwith;
+            int32_t filterCenterFreq = 0;
+            int16_t filterBandwith = 0;
             uint8_t outChannel_0 = toneshaper.outChannel & oscOutputChannelCountMsk;
 
             const auto oscillatorType  = toneshaper.oscillatorType;
@@ -696,6 +704,7 @@ L_innerloop:
         ++stat.cycleCounter[Statistics::COUNTER_OUTER_LOOP];
         return true;
     }
+    return false; 
 } // end Oscillator::generate(  const OscillatorInGenerate& in,  OscillatorOut& out );
 //======================================================================================================================
 // --------------------------------------------------------------------
@@ -777,6 +786,8 @@ void Oscillator::voiceRelease( const OscillatorInChange& in )
     case VOICE_RELEASE:
     case VOICE_DOWN:
         return;
+    default:
+        break;        
     }
     --runCount;
     std::cout << "voiceRelease: " << runCount << std::endl;
@@ -803,6 +814,9 @@ void Oscillator::voiceChange( const OscillatorInChange& in )
     case VOICE_RELEASE:
     case VOICE_DOWN:
         return;
+
+    default:
+        break;
     }
 
     std::cout << "voiceChange: " << std::endl;

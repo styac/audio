@@ -310,6 +310,8 @@ bool FxCollector::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t p
             message.setStatus( yaxp::MessageT::nothingToDo );
             return false;
         }
+    default:
+        break;        
     }
     message.setStatus( yaxp::MessageT::illegalTag );
     return false;
@@ -416,6 +418,8 @@ bool FxRunner::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t para
             return true;
         }
         return true;
+    default:
+        break;        
     }
     TAG_DEBUG( TagEffectRunner::Nop, tagIndex, paramIndex, "FxRunner -- illegal tag" );
     message.setStatus( yaxp::MessageT::illegalTag );

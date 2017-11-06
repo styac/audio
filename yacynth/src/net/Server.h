@@ -24,39 +24,44 @@
  *
  * Created on February 19, 2016, 11:55 PM
  */
+
 #include    "../../include/protocol.h"
 #include    "../control/Sysman.h"
-#include    <iostream>
+#include    "../control/Setting.h"
 #include    "spdlog/spdlog.h"
+#include    <iostream>
+#include    <memory>
+#include    <netinet/in.h>
+#include    <arpa/inet.h>
+#include    <sys/un.h>
 
 namespace yacynth {
+namespace net {
 
-class   Server {
+class Server {
 public:
-    static constexpr size_t seedLength = 32;
-    static constexpr size_t randLength = 32;
-    static constexpr size_t authLength = 32;
+    NON_COPYABLE_NOR_MOVABLE(Server);
+    Server() = delete;
+    static constexpr size_t randLength = yaxp::seedLength;
+    static constexpr size_t authLength = yaxp::seedLength;
+    static constexpr size_t maxStatusSize = 512;
 
-    explicit Server(
-        Sysman&             sysmanP,
-        const uint16_t      port,
-        yaxp::CONN_MODE     connMode
-    );
+    typedef std::shared_ptr<Server> Type;
 
-    Server(const Server&) = delete;
-    Server& operator=(const Server&) = delete;
-    ~Server();
+    virtual ~Server() = default;
 
-    // set the seed block
-    void setAuthSeed( const uint8_t * src, size_t lng );
+    static Server::Type create( Sysman& sysmanP, const Setting& setting );
+
     bool run( void );
 
-private:
+    virtual bool sendStatus( const yacynth::yaxp::Message& message ) = 0;
+
+protected:
+    virtual bool doAccept() = 0;
     bool doRecv();
     bool doSend();
     bool doPeek();
     bool doListen();
-    bool doAccept();
     bool authenticate();
     void execute();
     void shut();
@@ -64,13 +69,17 @@ private:
     bool fillRandom( uint8_t * randBuff );
     bool checkAuth( const uint8_t * randBuff, const uint8_t * respBuff, size_t respLng );
 
+    Server( Sysman& sysmanP, const std::string& authKeyFile );
+
+    bool setAuthSeed( const std::string& seedFileName );
+
     Sysman&                 sysman;
     std::shared_ptr<spdlog::logger> logger;
     int                     socketListen;
     int                     socketAccept;
+    int                     socketSendStatus;
     int                     errnoNet;
-    yaxp::CONN_MODE         connMode;
-    uint8_t                 seedAuth[ seedLength ];
+    char                    seedAuth[ yaxp::seedLength ];
     yaxp::Message           message;
     uint16_t                cliendId;
     uint8_t                 lastSequenceNumber;
@@ -80,5 +89,42 @@ private:
     bool                    stopServer;
 };
 
+class RemoteServer : public Server {
+public:
+    NON_COPYABLE_NOR_MOVABLE(RemoteServer);
+    RemoteServer() = delete;
+    RemoteServer( Sysman& sysmanP, const uint16_t port, const std::string& authKeyFile );
+    ~RemoteServer();
+
+    bool sendStatus( const yacynth::yaxp::Message& message ) override;
+
+private:
+    bool doAccept()  override;
+    union {
+        sockaddr_in     statusSockAddr4;    // UDP for sending status updates
+        sockaddr_in6    statusSockAddr6;    // not implemented
+    };
+
+    uint16_t        portControl;    // can be removed
+    uint16_t        portStatus;     // UDP for sending status updates
+};
+
+class LocalServer : public Server {
+public:
+    NON_COPYABLE_NOR_MOVABLE(LocalServer);
+    LocalServer() = delete;
+    LocalServer( Sysman& sysmanP, const char *port, const std::string& authKeyFile );
+    ~LocalServer();
+
+    bool sendStatus( const yacynth::yaxp::Message& message ) override;
+
+private:
+    bool doAccept()  override;
+    sockaddr_un     statusSockAddr;
+    std::string     portControl;
+    std::string     portStatus;
+};
+
+} // end namespace yacnet
 } // end namespace yacynth
 

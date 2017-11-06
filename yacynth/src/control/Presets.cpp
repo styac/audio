@@ -237,10 +237,15 @@ void preset0( Sysman  * sysman )
         std::cout << "---- error " <<uint16_t(msgBuffer.messageType) << std::endl;
         exit(-1);
     }
+    
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
 
     const uint8_t EffectInstance_EndMixer           = effectMap["EndMixer"];
     const uint8_t EffectInstance_Input              = effectMap["Input.00:00"];
     const uint8_t EffectInstance_OscillatorMixer    = effectMap["OscillatorMixer.00:00"];
+    
+#pragma GCC diagnostic pop
 
     msgBuffer.clear();
     msgBuffer.setTags(  uint8_t( TagMain::EffectRunner )

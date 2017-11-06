@@ -238,13 +238,13 @@ struct EIObuffer : public EbufferPar {
         for( auto i=0u; i < vsectionSize; ++i ) {
             vchannel[chA][i] = inp0.vchannel[chA][i] * gain0
                     + inp1.vchannel[chA][i] * gain1
-                    + inp2.vchannel[chA][i] * gain2;
+                    + inp2.vchannel[chA][i] * gain2
                     + inp3.vchannel[chA][i] * gain3;
         }
         for( auto i=0u; i < vsectionSize; ++i ) {
             vchannel[chB][i] = inp0.vchannel[chB][i] * gain0
                     + inp1.vchannel[chB][i] * gain1
-                    + inp2.vchannel[chB][i] * gain2;
+                    + inp2.vchannel[chB][i] * gain2
                     + inp3.vchannel[chB][i] * gain3;
         }
     }
@@ -474,7 +474,7 @@ struct EDelayLine : public EbufferPar {
     ,   bufferSizeMask(bufferSize-1)
     {
         for( auto& ichn : channel ) ichn = (float *) new v4sf[ bufferSize >> 2 ]; // v4sf = 4 float
-        for( int i=0; i<channelCount; ++i ) {
+        for( auto i=0u; i<channelCount; ++i ) {
             if( (uint64_t) channel[i] & 0xF ) {
                 std::cerr << "illegal alignment channel:" << channel[i] << std::endl;
             }
@@ -503,12 +503,12 @@ struct EDelayLine : public EbufferPar {
     {
         channel[chA][ index ] = valA;
         channel[chB][ index ] = valB;
-        index = ( ++index ) & bufferSizeMask;
+        index = ( index + 1 ) & bufferSizeMask;
     };
     inline void push( const float valA )
     {
         channel[chA][ index ] = valA;
-        index = ( ++index ) & bufferSizeMask;
+        index = ( index + 1 ) & bufferSizeMask; // seq point
     };
     //       { return index & bufferSizeMask & ( ~sectionSizeMask ); };
 
@@ -553,7 +553,7 @@ struct EDelayLine : public EbufferPar {
         for( uint32_t ind = 0u; ind < sectionSize; ++ind ) {
             channel[ chA ][ index + ind ] += channel[ chA ][ cind ] * coeff;
             channel[ chB ][ index + ind ] += channel[ chB ][ cind ] * coeff;
-            cind = ( ++cind ) & bufferSizeMask;
+            cind = ( cind + 1 ) & bufferSizeMask; // seq point
         }
         incIndexBySectionSize();
     };
@@ -631,7 +631,7 @@ struct EDelayLine : public EbufferPar {
         for( uint32_t ind = 0u; ind < sectionSize; ++ind ) {
             channel[ chA ][ index + ind ] += channel[ chA ][ cind ] * coeff;
             channel[ chB ][ index + ind ] += channel[ chB ][ cind ] * coeff;
-            cind = ( ++cind ) & bufferSizeMask;
+            cind = ( cind + 1 ) & bufferSizeMask;
         }
     }
 
@@ -645,10 +645,10 @@ struct EDelayLine : public EbufferPar {
         uint32_t cindA = getIndex(delayA);
         uint32_t cindB = getIndex(delayB);
         for( uint32_t ind = 0u; ind < sectionSize; ++ind ) {
-            channel[ chA ][ index + ind ] += channel[ chA ][ cindA ] * coeffA;
-            channel[ chB ][ index + ind ] += channel[ chB ][ cindB ] * coeffB;
-            cindA = ( ++cindA ) & bufferSizeMask;
-            cindB = ( ++cindB ) & bufferSizeMask;
+            channel[ chA ][ index + ind ] += channel[ chA ][ cindA++ ] * coeffA;
+            channel[ chB ][ index + ind ] += channel[ chB ][ cindB++ ] * coeffB;
+            cindA &= bufferSizeMask;
+            cindB &= bufferSizeMask;
         }
     }
     // ----------------------------------------------------------------------
@@ -664,14 +664,14 @@ struct EDelayLine : public EbufferPar {
         // might be better for cache
         uint32_t cindA = getIndex(delayA);
         for( uint32_t ind = 0u; ind < sectionSize; ++ind ) {
-            *chnA++ = channel[chA][ cindA ];
-            cindA = ( ++cindA ) & bufferSizeMask;
+            *chnA++ = channel[chA][ cindA++ ];
+            cindA &= bufferSizeMask;
         }
 
         uint32_t cindB = getIndex(delayB);
         for( uint32_t ind = 0u; ind < sectionSize; ++ind ) {
-            *chnB++ = channel[chB][ cindB ];
-            cindB = ( ++cindB ) & bufferSizeMask;
+            *chnB++ = channel[chB][ cindB++ ];
+            cindB &= bufferSizeMask;
         }
     }
 
@@ -686,14 +686,14 @@ struct EDelayLine : public EbufferPar {
     {
         uint32_t cindA = getIndex(delayA);
         for( uint32_t ind = 0u; ind < sectionSize; ++ind ) {
-            *chnA++ = channel[chA][ cindA ] * coeffA;
-            cindA = ( ++cindA ) & bufferSizeMask;
+            *chnA++ = channel[chA][ cindA++ ] * coeffA;
+            cindA &= bufferSizeMask;
         }
 
         uint32_t cindB = getIndex(delayB);
         for( uint32_t ind = 0u; ind < sectionSize; ++ind ) {
-            *chnB++ = channel[chB][ cindB ] * coeffB;
-            cindB = ( ++cindB ) & bufferSizeMask;
+            *chnB++ = channel[chB][ cindB++ ] * coeffB;
+            cindB &= bufferSizeMask;
         }
     }
 
@@ -708,14 +708,14 @@ struct EDelayLine : public EbufferPar {
     {
         uint32_t cindA = getIndex(delayA);
         for( uint32_t ind = 0u; ind < sectionSize; ++ind ) {
-            *chnA++ += channel[chA][ cindA ] * coeffA;
-            cindA = ( ++cindA ) & bufferSizeMask;
+            *chnA++ += channel[chA][ cindA++ ] * coeffA;
+            cindA &= bufferSizeMask;
         }
 
         uint32_t cindB = getIndex(delayB);
         for( uint32_t ind = 0u; ind < sectionSize; ++ind ) {
-            *chnB++ += channel[chB][ cindB ] * coeffB;
-            cindB = ( ++cindB ) & bufferSizeMask;
+            *chnB++ += channel[chB][ cindB++ ] * coeffB;
+            cindB &= bufferSizeMask;
         }
     }
 
@@ -728,7 +728,7 @@ struct EDelayLine : public EbufferPar {
         { return ( index - delay ) & bufferSizeMask; };
 
     inline void incIndex(void)
-        { index = (++index) & bufferSizeMask; };
+        { index = ( index + 1 ) & bufferSizeMask; };
 
     inline std::size_t getSectionIndex( const uint32_t sectionOffset ) const
         { return ( index - ( sectionOffset & (~sectionSizeMask) )) & bufferSizeMask; };
@@ -771,7 +771,7 @@ struct EDelayLineArray : public EbufferPar {
     ,   bufferSizeMask(bufferSize-1)
     {
         // debug
-        for( int i=0; i<channelCount; ++i ) {
+        for( auto i=0u; i<channelCount; ++i ) {
             channel[ i ] = (float *) new v4sf[ bufferSize >> 2 ]; // v4sf = 4 float
             if( (uint64_t) channel[i] & 0xF ) {
                 std::cerr << "illegal alignment channel:" << channel[i] << std::endl;
@@ -784,7 +784,7 @@ struct EDelayLineArray : public EbufferPar {
 
     void clear(void)
     {
-        for( int i=0; i<channelCount; ++i ) {
+        for( auto i=0u; i<channelCount; ++i ) {
             memset( channel[ i ], 0, bufferSize*sizeof(float) );
         }
         index = 0;
@@ -792,7 +792,7 @@ struct EDelayLineArray : public EbufferPar {
 
     ~EDelayLineArray()
     {
-        for( int i=0; i<channelCount; ++i ) {
+        for( auto i=0u; i<channelCount; ++i ) {
             v4sf *p = (v4sf *) channel[ i ];
             delete[] p;
         }
@@ -800,14 +800,14 @@ struct EDelayLineArray : public EbufferPar {
 
     inline void push( const PackedChannel& p )
     {
-        for( uint32_t i=0; i<channelCount; ++i )
+        for( auto i=0u; i<channelCount; ++i )
             channel[ i ][ index ] = p.v[i];
         incIndex();
     };
 
     inline void get( const DelayIndex ind, PackedChannel& p ) const
     {
-        for( uint32_t i=0; i<channelCount; ++i )
+        for( auto i=0u; i<channelCount; ++i )
              p.v[i] = channel[ i ][ getIndex( ind[i] ) ];
     };
 
@@ -864,7 +864,7 @@ struct EDelayLineArray : public EbufferPar {
         { return ( index - delay ) & bufferSizeMask; };
 
     inline void incIndex(void)
-        { index = (++index) & bufferSizeMask; };
+        { index = (index+1) & bufferSizeMask; }; // seq point
 
     inline std::size_t getSectionIndex( const uint32_t sectionOffset ) const
         { return ( index - ( sectionOffset & (~sectionSizeMask) )) & bufferSizeMask; };

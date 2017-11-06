@@ -40,6 +40,8 @@ bool FxInputParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t 
     switch( TagEffectFxInputMode( tag ) ) {
     case TagEffectFxInputMode::Clear :
         return true;
+    default:
+        break;
     }
             
     message.setStatus( yaxp::MessageT::illegalTag );
@@ -72,6 +74,9 @@ bool FxInput::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t param
         
     case TagEffectFxInputMode::Clear:
         clearState(); // this must be called to cleanup
+        break;
+
+    default:
         break;
     }
     // forward to param

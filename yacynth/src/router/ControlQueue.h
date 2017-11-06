@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-/* 
+/*
  * File:   ControlQueue.h
  * Author: Istvan Simon -- stevens37 at gmail dot com
  *
@@ -44,7 +44,7 @@ public:
     bool        put( uint64_t data ) {
         uint64_t expect = 0;
         if( 0 == data )
-            return true;    // cant put a zero
+            return true;    // cant put a zero -- no valid data==0
         if( queue[ head & inQueueBufSizeMask ].compare_exchange_strong( expect, data ) ) {
             ++head;
             return true;
@@ -92,10 +92,10 @@ public:
     void operator=( ControlQueueVector& )                    = delete;
     ControlQueueVector& operator=(ControlQueueVector const&)  = delete;
     ControlQueueVector& operator=(ControlQueueVector &&)      = delete;
-    
+
 protected:
     ControlQueueVector() = default;
-    
+
 private:
     ~ControlQueueVector(){};
 };

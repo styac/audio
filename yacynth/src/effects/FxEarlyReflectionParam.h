@@ -50,10 +50,10 @@ public:
     static constexpr std::size_t coeffSetCount      = 1<<4;
     static constexpr std::size_t coeffSetCountMask  = coeffSetCount-1;
 
-    static constexpr std::size_t delayLngExp        = 11; // ca: 600 msec - 512*1.3
-    static constexpr std::size_t delayLng           = 1<<(delayLngExp+effectFrameSizeExp);
-    static constexpr std::size_t delayOffsMaxLng    = delayLng - 1;
-    static constexpr std::size_t delayOffsMinLng    = effectFrameSize * 2;
+    static constexpr int delayLngExp        = 15; // ca: 600 msec - 512*1.3
+    static constexpr int delayLng           = 1<<delayLngExp;
+    static constexpr int delayOffsMaxLng    = delayLng - 1;
+    static constexpr int delayOffsMinLng    = effectFrameSize * 2;
 
     // types for each sub struct
 
@@ -93,8 +93,8 @@ public:
                 }
             }
 
-            constexpr uint32_t minModDp = freq2deltaPhaseControlLfo(0.1);
-            constexpr uint32_t maxModDp = freq2deltaPhaseControlLfo(20.0);
+            constexpr int32_t minModDp = freq2deltaPhaseControlLfo(0.1);
+            constexpr int32_t maxModDp = freq2deltaPhaseControlLfo(20.0);
             for( auto &v0 : tap.modDeltaPhase.v ) {
                 if(( v0 > maxModDp ) || ( v0 < minModDp )) {
                     return false;

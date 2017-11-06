@@ -16,7 +16,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-/* 
+/*
  * File:   StaticEffects.cpp
  * Author: Istvan Simon -- stevens37 at gmail dot com
  *
@@ -35,8 +35,12 @@
 #include    "../effects/FxChorus.h"
 #include    "../effects/FxFlanger.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
 
 using namespace yacynth;
+
+// FxCollector::factory can be used to make them dynamic
 
 void createStaticEfects()
 {
@@ -51,3 +55,5 @@ void createStaticEfects()
     FxFlanger           * fxFlanger     = new FxFlanger();
     FxMixer             * fxMixer       = new FxMixer();
 }
+
+#pragma GCC diagnostic pop

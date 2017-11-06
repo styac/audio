@@ -38,6 +38,9 @@ bool FxOutNoiseParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8
         }
         message.setStatusSetOk();
         return true;
+        
+    default:
+        break;        
     }
     message.setStatus( yaxp::MessageT::illegalTag );
     return false;
@@ -68,6 +71,8 @@ bool FxOutNoise::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t pa
     case TagEffectFxOutNoiseMode::Clear:
         clearState(); // this must be called to cleanup
         break;
+    default:
+        break;        
     }
     // forward to param
     return param.parameter( message, tagIndex, paramIndex );
@@ -75,7 +80,7 @@ bool FxOutNoise::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t pa
 
 bool FxOutNoise::connect( const FxBase * v, uint16_t ind )
 {
-    doConnect(v,ind);
+    return doConnect(v,ind);
 };
 
 

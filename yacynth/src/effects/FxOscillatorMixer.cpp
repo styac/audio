@@ -54,8 +54,10 @@ bool FxOscillatorMixerParam::parameter( yaxp::Message& message, uint8_t tagIndex
         // TODO
         message.setStatusSetOk();        
         return true;
-    }
 
+    default:
+        break;
+    }
     message.setStatus( yaxp::MessageT::illegalTag );
     return false;
 }
@@ -87,8 +89,12 @@ bool FxOscillatorMixer::parameter( yaxp::Message& message, uint8_t tagIndex, uin
         clearState(); // this must be called to cleanup
         message.setStatusSetOk();
         return true;
+
     case TagEffectFxOscillatorMixerMode::Clear:
         clearState(); // this must be called to cleanup
+        break;
+
+    default:
         break;
     }
     // forward to param
@@ -97,7 +103,7 @@ bool FxOscillatorMixer::parameter( yaxp::Message& message, uint8_t tagIndex, uin
 
 bool FxOscillatorMixer::connect( const FxBase * v, uint16_t ind )
 {
-    doConnect( v, ind );
+    return doConnect( v, ind );
 };
 
 bool FxOscillatorMixer::setSprocessNext( uint16_t mode )

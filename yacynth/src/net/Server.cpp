@@ -24,55 +24,59 @@
  */
 
 #include    "Server.h"
-#include    <netinet/in.h>
-#include    <arpa/inet.h>
 #include    <unistd.h>
 #include    <errno.h>
+#include    <fstream>
 #include    <linux/random.h>
 #include    <sys/syscall.h>
 #include    "sha3.h"
 
 namespace yacynth {
-        
-// --------------------------------------------------------------------
+namespace net {
 
-Server::Server( Sysman&  sysmanP, const uint16_t portP, yaxp::CONN_MODE connModeP )
+void printHex( const uint8_t *buf, uint16_t lng, const char *name )
+{
+    if( buf==0 || lng==0 || name==0 )
+        return;
+
+    std::cout << "\n " << name << std::hex << std::setw(2) << std::endl;
+    for( auto i=0u; i<lng; ++i ) {
+        std::cout << uint16_t(buf[i]) << " ";
+    }
+    std::cout << std::endl;
+}
+
+Server::Type Server::create( Sysman& sysman, const Setting& setting )
+{
+    switch( setting.getConnMode() ) {
+    case yaxp::CONN_MODE::CONNECTION_REMOTE: {
+            Server::Type me( new RemoteServer( sysman, setting.getControlPortRemote(), setting.getAuthKeyFile() ));
+            return me;
+        }
+    case yaxp::CONN_MODE::CONNECTION_LOCAL: {
+            Server::Type me( new LocalServer( sysman, setting.getControlPortLocal(), setting.getAuthKeyFile() ));
+            return me;
+        }
+    default:
+        throw std::runtime_error("illegal connection type");
+    }
+}
+
+Server::Server( Sysman& sysmanP, const std::string& authKeyFile )
 :   sysman(sysmanP)
 ,   logger(spdlog::stdout_color_mt("console"))
 ,   socketListen(-1)
 ,   socketAccept(-1)
+,   socketSendStatus(-1)
 ,   errnoNet(0)
-,   connMode(connModeP)
 ,   connected(false)
 ,   authenticated(false)
 ,   stopServer(false)
 {
-    struct sockaddr_in serv_addr;
-    socketListen = socket( AF_INET, SOCK_STREAM, 0 );
-    memset( &serv_addr, '0', sizeof(serv_addr) );
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    serv_addr.sin_port = htons(portP);
-    bind( socketListen, (struct sockaddr*)&serv_addr, sizeof(serv_addr) );
-    if( socketListen < 1 ) {
-        errnoNet = errno;
+    if( ! setAuthSeed( authKeyFile ) ) {
+        throw std::runtime_error("can't read the authentication data");
     }
-    memset( seedAuth, 0, sizeof(seedAuth));
-} // end Server::Server
-
-// --------------------------------------------------------------------
-
-Server::~Server()
-{
-    if(socketListen>0) {
-        shutdown( socketListen, SHUT_RDWR );
-        close( socketListen );
-        socketListen = -1;
-    }
-    shut();
 }
-
-// --------------------------------------------------------------------
 
 bool Server::run()
 {
@@ -89,11 +93,10 @@ bool Server::run()
         logger->warn(" ***** Server::doAccept" );
         if( ! doAccept() ) {
             logger->warn(" ***** Server::doAccept failed" );
-//            return false;
         }
         if( ! authenticate() ) {
             logger->warn(" ***** Server::authenticate failed" );
-//            return false;
+            shut();
         }
         execute();
         logger->warn(" ***** Server::connection broken" );
@@ -104,6 +107,7 @@ bool Server::run()
 
 void Server::shut()
 {
+    logger->warn(" ***** Server::shut" );
     if( socketAccept > 0 ) {
         shutdown( socketAccept, SHUT_RDWR );
         close( socketAccept );
@@ -119,24 +123,21 @@ void Server::execute()
         if( ++lastSequenceNumber != message.sequenceNr ) {
             logger->warn( "** seq nr diff {0} {1}", lastSequenceNumber, message.sequenceNr );
         }
-        // execute received command
-        // logger->warn("** execute command {0}", message.print(str).data() );
         lastMessageType = message.messageType;
         switch( message.messageType ) {
         case yaxp::MessageT::requestC2E:
             sysman.evalMessage( message );
-// TODO > TEST            
-//            if( lastMessageType == message.messageType) {
-//                // the response was not set 
-//                message.messageType = yaxp::MessageT::internalError;
-//                message.length = 0;
-//            }
+            if( lastMessageType == message.messageType ) {
+                // the response was not set by programming error
+                message.messageType = yaxp::MessageT::internalError;
+                message.length = 0;
+            }
             break;
 
         case yaxp::MessageT::stopServer:
             stopServer = true;
             logger->warn("** stop server" );
-            // response ??
+            // response : connection shutdown
             return;
 
         default:
@@ -150,28 +151,9 @@ void Server::execute()
     }
 }
 
-bool Server::doAccept()
-{
-    struct timeval timeout;
-    timeout.tv_sec = 10;
-    timeout.tv_usec = 0;
-
-    socketAccept = accept( socketListen, (struct sockaddr*)NULL, NULL );
-    if( socketAccept < 1 ) {
-        errnoNet = errno;
-        logger->warn("doAccept failed {:d}", errnoNet);
-        return false;
-    }
-
-//    if( setsockopt (socketAccept, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0 )
-//        logger->warn("setsockopt failed {:d}", errnoNet);
-//    if( setsockopt (socketAccept, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0 )
-//        logger->warn("setsockopt failed {:d}", errnoNet);
-    return true;
-}
-
 bool Server::doListen()
 {
+
     int res = listen(socketListen, 1);
     if( res < 0 ) {
         errnoNet = errno;
@@ -185,11 +167,8 @@ bool Server::authenticate()
 {
     uint8_t randBlock[ randLength ];
     std::string str;
-    constexpr int msglen = 13;
-
     fillRandom( randBlock );
     logger->warn(" ***** Server::authenticate" );
-    char auth[msglen] = {"****auth****"};
     message.getTargetData( randBlock );
     message.messageType = yaxp::MessageT::authRequest;
     message.sequenceNr = 0;
@@ -197,11 +176,17 @@ bool Server::authenticate()
         logger->warn(" ***** Server::authenticate doSend false" );
         return false;
     }
-    sleep(1);
-    // PEEK
+
     if( ! doPeek() ) {
-        logger->warn(" ***** Server::authenticate no response" );
-        return false;
+        timespec req;
+        req.tv_nsec = 1000*1000*10;
+        req.tv_sec = 0;
+        logger->warn(" ***** Server::authenticate doPeek false" );
+        nanosleep(&req,nullptr); // 10 millisec
+        if( ! doPeek() ) { // no response
+            logger->warn(" ***** Server::authenticate no response" );
+            return false;
+        }
     }
 
     if( ! doRecv() ) {
@@ -280,26 +265,30 @@ bool Server::recvAll( char *p, uint32_t size )
 
 bool Server::doSend()
 {
-    // logger->warn(" ***** Server::doSend" );
     std::size_t length = message.length + sizeof(yaxp::Header);
     if( message.messageType < yaxp::MessageT::validLength ) {
         length = sizeof(yaxp::Header);
     }
-
     int res = send(socketAccept, (char *)&message, length, 0);
-    if( res == length)
+    if( res == int(length) )
         return true;
     if( res < 0 ) {
         errnoNet = errno;
         logger->warn("doSend failed {:d}", errnoNet);
         return false;
     }
+     // this should never happen
+    logger->warn("doSend sent more then requested {:d}",res);
+    return false;
 }
 
 bool Server::doPeek()
 {
-    return true;
-} // end Server::doAwaitStop
+    constexpr int s = 32;
+    char p[ s ];
+    int res = recv( socketAccept, p, s, MSG_PEEK );
+    return res > 0;
+} // end Server::doPeek
 
 
 bool Server::fillRandom( uint8_t * dst )
@@ -319,28 +308,202 @@ bool Server::fillRandom( uint8_t * dst )
     return false;
 }
 
-void Server::setAuthSeed( const uint8_t * src, size_t lng )
+bool Server::setAuthSeed( const std::string& seedFileName )
 {
-    memcpy( seedAuth, src, std::min( lng, sizeof(seedAuth)));
-    // xor ( seedAuth, "VERSION 1" ); // can auth only the correct version
+    std::ifstream seedFile( seedFileName );
+    if( ! seedFile.is_open() ) {
+        logger->warn("setAuthSeed open err {:d}", errno );
+        return false;
+    }
+    seedFile.read( seedAuth, sizeof(seedAuth));
+    if( seedFile.fail() ) {
+        logger->warn("setAuthSeed read err {:d}", errno );
+        return false;
+    }
+    seedFile.close();
+    return true;
 }
 
 bool Server::checkAuth( const uint8_t * randBuff, const uint8_t * respBuff, size_t respLng )
 {
     sha3_ctx_t  context;
     uint8_t resBlock[ authLength ];
-    if( authLength != respLng ) {
+    if( authLength > respLng ) {
         return false;
     }
     sha3_init( &context, authLength);
     sha3_update( &context, seedAuth, sizeof(seedAuth));
     sha3_update( &context, randBuff, randLength);
     sha3_final( resBlock, &context );
-    return memcmp( resBlock, respBuff, authLength) == 0;
+    return 0 == memcmp( resBlock, respBuff, authLength);
+}
+
+// --------------------------------------------------------------------
+RemoteServer::RemoteServer( Sysman& sysman, const uint16_t port, const std::string& authKeyFile )
+:   Server(sysman, authKeyFile)
+,   portControl(port)   // on the server side
+,   portStatus(port)    // on the client side
+
+{
+    memset( &statusSockAddr6, '0', sizeof(statusSockAddr6) );
+    sockaddr_in serv_addr;
+    socketListen = socket( AF_INET, SOCK_STREAM, 0 );
+    memset( &serv_addr, '0', sizeof(serv_addr) );
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    serv_addr.sin_port = htons(portControl);
+    bind( socketListen, (sockaddr*)&serv_addr, sizeof(serv_addr) );
+    if( socketListen < 1 ) {
+        errnoNet = errno;
+    }
+    //create a UDP socket
+    socketSendStatus = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
+    if( socketSendStatus < 1 ) {
+        errnoNet = errno;
+    }
+} // end Server::Server
+
+// --------------------------------------------------------------------
+
+RemoteServer::~RemoteServer()
+{
+    if(socketListen>0) {
+        shutdown( socketListen, SHUT_RDWR );
+        close( socketListen );
+        socketListen = -1;
+    }
+    if(socketAccept>0) {
+        shutdown( socketAccept, SHUT_RDWR );
+        close( socketAccept );
+        socketAccept = -1;
+    }
+    if(socketSendStatus>0) {
+        shutdown( socketSendStatus, SHUT_RDWR );
+        close( socketSendStatus );
+        socketSendStatus = -1;
+    }
+    shut();
+}
+
+// send UDP -- max size 512
+bool RemoteServer::sendStatus( const yacynth::yaxp::Message& message )
+{
+    const uint32_t size = yacynth::yaxp::Message::headerSize + message.length;
+    if( size > maxStatusSize ) {
+        return false;
+    }
+    if( 0 != sendto( socketSendStatus, (void *)&message, size, 0, (const sockaddr *)&statusSockAddr4, sizeof(statusSockAddr4)) ){
+        errnoNet = errno;
+        logger->warn("doAccept failed {:d}", errnoNet);
+        return false;
+    }
+    return true;
+}
+
+bool RemoteServer::doAccept()
+{
+    sockaddr_in     remoteSock;
+    socklen_t       addrlen = sizeof(remoteSock);
+
+    socketAccept = accept( socketListen, (struct sockaddr*)&remoteSock, &addrlen );
+    if( socketAccept < 1 ) {
+        errnoNet = errno;
+        logger->warn("doAccept failed {:d}", errnoNet);
+        return false;
+    }
+
+    switch( remoteSock.sin_family ) {
+    case AF_INET:
+        statusSockAddr4.sin_family = AF_INET;
+        statusSockAddr4.sin_addr = remoteSock.sin_addr;
+        statusSockAddr4.sin_port = htons(portStatus);
+        break;
+//    case AF_INET6:
+//        statusSockAddr6.sin_family = AF_INET6;
+//        statusSockAddr6.sin_addr = remoteSock.sin_addr;
+//        statusSockAddr6.sin_port = htons(portStatus);
+//        break;
+    }
+    return true;
 }
 
 // --------------------------------------------------------------------
 
+LocalServer::LocalServer( Sysman&  sysman, const char *port, const std::string& authKeyFile )
+:   Server(sysman, authKeyFile)
+,   portControl(port)
+,   portStatus(port)
+{
+    portControl += yaxp::localPortControlSuffix;
+    portStatus += yaxp::localPortStatusSuffix;
+    sockaddr_un serv_addr;
+    socketListen = socket( PF_LOCAL, SOCK_STREAM, 0 );
+    unlink(portControl.data());
+    memset( &serv_addr, '0', sizeof(serv_addr) );
+    serv_addr.sun_family = AF_LOCAL;
+    strncpy( serv_addr.sun_path, portControl.data(), sizeof(serv_addr.sun_path) );
+    bind( socketListen, (sockaddr*)&serv_addr, sizeof(serv_addr) );
+    if( socketListen < 1 ) {
+        errnoNet = errno;
+    }
+    socketSendStatus = socket( PF_LOCAL, SOCK_DGRAM, 0 );
+    if( socketSendStatus < 1 ) {
+        errnoNet = errno;
+    }
+} // end Server::Server
+
+// --------------------------------------------------------------------
+
+LocalServer::~LocalServer()
+{
+    if(socketListen>0) {
+        shutdown( socketListen, SHUT_RDWR );
+        close( socketListen );
+        socketListen = -1;
+    }
+    if(socketAccept>0) {
+        shutdown( socketAccept, SHUT_RDWR );
+        close( socketAccept );
+        socketAccept = -1;
+    }
+    if(socketSendStatus>0) {
+        shutdown( socketSendStatus, SHUT_RDWR );
+        close( socketSendStatus );
+        socketSendStatus = -1;
+    }
+
+    shut();
+}
+
+bool LocalServer::sendStatus( const yacynth::yaxp::Message& message )
+{
+    const uint32_t size = yacynth::yaxp::Message::headerSize + message.length;
+    if( size > maxStatusSize ) {
+        return false;
+    }
+
+    if( 0 != sendto( socketSendStatus, (void *)&message, size, 0, (const sockaddr *)&statusSockAddr, sizeof(statusSockAddr)) ){
+        errnoNet = errno;
+        logger->warn("doAccept failed {:d}", errnoNet);
+        return false;
+    }
+    return true;
+}
+
+bool LocalServer::doAccept()
+{
+    socketAccept = accept( socketListen, (sockaddr*)NULL, NULL );
+    if( socketAccept < 1 ) {
+        errnoNet = errno;
+        logger->warn("doAccept failed {:d}", errnoNet);
+        return false;
+    }
+    return true;
+}
+
+// --------------------------------------------------------------------
+
+} // end namespace yacnet
 } // end namespace yacynth
 
 

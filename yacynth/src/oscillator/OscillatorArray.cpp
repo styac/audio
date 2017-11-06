@@ -30,13 +30,13 @@ namespace yacynth {
 // --------------------------------------------------------
 OscillatorArray::OscillatorArray()
 :   oscillatorParamGenerate()
-,   monoPhone(false)
-,   enableFM(false)
+,   oscillatorParamChange()
+,   commonFMPitch(0)
 ,   fastReleaseTick(1)
 ,   minVoice(0)
 ,   maxVoice(voiceCount)
-,   commonFMPitch(0)
-//,   toneBank(0)
+,   monoPhone(false)
+,   enableFM(false)
 {
     pitchBendIndex.setIndex( InnerController::CC_PITCHBEND );
     pitchBendIndex.setInnerValue( pitchBendRange.middleValue );

@@ -52,8 +52,8 @@ public:
     static constexpr std::size_t tapOutputLPCount   = 8;
     static constexpr std::size_t tapFeedbackLPCount = 8;
 
-    static constexpr std::size_t delayLngExp        = 13;
-    static constexpr std::size_t delayLng           = 1<<(delayLngExp+effectFrameSizeExp);
+    static constexpr std::size_t delayLngExp        = 19;
+    static constexpr std::size_t delayLng           = 1<<delayLngExp;
     static constexpr std::size_t delayOffsMaxLng    = delayLng - 1;
     static constexpr std::size_t delayOffsMinLng    = effectFrameSize * 2;
 

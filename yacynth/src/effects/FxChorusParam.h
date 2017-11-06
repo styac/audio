@@ -59,8 +59,7 @@ public:
 
         bool check()
         {
-            const int64_t maxSineAmpl   = int64_t(depth) << 16;   // sine is 16 bit
-            for( auto i=0; i<tapSize; ++i ) {
+            for( auto i=0u; i<tapSize; ++i ) {
                 for( auto j=0; j<2; ++j ) {
                     if( baseDelay[ i ][ j ] < minBaseDelay ) {
                         baseDelay[ i ][ j ] = minBaseDelay;

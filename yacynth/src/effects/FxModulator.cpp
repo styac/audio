@@ -45,6 +45,9 @@ bool FxModulatorParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint
         }        
         message.setStatus( yaxp::MessageT::illegalDataLength );
         return false;
+
+    default:
+        break;
     }            
     message.setStatus( yaxp::MessageT::illegalTag );
     return false;    
@@ -76,6 +79,9 @@ bool FxModulator::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t p
     case TagEffectFxModulatorMode::Clear:
         clearState(); // this must be called to cleanup
         break;
+
+    default:
+        break;        
     }
     // forward to param
     return param.parameter( message, tagIndex, paramIndex );    
@@ -85,7 +91,7 @@ bool FxModulator::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t p
 
 bool FxModulator::connect( const FxBase * v, uint16_t ind )
 {
-    doConnect(v,ind);
+    return doConnect(v,ind);
 };
 
 

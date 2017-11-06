@@ -29,6 +29,8 @@
 #include    <cmath>
 #include    <algorithm>
 
+typedef __uint128_t     uint128_t;
+
 #define NON_COPYABLE_NOR_MOVABLE(T) \
       T(T const &) = delete; \
       void operator=(T const &) = delete; \
@@ -76,7 +78,7 @@ constexpr uint16_t  effectChannelCount          = 16;
 constexpr uint16_t  effectFrameSizeExp          = oscillatorFrameSizeExp;        // 64 sample
 constexpr uint16_t  effectFrameSize             = 1<<effectFrameSizeExp;        // 64 sample
 
-constexpr uint8_t   oscOutputChannelCountExp    = 5; // 16 x 2  
+constexpr uint8_t   oscOutputChannelCountExp    = 5; // 16 x 2
 constexpr uint8_t   oscOutputChannelCount       = 1<<oscOutputChannelCountExp;
 constexpr uint8_t   oscOutputChannelCountMsk    = oscOutputChannelCount-1;
 constexpr uint8_t   layerCount                  = oscOutputChannelCount / 2; // 2 ch
@@ -116,7 +118,7 @@ constexpr inline uint32_t freq2ycent( double freq )
 
 constexpr inline double freq2ycentDouble( double freq )
     { return std::log2( deltaPhaseScalerBase * freq ) * ycentNorm; };
-    
+
 //====================================================
 // there should a constexpr function to calculate these
 //
@@ -223,12 +225,13 @@ constexpr inline double fc_sinPi2_F( const double fc )
 // valid for: 8,16,32,64 bit integer
 
 template< typename T >
-inline T isPeriodEnd( const T& lastPhase, const T& currPhase ) 
+inline T isPeriodEnd( const T& lastPhase, const T& currPhase )
 {
     constexpr size_t size = sizeof(T);
     static_assert( size > 7 && size < 65, "illegal type" );
     return ( lastPhase ^ currPhase ) >> ( size - 1 );
 }
+
 
 } // end namespace yacynth
 

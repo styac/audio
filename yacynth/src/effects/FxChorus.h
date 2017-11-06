@@ -68,12 +68,13 @@ private:
         delay.pushSection( inp() );
         out().clear();
         for( auto ti = 0u; ti < param.mode01.tapCount; ++ti ) {
-            for( int8_t si = 0; si < EbufferPar::sectionSize; ++si ) {
+            for( auto si = 0u; si < EbufferPar::sectionSize; ++si ) {
                 const int64_t si64 = int64_t( EbufferPar::sectionSize - si ) << 32;
+                // always positive - negative makes no sense
                 const int64_t delayA = modulatorValue[ ti ][ chA ].getInc() + si64;
                 const int64_t delayB = modulatorValue[ ti ][ chB ].getInc() + si64;
-                out().channel[ chA ][ si ] += delay.getInterpolated2Order<chA>( delayA );
-                out().channel[ chB ][ si ] += delay.getInterpolated2Order<chB>( delayB );
+                out().channel[ chA ][ si ] += delay.getInterpolated2Order<chA>( uint64_t(delayA) );
+                out().channel[ chB ][ si ] += delay.getInterpolated2Order<chB>( uint64_t(delayB) );
             }
         }
         out().multAdd( param.mode01.wetGain, inp() ); // mult
@@ -109,7 +110,7 @@ private:
 
     inline void process_test()
     {
-        for( int64_t si = 0; si < EbufferPar::sectionSize; ++si ) {
+        for( auto si = 0u; si < EbufferPar::sectionSize; ++si ) {
             const int64_t delayA = modulatorValue[ 0 ][ chA ].getInc();
             const int64_t delayB = modulatorValue[ 0 ][ chB ].getInc();
             out().channel[ chA ][ si ] = delayA * (1.0f/(1LL<<(32+param.delayLngExp)));

@@ -58,6 +58,8 @@ class FxCollector;
 
 class FxCollector {
 public:
+    NON_COPYABLE_NOR_MOVABLE(FxCollector);
+
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
     static FxCollector& getInstance(void)
@@ -108,17 +110,16 @@ private:
 
 class FxBase : public EIObuffer {
 public:
+    NON_COPYABLE_NOR_MOVABLE(FxBase);
+    FxBase() = delete;
+    virtual ~FxBase();
+
     using MyType = FxBase;
     using SpfT = void (*)( void * );
 
     friend class FxNode;
     friend class FxCollector;
 
-    FxBase()                        = delete;
-    FxBase(FxBase const &)          = delete;
-    void operator=(FxBase const &t) = delete;
-    FxBase(FxBase &&)               = delete;
-    virtual ~FxBase();
 
     FxBase( const char * name,
             uint16_t maxM = 0,
@@ -130,13 +131,13 @@ public:
     ,   sprocesspNext(sprocessNop)
     ,   nextSetPocModeCycle(-1)
     ,   myName(name)
+    ,   myType(type)
     ,   myId(++count)
-    ,   procMode(0)
     ,   inCount(iC)
     ,   maxMode(maxM)
     ,   masterId(0)
-    ,   myType(type)
     ,   myInstance(0)
+    ,   procMode(0)
     ,   dynamic(0)
     {
         FxCollector::getInstance().put(*this);
@@ -160,7 +161,7 @@ public:
     virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); // control thread
 
     inline  void exec(void) { sprocessp(this); }                                // RT thread
-    
+
 protected:
     virtual void clearState();                                                  // RT thread
 
@@ -175,13 +176,13 @@ protected:
     SpfT                sprocesspNext;  // next processing mode after crossfade
     int64_t             nextSetPocModeCycle;
     const std::string   myName;
+    const TagEffectType myType;
     const uint8_t       myId;
     const uint8_t       inCount;
-    const TagEffectType myType;
     const uint8_t       maxMode;
     uint8_t             masterId;       // 0 - master , 0 < slave -- value is the id of master
-    uint8_t             myInstance; 
-    uint8_t             procMode; 
+    uint8_t             myInstance;
+    uint8_t             procMode;
     uint8_t             dynamic;        // instance was created dynamically
 
 #if DO_FX_STATISTICS==1
@@ -219,9 +220,8 @@ public:
     FxSlave()
     :   FxBase(Tparam::slavename, 0, 0, TagEffectType::FxSlave )
     {}
-    virtual ~FxSlave()
-    {
-    }
+    virtual ~FxSlave() = default;
+
     inline void setMasterId( uint8_t val )
     {
         masterId = val;
@@ -286,6 +286,8 @@ private:
 
 class FxRunner {
 public:
+    NON_COPYABLE_NOR_MOVABLE(FxRunner);
+
     static constexpr std::size_t runFrom    = 1;
     static constexpr std::size_t nodeCount  = 64;   // need to query the config > max 64 effects - looks enough
 
@@ -464,7 +466,7 @@ public:
         for( auto& ip : inpFx )  ip = &fxNil;
         myInstance = instanceCount++;
     }
-    
+
     virtual ~Fx()
     {
         --instanceCount;

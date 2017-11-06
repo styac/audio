@@ -42,6 +42,16 @@ using namespace tables;
 
 namespace yacynth {
 
+
+// revise
+// page 0 - range
+// page 1 - lfo master -- 32 master : 32 master phase + 32 master deltaPhase = 64
+// page 2 - lfo slaves -- 4 slave / master : 128 slave phase + 128 slave deltaPhase = 256
+// page 3 - switch
+// page 4 - extended sw ( GUI+OSC )
+// controller 0x40 -- const 0
+// controller 0x41 -- const 127 (max MIDI value)
+
 // page 0 - range
 // page 1 - lfo
 // page 2 - filtered ??
@@ -61,12 +71,12 @@ constexpr   std::size_t controllerPageExp   = 8+3; // 8 * 256
 
 // range 0 .. +N
 
-// TODO > random phase controller 
+// TODO > random phase controller
 
 class InnerController : public V4size<controllerPageExp-2> {
 
 public:
-
+    NON_COPYABLE_NOR_MOVABLE(InnerController);
     static constexpr std::size_t maxIndex           = arraySize;
     static constexpr std::size_t filteredRangeV4    = 8;
     static constexpr std::size_t filteredRange      = filteredRangeV4*4;
@@ -133,7 +143,7 @@ public:
         CC_BEGIN_SWITCH                 = 3*(1<<8),
         // software controllers
         CC_BEGIN_SW                     = 4*(1<<8),
-        
+
         // separate for each layer
         CC_AMPLITUDE_BEGIN,             // internal -- amplitude summ x 16 - for each  channel
         CC_AMPLITUDE_END = CC_AMPLITUDE_BEGIN + layerCount,             // internal -- amplitude summ x 16 - for each  channel
@@ -209,12 +219,7 @@ k 9 f 14.9358  -- 20.6
     {
         value.v[ ind & V4size::arraySizeMask ] = v;
     }
-#if 0
-    inline void setShift( uint16_t ind, uint8_t v )
-    {
-        shiftleft[ ind & V4size::arraySizeMask ] = v;
-    }
-#endif
+
     // mainly for setAmplitudeSumm
     // index is full: 2 x range
     inline void setAmplitudeSumm( uint16_t ind, uint64_t v )
@@ -227,12 +232,12 @@ k 9 f 14.9358  -- 20.6
         const float x = static_cast<float>(v);
         value.v[ CC_AMPLITUDE_BEGIN + ( ind & ( layerCount - 1) ) ] = ( uint32_t(x) - (127<<23) ) >> (maxLog-norm);
     }
-    
+
     inline void clearAmplitudeSumm( uint16_t ind )
     {
         value.v[ CC_AMPLITUDE_BEGIN + ( ind & ( layerCount - 1) ) ] = 0;
     }
-    
+
 //    inline void setAmplitudeSumm( uint64_t v )
 //    {
 //        setLog(CC_AMPLITUDE,v);
@@ -331,7 +336,7 @@ k 9 f 14.9358  -- 20.6
 
     // V4 processing !!
     // TODO > random phase controller -- add noise to phase ( 0 .. positive )
-    
+
     inline void incrementFrameLFOscillatorPhases(void)
     {
         uint16_t currentPhaseInd = CC_LFO_MASTER_PHASE_BEGIN/4;
@@ -366,6 +371,7 @@ private:
 
 class MidiController {
 public:
+    NON_COPYABLE_NOR_MOVABLE(MidiController);
     static constexpr std::size_t channelCount               = 16;
     static constexpr std::size_t channelCountMask           = channelCount-1;
     static constexpr std::size_t controllerCount            = 128;  // + 2 extra -- 96 + 2
@@ -427,6 +433,15 @@ public:
         CM_MUTE             = CM_DISABLE-40,
         CM_UNMUTE           = CM_DISABLE-41,
         CM_RESET            = CM_DISABLE-42,
+
+        // CM_SET_MICROTUNING_0
+        // ...
+        // CM_SET_MICROTUNING_7
+
+        // CM_SET_MICROTUNING_ONESHOT_0
+        // ...
+        // CM_SET_MICROTUNING_ONESHOT_7
+
         // more MIDI ????
 
         /* 0..128 direct value */
@@ -787,7 +802,7 @@ struct ControllerMapLinear {
 
 //
 // N is the iteration count -> 1<<itCountExp
-//
+// T is always SIGNED : intX_t
 
 template< typename T, std::size_t itCountExp >
 class ControllerLinearIterator {
@@ -804,9 +819,9 @@ public:
         lastValue = currValue;
         currValue = v;
         const T t = currValue - lastValue;
-        if( t < 0 )           
+        if( t < 0 )
             delta = ( t + corr ) >> itCountExp;
-        else 
+        else
             delta = t >> itCountExp;
     }
 
@@ -839,9 +854,9 @@ public:
         lastValue = currValue;
         currValue = v;
         const auto t = currValue - lastValue;
-        if( t < 0 )           
+        if( t < 0 )
             delta = ( t + corr ) >> itCountExp;
-        else 
+        else
             delta = t >> itCountExp;
     }
 

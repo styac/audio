@@ -41,11 +41,11 @@ public:
     static constexpr TagEffectType  type        = TagEffectType::FxLateReverb;
     static constexpr std::size_t maxMode        = 3;    // 0 is always exist> 0,1,2
     static constexpr std::size_t inputCount     = 1;
-    static constexpr std::size_t allpassLngExp  = 11;   // much more then needed - will be not used
-    static constexpr std::size_t combLngExp     = 11;   // much more then needed
+    static constexpr std::size_t allpassLngExp  = 17;   // much more then needed - will be not used
+    static constexpr std::size_t combLngExp     = 17;   // much more then needed
     static constexpr std::size_t allpassCount   = 4;
     static constexpr std::size_t combCount      = 8;
-    static constexpr std::size_t delayLng       = 1<<(combLngExp+effectFrameSizeExp);
+    static constexpr std::size_t delayLng       = 1<<combLngExp;
 
     static constexpr float householderFeedback  = -2.0f;     // combCount;
     static constexpr float lowpassLowLimit      = f2FilterOnePole_F( 18000.0 );

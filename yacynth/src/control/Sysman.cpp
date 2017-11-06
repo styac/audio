@@ -54,8 +54,8 @@ Sysman::Sysman(
     IOThread        & iOThreadP  )
 :   router( routerP )
 ,   oscillatorArray( oscillatorArrayP )
-,   iOThread( iOThreadP )
 ,   toneShaperMatrix( oscillatorArrayP.getToneShaperMatrix() )
+,   iOThread( iOThreadP )
 {
 
 } // end Sysman::Sysman
@@ -64,9 +64,9 @@ Sysman::Sysman(
 //
 bool Sysman::evalMessage( yaxp::Message& message )
 {
-    std::string str;
-    message.print(str);
-    std::cout << "Sysman::evalMessage  " << str << std::endl;
+//    std::string str;
+//    message.print(str);
+//    std::cout << "Sysman::evalMessage  " << str << std::endl;
 
     return parameter( message, 0, 0 );
 }
@@ -94,7 +94,7 @@ bool Sysman::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramI
 
     case TagMain::Tuner: // TODO
         // router - can be called as singleton
-        return router.parameter( message,++tagIndex, paramIndex ); // getTuner() -refactor
+        return router.getTuner().parameter( message,++tagIndex, paramIndex );
 
     case TagMain::Router:
         // router - can be called as singleton
@@ -112,12 +112,14 @@ bool Sysman::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramI
 
     case TagMain::Clear:
     case TagMain::ClearState:
-    case TagMain::Preset: 
+    case TagMain::Preset:
         // TODO : iterate through all units
         // 1. stop all oscillaotors - wait and clear osc output
         message.setStatus( yaxp::MessageT::illegalTag );
 //        message.setStatusSetOk();
         return false;
+    default:
+        break;
     }
     TAG_DEBUG(message.getTag(tagIndex), tagIndex, paramIndex, "Sysman" );
     message.setStatus( yaxp::MessageT::illegalTag );

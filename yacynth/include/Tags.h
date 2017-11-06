@@ -235,27 +235,28 @@ namespace TagTunerLevel_01 {
         Nop,
         Clear,
         ClearState,
-        Preset,     // param[0] - presetnumber
+        Preset,     // param[0] - presetnumber -> SelectTuningTable ?
         // ---
-        SetCustomTable,     // download a custom table
-        SetIneternalTable,  
-        
+        SelectTuningTable,  // param: table index -- controller?
+        SetInternalTuning,  // param: table index, tuning index
+        SetCustomTuningET,  // equal tempered
+        SetCustomTuningJI,  // just interval
     };
 } // end namespace
 
 namespace TagEffectCollectorLevel_01 {
     enum class TagEffectCollector : uint8_t {
         Nop,
-        Clear,                      
+        Clear,
         ClearState,
         Preset,                     // param[0] - presetnumber
         // ---
-        CreateEffect,               // create a new effect
-        CreateEffectSet,            // create a set of new effect - buff = list of effects (max 64)
-        DeleteEffects,              // delete dynamic effects
         EffectInstance,             // parameter: index,
         SetProcessingMode,          // parameter: index, mode
         GetEffectList,              // parameter: -
+        CreateEffect,               // create a new effect
+        CreateEffectSet,            // create a set of new effect - buff = list of effects (max 64)
+        DeleteEffects,              // delete dynamic effects
     };
 } // end namespace
 
@@ -299,7 +300,7 @@ namespace TagEffectFxFilterModeLevel_03 {
         SetModeSV01,
         SetMode4P01,
     };
-    
+
     enum class ProcModesEffectFxFilter : uint8_t {
         Nop,
         Bypass,
@@ -321,7 +322,7 @@ namespace TagEffectFxMixerModeLevel_03 {
         SetChannelVolumes,          // through controllers ? 0..127
         SetChannelCount,            // effective channel count
     };
-    
+
     enum class ProcModesEffectFxMixer : uint8_t {
         Nop,
     };
@@ -338,7 +339,7 @@ namespace TagEffectFxOscillatorMixerModeLevel_03 {
         SetParametersMode01,        // set all gains
         SetChannelVolume,           // set volume of 1 channel - no InnerC
     };
-    
+
     enum class ProcModesEffectFxOscillatorMixer : uint8_t {
         Nop,
     };
@@ -354,7 +355,7 @@ namespace TagEffectFxInputModeLevel_03 {
         GetFeatures,
         SetParametersMode01,
     };
-    
+
     enum class ProcModesEffectFxInput : uint8_t {
         Nop,
     };
@@ -370,7 +371,7 @@ namespace TagEffectFxModulatorModeLevel_03 {
         GetFeatures,
         SetParametersMode01,
     };
-    
+
     enum class ProcModesEffectFxModulator : uint8_t {
         Nop,
         Bypass,
@@ -387,7 +388,7 @@ namespace TagEffectFxOutNoiseModeLevel_03 {
         GetFeatures,
         SetParametersMode01,
     };
-    
+
     enum class ProcModesEffectFxOutNoise : uint8_t {
         Nop,
     };
@@ -403,7 +404,7 @@ namespace TagEffectFxOutOscillatorModeLevel_03 {
         GetFeatures,
         SetParametersMode01,
     };
-    
+
     enum class ProcModesEffectFxOutOscillator : uint8_t {
         Nop,
     };
@@ -429,7 +430,7 @@ namespace TagEffectFxEchoModeLevel_03 {
         SetTapOutputLPCount,
         SetTapFeedbackLPCount,
     };
-    
+
     enum class ProcModesEffectFxEcho : uint8_t {
         Nop,
     };
@@ -445,7 +446,7 @@ namespace TagEffectFxLateReverbModeLevel_03 {
         GetFeatures,
         SetParametersMode01,
     };
-    
+
     enum class ProcModesEffectFxLateReverb : uint8_t {
         Nop,
     };
@@ -461,7 +462,7 @@ namespace TagEffectFxEarlyReflectionModeLevel_03 {
         GetFeatures,
         SetParametersMode01,
     };
-    
+
     enum class ProcModesEffectFxEarlyReflection : uint8_t {
         Nop,
     };
@@ -478,7 +479,7 @@ namespace TagEffectFxChorusModeLevel_03 {
         SetParametersMode01,
         SetParametersMode02,
     };
-    
+
     enum class ProcModesEffectFxChorus : uint8_t {
         Nop,
         Bypass,
@@ -496,7 +497,7 @@ namespace TagEffectFxFlangerModeLevel_03 {
         SetParametersMode01,    // flanger
         SetParametersMode02,    // vibrato
     };
-    
+
     enum class ProcModesEffectFxFlanger : uint8_t {
         Nop,
         Bypass,
@@ -515,7 +516,7 @@ namespace TagEffect__ModeLevel_03 {
         SetMode_01___,
         GetMode_01___,
     };
-    
+
     enum class ProcModesEffectFx : uint8_t {
         Nop,
     };

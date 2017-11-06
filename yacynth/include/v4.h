@@ -27,24 +27,21 @@
 
 #include    <cstdint>
 
-//
-// http://www.delorie.com/gnu/docs/gcc/gccint_53.html
-//
 typedef float       v4sf __attribute__((mode(SF)))  __attribute__ ((vector_size(16),aligned(16)));
 typedef int32_t     v4si __attribute__((mode(SI)))  __attribute__ ((vector_size(16),aligned(16)));
 typedef uint32_t    v4su __attribute__((mode(SI)))  __attribute__ ((vector_size(16),aligned(16)));
 typedef long long   v2di __attribute__((mode(DI)))  __attribute__ ((vector_size(16),aligned(16)));
 
-
-
-// this should be cleaned up - refactored with
-// namespace V4
-//
 template< std::size_t N, std::size_t CH >
 struct V4fMvec {
     static constexpr std::size_t sizeV2 = N;
     static constexpr std::size_t size   = N * CH;
     static constexpr std::size_t sizeV4 = (size)/4;
+    inline void clear(void)
+    {
+        static_assert( size % 4 == 0,"illegal size");
+        for( auto& vi : v ) vi = 0;
+    }
     union {
         float       v[ size ];    // linear vector
         float       v2[ sizeV2 ][ CH ];
@@ -57,6 +54,11 @@ struct V4u32Mvec {
     static constexpr std::size_t sizeV2 = N;
     static constexpr std::size_t size   = N * CH;
     static constexpr std::size_t sizeV4 = (size)/4;
+    inline void clear(void)
+    {
+        static_assert( size % 4 == 0,"illegal size");
+        for( auto& vi : v ) vi = 0;
+    }
     union {
         uint32_t    v[ size ];    // linear vector
         uint32_t    v2[ sizeV2 ][ CH ];
@@ -69,6 +71,11 @@ struct V4i32Mvec {
     static constexpr std::size_t sizeV2 = N;
     static constexpr std::size_t size   = N * CH;
     static constexpr std::size_t sizeV4 = (size)/4;
+    inline void clear(void)
+    {
+        static_assert( size % 4 == 0,"illegal size");
+        for( auto& vi : v ) vi = 0;
+    }
     union {
         int32_t     v[ size ];    // linear vector
         int32_t     v2[ sizeV2 ][ CH ];
@@ -106,34 +113,6 @@ struct alignas(16) V4vf {
     };
 };
 
-#if 0
-
-template< std::size_t N >
-struct alignas(16) V4Nvf {
-    inline V4Nvf() = default;
-
-    union  {
-        float   v[ 4 * N ];
-        float   vn2[ 2 * N ][ 2 ];
-        float   v2n[ 2 ][ 2 * N ];
-        v4sf    v4[ N ];
-    };
-};
-
-template< std::size_t M, std::size_t N >
-struct alignas(16) V4MNvf {
-    inline V4MNvf() = default;
-
-    union  {
-        float   v[ 4 * N * M ];
-        float   v3mn2[ M ][ N * 2 ][ 2 ];
-        float   v3m2n[ M * 2 ][ N ][ 2 ];
-        v4sf    v4mn[ M ][ N ];
-        v4sf    v4[ M * N ];
-    };
-};
-#endif
-
 // new V4 support
 template< std::size_t v4Exp>
 struct V4size {
@@ -151,23 +130,7 @@ struct V4size {
 template<typename T, std::size_t v4Exp>
 struct alignas(16) V4array : public V4size<v4Exp> {};
 
-#if 0
-template<std::size_t v4Exp>
-struct alignas(16) V4array<float, v4Exp> : public V4size<v4Exp> {
-    inline void clear(void)
-    {
-        for( auto& vi : v ) vi = 0;
-    }
-
-    union {
-        v4sf    v4[ V4size<v4Exp>::varraySize ];
-        float    v[ V4size<v4Exp>::arraySize  ];
-    };
-};
-#endif
-
 // used in controllers not very general
-
 template<std::size_t v4Exp>
 struct alignas(16) V4array<int32_t, v4Exp> : public V4size<v4Exp> {
     inline void clear(void)
@@ -180,20 +143,4 @@ struct alignas(16) V4array<int32_t, v4Exp> : public V4size<v4Exp> {
         int32_t  v[ V4size<v4Exp>::arraySize    ];
     };
 };
-
-#if 0
-template<std::size_t v4Exp>
-struct alignas(16) V4array<uint32_t, v4Exp> : public V4size<v4Exp> {
-    inline void clear(void)
-    {
-        for( auto& vi : v ) vi = 0;
-    }
-
-    union {
-        v4si    v4[ V4size<v4Exp>::varraySize   ];
-        uint32_t v[ V4size<v4Exp>::arraySize    ];
-    };
-};
-#endif
-
 

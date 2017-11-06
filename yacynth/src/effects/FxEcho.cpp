@@ -155,6 +155,9 @@ bool FxEchoParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t p
 
         message.setStatus( yaxp::MessageT::illegalTargetIndex);
         return false;
+    default:
+        break;        
+        
     }
     TAG_DEBUG(TagEffectFxEchoMode::Nop, tagIndex, paramIndex, "FxEchoParam" );
     message.setStatus( yaxp::MessageT::illegalTag );
@@ -171,7 +174,7 @@ void FxEcho::clearState()
 
 bool FxEcho::connect( const FxBase * v, uint16_t ind )
 {
-    doConnect(v,ind);
+    return doConnect(v,ind);
 };
 
 bool FxEcho::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
@@ -194,6 +197,8 @@ bool FxEcho::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramI
     case TagEffectFxEchoMode::Clear:
         clearState(); // this must be called to cleanup
         break;
+    default:
+        break;        
     }
     // forward to param
     return param.parameter( message, tagIndex, paramIndex );

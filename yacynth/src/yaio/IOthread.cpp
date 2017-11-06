@@ -33,12 +33,13 @@ namespace yacynth {
 
 IOThread:: IOThread( OscillatorOutVector& out )
 :   queueOut(out)
-,   cycleNoise(0)
 ,   fxEndMixer()
 ,   fxOscillatorMixer()
 ,   fxInput()
 ,   fxRunner(fxEndMixer)
+,   bufferSizeRate(1)
 ,   toClearFxInput(true)
+,   cycleNoise(0)
 {
     fxEndMixer.setProcessingMode(1); // TODO > endMixed mode -- muted function
 };

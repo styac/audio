@@ -72,10 +72,10 @@ private:
     bool        evalMEssage( void );
     bool        generate( void );
 
-    uint64_t                waitLimit;          // if the cycle was too fast wait a bit to ceck
-    OscillatorArray       * oscArray;
+    ControlQueueVector&     queuein;
     OscillatorOutVector&    outVector;
-    ControlQueueVector&      queuein;
+    OscillatorArray       * oscArray;
+    uint64_t                waitLimit;          // if the cycle was too fast wait a bit to ceck
     Statistics              statistics;
     uint32_t                cycleNoise;
     bool                    runFe;

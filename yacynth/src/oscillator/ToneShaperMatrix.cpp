@@ -186,7 +186,8 @@ bool ToneShaperMatrix::parameter( yaxp::Message& message, uint8_t tagIndex, uint
         message.setStatus( yaxp::MessageT::illegalDataLength );
         return false;
 #endif
-        
+    default:
+        break;
     }  
     message.setStatus( yaxp::MessageT::illegalTag );
     return false;

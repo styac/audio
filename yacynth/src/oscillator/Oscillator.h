@@ -62,11 +62,13 @@ struct OscillatorInGenerate {
 // --------------------------------------------------------------------
 struct OscillatorInChange {
     OscillatorInChange()
-    :   velocity(0)
+    :   pitch(0)
     ,   tickFrameRelease(0)
     ,   toneShaperSelect(0)
-    ,   pitch(0)
+    ,   delay(0)
     ,   oscillatorCountUsed(0)
+    ,   outputChannel(0)
+    ,   velocity(0)
     {};
 
     uint32_t    pitch;
@@ -155,7 +157,7 @@ public:
     void        voiceRelease(       const OscillatorInChange& in );
     void        voiceChange(        const OscillatorInChange& in );
     void        voiceDelay(         const OscillatorInChange& in );
-    std::size_t sizeVector(void)    const { overtoneCountOscDef; };
+    std::size_t sizeVector(void)    const { return overtoneCountOscDef; };
 
     inline static void fillWhiteNoise(void)
     {
@@ -218,8 +220,8 @@ private:
 
     const ToneShaperVector        * toneShaperVecCurr;
     OscillatorState                 state[ overtoneCountOscDef ];
-    NoiseSample1CH                     noiseWide;          // only 1 for a voice
-    NoiseSample1CH                     noisePhaseMode;     // only 1 for a voice -- TODO recheck
+    NoiseSample1CH                  noiseWide;          // only 1 for a voice
+    NoiseSample1CH                  noisePhaseMode;     // only 1 for a voice -- TODO recheck
     OscillatorNoise                 noiseNarrow;        // only 1 for a voice -- or 1x overtone -- TODO 
     int32_t                         basePitch;
     int32_t                         targetPitch;        // for glissando

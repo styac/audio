@@ -75,7 +75,9 @@ bool FxMixerParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t 
         message.setStatusSetOk();
         return true;
         }
-
+    
+    default:
+        break;
     } // end switch
     TAG_DEBUG(TagEffectFxMixerMode::Nop, tagIndex, paramIndex, "FxMixerParam" );
     message.setStatus( yaxp::MessageT::illegalTag );
@@ -85,7 +87,7 @@ bool FxMixerParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t 
 
 bool FxMixer::connect( const FxBase * v, uint16_t ind )
 {
-    doConnect(v,ind);
+    return doConnect(v,ind);
 };
 
 void FxMixer::clearState()
@@ -116,6 +118,8 @@ bool FxMixer::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t param
     case TagEffectFxMixerMode::Preset :
         setProcessingMode(1);    
         break;    
+    default:
+        break;
     }
     // forward to param
     return param.parameter( message, tagIndex, paramIndex );

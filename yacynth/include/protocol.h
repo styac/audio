@@ -41,19 +41,43 @@ namespace yacynth {
 // 3. read data length=Header.length (ReqSet)
 //
 namespace yaxp {
+constexpr uint16_t minCOntrolPort = 5000;
+constexpr uint16_t maxCOntrolPort = 50000;
+constexpr uint16_t seedLength = 32;
+constexpr uint16_t remoteDefaultPort = 7373;
 
-constexpr uint16_t  defaultPort = 7373;
-const char * const homeDir      = ".yacynth";       // $HOME/.yacynth
-const char * const dbDir        = "db";             // $HOME/.yacynth/db
-const char * const seedFile     = ".yaxp.seed";     // $HOME/.yacynth/.yaxp.seed
-const char * const config       = "config";         // $HOME/.yacynth/config
+const char * const configDirName  = ".yacconfig";
+const char * const profileDirName = "default";
+const char * const authKeyName    = ".yyauth.key";
+const char * const confName       = "conf";
+const char * const dbDir          = "db";
+
+const char * const localDefaultPort = "/tmp/.yacynth_connport";
+const char * const localPortControlSuffix = "_control";   // local AF_LOCAL suffix for control
+const char * const localPortStatusSuffix  = "_status";    // local AF_LOCAL suffix for status
+
+//
+// remote:
+//      control port = status port
+//      synth engine TCP server for control (requestC2E)
+//      gui UDP server for status   (adviceE2C)
+//      IP4,IP6 must be configured by options (IP6 not implemented)
+//
+// local
+//      control port = port + localPortControlSuffix
+//      status port = port + localPortStatusSuffix
+//      synth engine SOCK_STREAM server for control (requestC2E)
+//      gui SOCK_DGRAM server for status    (adviceE2C)
+//      IP4,IP6 must be configured by options (IP6 not implemented)
+//
+//
 
 
 enum class CONN_MODE {
-    REMOTE_IP,          // AF_INET
-    LOCAL_IP,           // AF_UNIX
-    LOCAL_PIPE          // 2 x pipe
+    CONNECTION_LOCAL,      // AF_UNIX or PIPE
+    CONNECTION_REMOTE,     // AF_INET
 };
+
 
 enum class MessageT : uint8_t {
     // short messages - only header > length is not used
@@ -240,10 +264,14 @@ struct alignas(16) Header
     };
 };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
+
 struct Message : public Header
 {
     static constexpr std::size_t    size = 1<<16;
     static constexpr std::uint8_t   headerSize = sizeof(Header);
+
 
     template<typename T>
     void getTargetData(const T& d)
@@ -329,7 +357,22 @@ struct Message : public Header
     uint8_t     data[ size ];
 };
 
+#pragma GCC diagnostic pop
 
 } // end namespace Yaxp
 } // end namespace yacynth
 
+#if 0
+
+auth req:
+
+buffer:
+32 bytes of random data
+
+auth req:
+buffer:
+32 bytes of response hash data
+N bytes of
+
+
+#endif

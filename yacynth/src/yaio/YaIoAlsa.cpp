@@ -16,7 +16,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-/* 
+/*
  * File:   YaioAlsa.cpp
  * Author: Istvan Simon -- stevens37 at gmail dot com
  *
@@ -25,6 +25,7 @@
 
 #include    "YaIoAlsa.h"
 #include    "../control/global.h"
+#include    <alsa/asoundlib.h>
 #include    <thread>
 
 namespace yacynth {

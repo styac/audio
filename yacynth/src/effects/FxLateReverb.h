@@ -90,7 +90,7 @@ public:
     using MyType = FxLateReverb;
     FxLateReverb()
     :   Fx<FxLateReverbParam>()
-    ,   combVector(FxLateReverbParam::combLngExp)
+    ,   combVector( FxLateReverbParam::combLngExp - effectFrameSizeExp )
     {
     }
 

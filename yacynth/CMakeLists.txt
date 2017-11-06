@@ -9,7 +9,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -O3 -mfpmath=sse -msse2 -msse3 -msse4.2 -ffast-math -funsafe-math-optimizations \
  -mfma -mfma4 -mavx -funsafe-loop-optimizations -funswitch-loops \
- -fvariable-expansion-in-unroller")
+ -fvariable-expansion-in-unroller -Wall" )
 	
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS}" )
 

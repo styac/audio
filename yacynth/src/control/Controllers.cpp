@@ -86,6 +86,8 @@ bool InnerController::parameter( yaxp::Message& message, uint8_t tagIndex, uint8
             message.setStatusSetOk();
             return true;
         }
+    default:
+        break;
     }
 
     message.setStatus( yaxp::MessageT::illegalTag );
@@ -177,6 +179,8 @@ bool MidiController::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_
             return true;
         }
         return false;
+    default:
+        break;
     }
     message.setStatus( yaxp::MessageT::illegalTag );
     return false;

@@ -68,12 +68,13 @@ private:
     {
         out().mult( inp(), param.mode01.gain );
         delay.pushSection( inp() );
-        for( int64_t si = 0; si < EbufferPar::sectionSize; ++si ) {
+        for( auto si = 0u; si < EbufferPar::sectionSize; ++si ) {
             const int64_t si64 = int64_t( EbufferPar::sectionSize - si ) << 32;
+            // always positive - negative makes no sense
             const int64_t delayA = modulatorValue[ chA ].getInc() + si64;
             const int64_t delayB = modulatorValue[ chB ].getInc() + si64;
-            out().channel[ chA ][ si ] += delay.getInterpolated2Order<chA>( delayA ) * param.mode01.wetGain;
-            out().channel[ chB ][ si ] += delay.getInterpolated2Order<chB>( delayB ) * param.mode01.wetGain;
+            out().channel[ chA ][ si ] += delay.getInterpolated2Order<chA>( uint64_t(delayA) ) * param.mode01.wetGain;
+            out().channel[ chB ][ si ] += delay.getInterpolated2Order<chB>( uint64_t(delayB) ) * param.mode01.wetGain;
         }
     }
 
@@ -82,12 +83,13 @@ private:
     {
         out().mult( inp(), param.mode01.gain );
         delay.pushSection( inp() );
-        for( int64_t si = 0; si < EbufferPar::sectionSize; ++si ) {
+        for( auto si = 0u; si < EbufferPar::sectionSize; ++si ) {
             const int64_t si64 = int64_t( EbufferPar::sectionSize - si ) << 32;
+            // always positive - negative makes no sense
             const int64_t delayA = modulatorValue[ chA ].getInc() + si64;
             const int64_t delayB = modulatorValue[ chB ].getInc() + si64;
-            out().channel[ chA ][ si ] += delay.getInterpolated2Order<chA>( delayA ) * param.mode01.wetGain;
-            out().channel[ chB ][ si ] += delay.getInterpolated2Order<chB>( delayB ) * param.mode01.wetGain;
+            out().channel[ chA ][ si ] += delay.getInterpolated2Order<chA>( uint64_t(delayA) ) * param.mode01.wetGain;
+            out().channel[ chB ][ si ] += delay.getInterpolated2Order<chB>( uint64_t(delayB) ) * param.mode01.wetGain;
         }
         delay.feedbackSection( middleDelay, param.mode01.feedbackGain );  // NON FRACTIONAL !!
     }
@@ -115,7 +117,7 @@ private:
     inline void processVibrato(void)
     {
         delay.pushSection( inp() );        
-        for( int64_t si = 0; si < EbufferPar::sectionSize; ++si ) {
+        for( auto si = 0u; si < EbufferPar::sectionSize; ++si ) {
             const int64_t si64 = int64_t( EbufferPar::sectionSize - si ) << 32;
             const int64_t delayA = modulatorValue[ chA ].getInc() + si64;
             const int64_t delayB = modulatorValue[ chB ].getInc() + si64;

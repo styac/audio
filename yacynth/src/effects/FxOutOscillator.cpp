@@ -52,6 +52,8 @@ bool FxOutOscillatorParam::parameter( yaxp::Message& message, uint8_t tagIndex, 
         }
         message.setStatusSetOk();
         return true;
+    default:
+        break;        
     }
 
     message.setStatus( yaxp::MessageT::illegalTag );
@@ -84,6 +86,9 @@ bool FxOutOscillator::parameter( yaxp::Message& message, uint8_t tagIndex, uint8
     case TagEffectFxOutOscillatorMode::Clear:
         clearState(); // this must be called to cleanup
         break;
+    default:
+        break;        
+        
     }
     // forward to param
     return param.parameter( message, tagIndex, paramIndex );
@@ -91,7 +96,7 @@ bool FxOutOscillator::parameter( yaxp::Message& message, uint8_t tagIndex, uint8
 
 bool FxOutOscillator::connect( const FxBase * v, uint16_t ind )
 {
-    doConnect(v,ind);
+    return doConnect(v,ind);
 };
 
 void FxOutOscillator::sprocess_01( void * thp )

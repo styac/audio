@@ -222,7 +222,7 @@ public:
     {
         constexpr uint8_t feedback   = fb;
         constexpr uint8_t scaleExp   = 32;
-        constexpr int64_t scaleRound = 1LL<<(scaleExp-1); // TODO is this needed?
+//        constexpr int64_t scaleRound = 1LL<<(scaleExp-1); // TODO is this needed?
         zv[0] += ( zv[1] * f ) >> scaleExp;
         const int32_t t00 = x - zv[0] - ( zv[1] >> feedback );
         zv[1] += ( t00 * f ) >> scaleExp;
@@ -240,7 +240,7 @@ public:
     {
         constexpr uint8_t feedback   = fb;
         constexpr uint8_t scaleExp   = 32;
-        constexpr int64_t scaleRound = 1LL<<(scaleExp-1); // TODO is this needed?
+//        constexpr int64_t scaleRound = 1LL<<(scaleExp-1); // TODO is this needed?
 
         zv[0] += ( zv[1] * f ) >> scaleExp;
         const int32_t t00 = x    - zv[0] - ( zv[1] >> feedback );
@@ -267,7 +267,7 @@ public:
     {
         constexpr uint8_t feedback   = fb;
         constexpr uint8_t scaleExp   = 32;
-        constexpr int64_t scaleRound = 1LL<<(scaleExp-1); // TODO is this needed?
+//        constexpr int64_t scaleRound = 1LL<<(scaleExp-1); // TODO is this needed?
 
         zv[0] += ( zv[1] * f ) >> scaleExp;
         const int32_t t00 = x     - zv[0] - ( zv[1] >> feedback );

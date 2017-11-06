@@ -37,7 +37,7 @@ Router::Router( ControlQueueVector& inQueue )
 ,   midiController()
 ,   midiTuningTables()
 {
-    for( auto pm : notePlayMode) 
+    for( auto& pm : notePlayMode) 
         pm = poliphonicNote;
     
 } // end Router::Router
@@ -58,6 +58,9 @@ bool Router::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramI
         return true;
     case TagRouter::SetToneBank :
         return true;        
+
+    default:
+        break;
     }
 
     message.setStatus( yaxp::MessageT::illegalTag );

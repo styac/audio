@@ -47,68 +47,68 @@ namespace yacynth {
 
 class   YaIo {
 public:
-    YaIo();
-    
     NON_COPYABLE_NOR_MOVABLE(YaIo)
+    YaIo();
+    virtual ~YaIo() = default;
 
     // processor function types
-    typedef void ( * MidiProcessorType )( void *data, RouteIn msg );
-    typedef void ( * AudioOutProcessorType )( void *data, uint32_t nframes, float *outp1, float *outp2 );
-    typedef void ( * AudioInOutProcessorType )( void *data, uint32_t nframes, float *outp1, float *outp2, float *inp1, float *inp2 );
-    
-    virtual ~YaIo() = default;
+    typedef void ( * MidiProcessorType )
+        ( void * data, RouteIn msg );
+    typedef void ( * AudioOutProcessorType )
+        ( void * data, uint32_t nframes, float *outp1, float *outp2 );
+    typedef void ( * AudioInOutProcessorType )
+        ( void * data, uint32_t nframes, float * outp1, float * outp2, float * inp1, float * inp2 );
+
     virtual bool initialize( void ) = 0;
     virtual bool run(        void ) = 0;
     virtual void shutdown(   void ) = 0;
-
-    void registerAudioProcessor( void* userData, 
-        AudioOutProcessorType audioOutCB, AudioInOutProcessorType audioInOutCB );
-
-    void registerMidiProcessor( void* userData, 
-        MidiProcessorType midiInCB );
-
     void clearProcessCB();
 
-    void                setMyName( const std::string& name ) 
+    void registerAudioProcessor( void * userData,
+        AudioOutProcessorType audioOutCB, AudioInOutProcessorType audioInOutCB );
+    void registerMidiProcessor( void * userData,
+        MidiProcessorType midiInCB );
+    void                setMyName( const std::string& name )
         { nameClient = name; }
-    const std::string   getMyName( void )       
+    const std::string&  getMyName( void ) const
         { return nameClient; }
-    const std::string   getMyNameActual( void ) 
+    const std::string&  getMyNameActual( void ) const
         { return nameClientReal; }
-    const std::string   getErrorString( void )  
+    const std::string&  getErrorString( void ) const
         { return errorString; }
-    void mute( void ) 
+    void                mute( void )
         { mutedOutput = true; mutedInput = true; }
-    void unmuteOutput( void ) 
+    void                unmuteOutput( void )
         { mutedOutput = false; }
-    void unmute( void )  
+    void                unmute( void )
         { mutedInput = false; mutedOutput = false; }
-    inline int16_t getBufferSizeRate()
+    inline int16_t      getBufferSizeRate() const
         { return bufferSizeMult; }
 
-protected:    
-    static void noMidiProcessing( void *data, RouteIn msg );
-    static void noAudioOutProcesing( void *data, uint32_t nframes, float *outp1, float *outp2 );
-    static void noAudioInOutProcesing( void *data, uint32_t nframes, float *outp1, float *outp2, float *inp1, float *inp2 );
-    
+protected:
+    static void noMidiProcessing( void * data, RouteIn msg );
+    static void noAudioOutProcesing( void * data, uint32_t nframes, float *outp1, float *outp2 );
+    static void noAudioInOutProcesing( void * data, uint32_t nframes, float *outp1, float *outp2, float *inp1, float *inp2 );
+
     uint32_t        sampleRateMin;
     uint32_t        sampleRateMax;
     uint16_t        bufferSizeMin;
     uint16_t        bufferSizeMax;
     uint16_t        bufferSizeJack;
     uint16_t        bufferSizeMult;     // how many internal buffer(64samples) fill a jack buffer(256)
-    std::string     nameClient;
-    std::string     nameClientReal;
-    std::string     errorString;
-    
-    void                  * audioProcessorData;
-    void                  * midiProcessorData;    
+
     MidiProcessorType       midiOutProcessing;
     AudioOutProcessorType   audioOutProcesing;
     AudioInOutProcessorType audioInOutProcesing;
-    
-    bool            mutedOutput;        
-    bool            mutedInput;        
+    void                  * audioProcessorData;
+    void                  * midiProcessorData;
+
+    std::string     nameClient;
+    std::string     nameClientReal;
+    std::string     errorString;
+
+    bool            mutedOutput;
+    bool            mutedInput;
 };
 
 } // end namespace yacynth

@@ -204,7 +204,7 @@ inline int64_t limitx3hard( const int64_t x )
     static_assert( range < 16, "limitx3hard illegal range" );
     constexpr int64_t limit = 1L<<(31-range);
     const int64_t x1 = std::min( limit, std::max( -limit, x ));
-    return (x1>>(1+range)) + ( x1 - (((( x1 * x1 ) >> 32 ) * x1 ) >> 32 ))>>(2+range); // to sound TEST
+    return (x1>>(1+range)) + (( x1 - (((( x1 * x1 ) >> 32 ) * x1 ) >> 32 ))>>(2+range)); // to sound TEST
 } // end limitx3hard
 
 
@@ -213,7 +213,7 @@ inline int64_t limitx3hard( const int64_t x, const uint8_t range )
 {
     const int64_t limit = 1L<<(31-range);
     const int64_t x1 = std::min( limit, std::max( -limit, x ));
-    return (x1>>(1+range)) + ( x1 - (((( x1 * x1 ) >> 32 ) * x1 ) >> 32 ))>>(2+range); // to sound TEST
+    return (x1>>(1+range)) + (( x1 - (((( x1 * x1 ) >> 32 ) * x1 ) >> 32 ))>>(2+range)); // to sound TEST
 } // end limitx3hard
 // --------------------------------------------------------------------
 inline float limitx3hard ( const float x )

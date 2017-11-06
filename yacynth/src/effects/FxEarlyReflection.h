@@ -36,9 +36,9 @@ public:
     using MyType = FxEarlyReflection;
     FxEarlyReflection()
     :   Fx<FxEarlyReflectionParam>()
-    ,   delayLine(FxEarlyReflectionParam::delayLngExp)
     ,   phase {0}
     ,   coeff {0}
+    ,   delayLine( FxEarlyReflectionParam::delayLngExp - effectFrameSizeExp )
     {
         for( auto& si : slaves ) si.setMasterId(id());
     }

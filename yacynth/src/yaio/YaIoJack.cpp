@@ -32,14 +32,15 @@ namespace yacynth {
 // --------------------------------------------------------------------
 YaIoJack::YaIoJack()
 :   YaIo()
-,   cycleCount(0)
 ,   client(0)
-,   jackOptions(JackNoStartServer)
 ,   midiInPort(     "midi_in_1",    JACK_DEFAULT_MIDI_TYPE,     JackPortIsInput|JackPortIsTerminal)
 ,   audioOutPort1(  "audio_out_1",  JACK_DEFAULT_AUDIO_TYPE,    JackPortIsOutput|JackPortIsTerminal)
 ,   audioOutPort2(  "audio_out_2",  JACK_DEFAULT_AUDIO_TYPE,    JackPortIsOutput|JackPortIsTerminal)
 ,   audioInPort1(   "audio_in_1",   JACK_DEFAULT_AUDIO_TYPE,    JackPortIsInput|JackPortIsTerminal)
 ,   audioInPort2(   "audio_in_2",   JACK_DEFAULT_AUDIO_TYPE,    JackPortIsInput|JackPortIsTerminal)
+,   jackOptions(JackNoStartServer)
+,   nframes(0)
+,   cycleCount(0)
 {}
 
 YaIoJack::~YaIoJack()
@@ -68,7 +69,7 @@ bool YaIoJack::initialize( void )
     client = jack_client_open ( nameClient.c_str(), jackOptions, &jackStatus );
     if( nullptr == client )
         return false;
-    const int sampleRate = jack_get_sample_rate(client);
+    const auto sampleRate = jack_get_sample_rate(client);
     if( sampleRate < sampleRateMin || sampleRate > sampleRateMax) {
         errorString   += ":illegal sample rate";
 
@@ -143,7 +144,7 @@ int YaIoJack::processAudioMidiCB( jack_nframes_t nframes, void *arg )
     if( thp.mutedOutput ) {
         CycleCount::getInstance().inc( thp.bufferSizeMult );
         // obsolete  - use EndMixer setProcMode(0) after processJackMidiIn is there
-        for( auto i=0; i < nframes; ++i ) {
+        for( auto i=0u; i < nframes; ++i ) {
             *audioOut1++ = 0.0f;
             *audioOut2++ = 0.0f;
         }
@@ -172,7 +173,7 @@ int YaIoJack::processAudioCB( jack_nframes_t nframes, void *arg )
     jack_default_audio_sample_t *audioOut2 = (jack_default_audio_sample_t *) thp.audioOutPort2.getBuffer( nframes );
     if( thp.mutedOutput ) {
         // obsolete  - use EndMixer setProcMode(0) after processJackMidiIn is there
-        for( auto i=0; i < nframes; ++i ) {
+        for( auto i=0u; i < nframes; ++i ) {
             *audioOut1++ = 0.0f;
             *audioOut2++ = 0.0f;
         }

@@ -50,6 +50,8 @@ bool FxFlangerParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_
         }
         message.setStatusSetOk();
         return true;
+    default:
+        break;        
     }
     message.setStatus( yaxp::MessageT::illegalTag );
     return false;
@@ -81,6 +83,8 @@ bool FxFlanger::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t par
     case TagEffectFxFlangerMode::Clear:
         clearState(); // this must be called to cleanup
         break;
+    default:
+        break;        
     }
     
     // forward to param
@@ -89,7 +93,7 @@ bool FxFlanger::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t par
 
 bool FxFlanger::connect( const FxBase * v, uint16_t ind )
 {
-    doConnect(v,ind);
+    return doConnect(v,ind);
 };
 
 
