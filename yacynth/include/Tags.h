@@ -237,10 +237,10 @@ namespace TagTunerLevel_01 {
         ClearState,
         Preset,     // param[0] - presetnumber -> SelectTuningTable ?
         // ---
-        SelectTuningTable,  // param: table index -- controller?
-        SetInternalTuning,  // param: table index, tuning index
-        SetCustomTuningET,  // equal tempered
-        SetCustomTuningJI,  // just interval
+        SetInternalTuning,      // param: table index, tuning index
+        SetAbsolute,            // param[0] = layer 0 .. 7 -- absolute pitch 128 * int32_t
+        SetTuningET,            // param[0] = layer 0 .. 7 -- data : nom, denom, intervalCount, 
+        SetTuningJI,            // param[0] = layer 0 .. 7 -- data : just interval params
     };
 } // end namespace
 

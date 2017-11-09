@@ -29,8 +29,8 @@
 namespace yacynth {
 
 // 1 ChannelTable for each MIDI channel: 16
-struct ChannelTable {
-    ChannelTable()
+struct MidiChannelTable {
+    MidiChannelTable()
     :   currentMicroModifier(0)
     ,   baseMicroModifier(0)
     {}
@@ -50,27 +50,31 @@ public:
 
     inline int32_t get( uint8_t baseNote, uint8_t channel )
     {
-        const auto ch = channel & channelTableCountMask;
-        const int32_t relYcent = TuningManager::getInstance().get( baseNote, channelTable[ ch ].currentMicroModifier );
-        channelTable[ ch ].currentMicroModifier = channelTable[ ch ].baseMicroModifier;
+        auto& ch = channelTable[ channel & channelTableCountMask ];
+        const int32_t relYcent = TuningManager::getInstance().get( baseNote, ch.currentMicroModifier );
+        ch.currentMicroModifier = ch.baseMicroModifier;
+        
+        std::cout 
+            << "\t\t\t\t\t ** cent: " <<  ( relYcent * ycent2cent )
+            << std::endl;
         return relYcent;
     }
 
     void setMicromodifier( uint8_t microModifier, uint8_t channel )
     {
-        const auto ch = channel & channelTableCountMask;
-        channelTable[ ch ].currentMicroModifier = channelTable[ ch ].baseMicroModifier = microModifier;
+        auto& ch = channelTable[ channel & channelTableCountMask ];
+        ch.currentMicroModifier = ch.baseMicroModifier = microModifier;
     }
 
     void setOneShotMicromodifier( uint8_t microModifier, uint8_t channel )
     {
-        const auto ch = channel & channelTableCountMask;
-        channelTable[ ch ].currentMicroModifier = microModifier ;
+        auto& ch = channelTable[ channel & channelTableCountMask ];
+        ch.currentMicroModifier = microModifier ;
     }
 
 private:
     void clear();
-    ChannelTable channelTable[ channelTableCount ];
+    MidiChannelTable channelTable[ channelTableCount ];
 };
 
 } // end namespace yacynth

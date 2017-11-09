@@ -342,7 +342,7 @@ bool Server::checkAuth( const uint8_t * randBuff, const uint8_t * respBuff, size
 RemoteServer::RemoteServer( Sysman& sysman, const uint16_t port, const std::string& authKeyFile )
 :   Server(sysman, authKeyFile)
 ,   portControl(port)   // on the server side
-,   portStatus(port)    // on the client side
+,   portStatus(port+1)    // on the client side
 
 {
     memset( &statusSockAddr6, '0', sizeof(statusSockAddr6) );

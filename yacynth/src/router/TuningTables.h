@@ -27,6 +27,7 @@
 #include    "yacynth_globals.h"
 #include    "protocol.h"
 #include    "TuningConst.h"
+#include    "../control/Controllers.h"
 
 #include    <array>
 #include    <iostream>
@@ -54,14 +55,10 @@ public:
     static constexpr uint16_t size = noteCount  * modifierCount;
     static constexpr uint16_t sizeMask = size-1;
 
-    TuningTable()
-    :   transientTransposition(0)
-    ,   tuningType(TuningType::TM_NIL)
-    {}
+    TuningTable();
 
-
-    bool fill( TuningType ttype, TuningVariation tv );
-
+    ~TuningTable() = default;
+    
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
     inline int32_t get( uint8_t baseNote, uint8_t modifier ) const
@@ -75,48 +72,64 @@ public:
     {
         return relativeYcent[ note & sizeMask ];
     }
+    
+private:
+    void clear();
 
     void setTransposition( int32_t ycent )
     {
         transientTransposition = ycent;
     }
     
-private:
+    void setBaseTransposition( int32_t ycent );
+
+    bool fill( TuningType ttype, TuningVariation tv );
+    
+    bool fill( int32_t * src, uint8_t layer );
+
     // fill cont. all keys : ET12, ET13, alpha, beta, delta
     void fillETContinuous( uint32_t intervalCount, uint32_t rateNom, uint32_t rateDenom, uint8_t step );
 
     // fill cont. white keys : ET 5,6,7
-    void fillETWhitesContinuous( uint32_t intervalCount, uint32_t rateNom, uint32_t rateDenom );
+    void fillETContinuous1_7( uint32_t intervalCount, uint32_t rateNom, uint32_t rateDenom );
 
-    void setBaseTransposition();
+    // fill cont. : ET 8..11
+    void fillETContinuous8_11( uint32_t intervalCount, uint32_t rateNom, uint32_t rateDenom );
 
-    int32_t     relativeYcent[  size  ];
-    int32_t     transientTransposition; // = detune + transposition -- controller ?
-    TuningType  tuningType;
+    void fill( const TuningGenerator12Notes& table );
+    
+    void setBaseTransposition_MIDI69_A440();
+
+    int32_t         relativeYcent[ size ];    
+    int32_t         transientTransposition; // = detune + transposition --> controller ? and microlayer ?
+    // ControllerIndex transpositionControllerIndex;
+    TuningType      tuningType;
+    TuningVariation tuningVariation;
 };
 
 class TuningManager {
 public:
-    static constexpr uint16_t tuningTableCountExp = 0;
-    static constexpr uint16_t tuningTableCount = 1 << tuningTableCountExp;
-    static constexpr uint16_t tuningTableCountMask = tuningTableCount - 1;
-
     inline static TuningManager& getInstance(void)
     {
         static TuningManager instance;
         return instance;
     }
 
+    ~TuningManager() = default;
+
     inline int32_t get( uint8_t baseNote, uint8_t modifier ) const
     {
-        return tuningTables.get( baseNote, modifier );
+        return tuningTable.get( baseNote, modifier );
     }
 
-    bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
+    inline bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
+    {
+        return tuningTable.parameter( message, tagIndex, paramIndex );
+    }
 
 private:
-    TuningManager();
-    TuningTable     tuningTables;
+    TuningManager() = default;
+    TuningTable     tuningTable;
 };
 
 } // end namespace yacynth

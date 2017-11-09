@@ -390,7 +390,27 @@ public:
     MidiController();
 
     enum CMode : uint8_t {
+        CM_SET_TUNING_BASEMICROMODIFIER_0 = 128,
+        CM_SET_TUNING_BASEMICROMODIFIER_1,
+        CM_SET_TUNING_BASEMICROMODIFIER_2,
+        CM_SET_TUNING_BASEMICROMODIFIER_3,
+        CM_SET_TUNING_BASEMICROMODIFIER_4,
+        CM_SET_TUNING_BASEMICROMODIFIER_5,
+        CM_SET_TUNING_BASEMICROMODIFIER_6,
+        CM_SET_TUNING_BASEMICROMODIFIER_7,
+        
+        CM_SET_TUNING_MICROMODIFIER_0,
+        CM_SET_TUNING_MICROMODIFIER_1,
+        CM_SET_TUNING_MICROMODIFIER_2,
+        CM_SET_TUNING_MICROMODIFIER_3,
+        CM_SET_TUNING_MICROMODIFIER_4,
+        CM_SET_TUNING_MICROMODIFIER_5,
+        CM_SET_TUNING_MICROMODIFIER_6,
+        CM_SET_TUNING_MICROMODIFIER_7,
+
         CM_DISABLE          = 0x0FF,            // not used
+
+        // cleanup
         CM_RANGE            = CM_DISABLE-1,     // normal range controller > 0..127
         CM_RANGE08          = CM_DISABLE-2,     // << 1
         CM_RANGE09          = CM_DISABLE-3,     // << 2
@@ -434,15 +454,6 @@ public:
         CM_UNMUTE           = CM_DISABLE-41,
         CM_RESET            = CM_DISABLE-42,
 
-        // CM_SET_MICROTUNING_0
-        // ...
-        // CM_SET_MICROTUNING_7
-
-        // CM_SET_MICROTUNING_ONESHOT_0
-        // ...
-        // CM_SET_MICROTUNING_ONESHOT_7
-
-        // more MIDI ????
 
         /* 0..128 direct value */
     };
