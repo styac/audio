@@ -36,6 +36,8 @@
 
 using namespace Tuning;
 
+// TODO : retune a tone by pitch bend
+
 namespace yacynth {
 
 class TuningTable {
@@ -80,24 +82,26 @@ private:
     {
         transientTransposition = ycent;
     }
-    
+
     void setBaseTransposition( int32_t ycent );
 
     bool fill( TuningType ttype, TuningVariation tv );
     
-    bool fill( int32_t * src, uint8_t layer );
-
-    // fill cont. all keys : ET12, ET13, alpha, beta, delta
-    void fillETContinuous( uint32_t intervalCount, uint32_t rateNom, uint32_t rateDenom, uint8_t step );
-
-    // fill cont. white keys : ET 5,6,7
-    void fillETContinuous1_7( uint32_t intervalCount, uint32_t rateNom, uint32_t rateDenom );
-
-    // fill cont. : ET 8..11
-    void fillETContinuous8_11( uint32_t intervalCount, uint32_t rateNom, uint32_t rateDenom );
-
-    void fill( const TuningGenerator12Notes& table );
+    void fillET( uint32_t intervalCount, uint32_t rateNom, uint32_t rateDenom, uint8_t layer=0 );
     
+    void fill( const TuningGenerator& table, uint8_t layer=0 );
+  
+    void fill( int32_t * src, uint8_t layer );
+
+    // obsolete
+ //   void fillETContinuous( uint32_t intervalCount, uint32_t rateNom, uint32_t rateDenom, uint32_t step );
+
+    // obsolete
+//    void fillETContinuous1_7( uint32_t intervalCount, uint32_t rateNom, uint32_t rateDenom );
+
+    // obsolete
+//    void fillETContinuous8_11( uint32_t intervalCount, uint32_t rateNom, uint32_t rateDenom );
+
     void setBaseTransposition_MIDI69_A440();
 
     int32_t         relativeYcent[ size ];    

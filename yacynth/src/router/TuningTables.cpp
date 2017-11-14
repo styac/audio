@@ -53,10 +53,15 @@
 
 // http://www.aawmjournal.com/articles/2015b/Garzoli_AAWM_Vol_4_2.pdf
 
-
 // http://tundra.cnx.rice.edu:8888/contents/6c32f21d-65ac-4a40-8205-11226fb6a327@16/indian-classical-music-tuning-and-ragas
 // http://tundra.cnx.rice.edu:8888/contents/37a22b6b-d06d-480a-9c69-eb9daf025e38@27
 // http://www.kylegann.com/histune.html
+
+// http://www.huygens-fokker.org/docs/modename.html
+// http://www.piano-tuners.org/edfoote/well_tempered_piano.html
+// http://www.flutopedia.com/csc_7tone_alt.htm
+// http://www.nonoctave.com/tuning/scales/Ptolemy's_Scale_Catalog.html
+// http://www.flutopedia.com/
 
 
 namespace yacynth {
@@ -76,8 +81,8 @@ bool TuningTable::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t p
 
     case TagTuner::SetInternalTuning: {
             TAG_DEBUG(TagTuner::SetInternalTuning, tagIndex, paramIndex, "TuningTable" );
-            const Tuning::TuningType tuningType = Tuning::TuningType( message.params[ paramIndex ] );
-            const Tuning::TuningVariation tuningVariation = Tuning::TuningVariation( message.params[ paramIndex + 1 ] );
+            const Tuning::TuningType tuningType = Tuning::TuningType( message.params[ 0 ] );
+            const Tuning::TuningVariation tuningVariation = Tuning::TuningVariation( message.params[ 1 ] );
             if( fill( tuningType, tuningVariation ) ) {
                 message.setStatusSetOk();
                 return true;                
@@ -88,7 +93,7 @@ bool TuningTable::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t p
 
     case TagTuner::SetAbsolute: {
             TAG_DEBUG(TagTuner::SetAbsolute, tagIndex, paramIndex, "TuningTable" );
-            const uint16_t layer = message.params[ paramIndex ];
+            const uint16_t layer = message.params[ 0 ];
             if( layer >= modifierCount ) {
                 message.setStatus( yaxp::MessageT::illegalParam );
                 return false;
@@ -96,20 +101,31 @@ bool TuningTable::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t p
             if( message.length != ( sizeof(int32_t) * noteCount ) ) {
                 message.setStatus( yaxp::MessageT::illegalDataLength );
                 return false;
-            }            
-            if( fill( (int32_t * )message.data, layer ) ) {
-                message.setStatusSetOk();
-                return true;                
             }
+            // no clear
+            fill( (int32_t * )message.data, layer );
+            tuningType = TuningType::TM_M_CUSTOM;
+            // no transposition
         }
-        message.setStatus( yaxp::MessageT::illegalParam ); // never happens
-        return false;
+        message.setStatusSetOk();
+        return true;                
 
     case TagTuner::SetTuningET: {
             TAG_DEBUG(TagTuner::SetTuningET, tagIndex, paramIndex, "TuningTable" );
+            const uint16_t intervalCount = message.params[ 0 ];
+            const uint16_t nom = message.params[ 1 ];
+            const uint16_t demom = message.params[ 2 ];
+            if( intervalCount == 0 || nom == 0 || demom == 0 ) {
+                message.setStatus( yaxp::MessageT::illegalParam );
+                return false;                                
+            }
+            clear();
+            fillET( intervalCount, nom, demom );
+            tuningType = TuningType::TM_M_ET_CUSTOM;
+            setBaseTransposition_MIDI69_A440();                
         }
-        message.setStatus( yaxp::MessageT::illegalParam );
-        return false;
+        message.setStatusSetOk();
+        return true;                
 
     case TagTuner::SetTuningJI: {
             TAG_DEBUG(TagTuner::SetTuningJI, tagIndex, paramIndex, "TuningTable" );
@@ -148,12 +164,12 @@ void TuningTable::clear()
 TuningTable::TuningTable()
 :   transientTransposition(0)
 ,   tuningType(TuningType::TM_NIL)
-,   tuningVariation(TuningVariation::TV_LINEAR)
+,   tuningVariation(TuningVariation::TV_LINEAR_1layer)
 {
-//    tuningTable.fill( TuningType::TM_21_JI_PTOLEMY_12, TuningVariation::TV_LINEAR );
-//    tuningTable.fill( TuningType::TM_31_ET_13, TuningVariation::TV_LINEAR );
-//    tuningTable.fill( TuningType::TM_32_ET_9, TuningVariation::TV_LINEAR );
-    fill( TuningType::TM_21_ET_12, TuningVariation::TV_LINEAR );
+    fill( TuningType::TM_21_ET_12, TuningVariation::TV_LINEAR_1layer );
+//    fill( TuningType::TM_31_ET_13, TuningVariation::TV_LINEAR_1layer );
+//    fill( TuningType::TM_32_ET_9, TuningVariation::TV_LINEAR_1layer );
+//    fill( TuningType::TM_test, TuningVariation::TV_LINEAR_1layer );
     
 //    tuningTable.fill( TuningType::TM_21_ET_72, TuningVariation::TV_LINEAR );
 

@@ -239,8 +239,10 @@ namespace TagTunerLevel_01 {
         // ---
         SetInternalTuning,      // param: table index, tuning index
         SetAbsolute,            // param[0] = layer 0 .. 7 -- absolute pitch 128 * int32_t
-        SetTuningET,            // param[0] = layer 0 .. 7 -- data : nom, denom, intervalCount, 
-        SetTuningJI,            // param[0] = layer 0 .. 7 -- data : just interval params
+        SetTuningET,            // param[0,1,2] = intervalCount, nom, denom, max 12 notes
+        SetTuningJI,            // param[0] = layer 0 .. 7 -- data : just interval params max 12 notes
+        SetTuningETX,           // any notes
+        SetTuningJIX,           // any notes
     };
 } // end namespace
 

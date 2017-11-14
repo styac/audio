@@ -26,8 +26,9 @@
 
 #include    <cstdint>
 #include    <cmath>
-#include    <algorithm>
 #include    <array>
+
+#include    <iostream>
 
 namespace Tuning {
 
@@ -37,7 +38,6 @@ constexpr double cent2ycent         = ycentOctave / centOctave;
 constexpr double ycent2cent         = centOctave / ycentOctave;
 
 constexpr double ycentET12Semitone  = ycentOctave / 12;
-constexpr double makeRate( double nom, double denom ) { return nom/denom; };
 constexpr double interval2ycent( double interval ) { return std::log2(interval) * ycentOctave; };
 constexpr double interval2ycent( double nom, double denom ) { return std::log2(nom/denom) * ycentOctave; };
 
@@ -52,13 +52,15 @@ constexpr double interval2ycent( double nom, double denom ) { return std::log2(n
 enum class TuningType : uint16_t {
     TM_NIL,    
     TM_M_CUSTOM,        // any set by direct dump
-    TM_M_ET_CUSTOM,     // any equal tempered
     TM_M_JI_CUSTOM,     // any just interval
-
+    TM_M_ET_CUSTOM,     // any equal tempered
+    TM_21_JI_CUSTOM,     // any just interval
+    TM_21_ET_CUSTOM,     // any equal tempered
+    
     TM_21_ET_5,
     TM_21_ET_7,
     TM_21_ET_9,
-    TM_21_ET_10,
+    TM_21_ET_10,        // half TM_21_ET_5
     TM_21_ET_12,
     TM_21_ET_15,
     TM_21_ET_17,
@@ -91,79 +93,107 @@ enum class TuningType : uint16_t {
     TM_21_Pythagorean,
     TM_21_Ptolemy,
     TM_21_Partch43,
+    
+    TM_21_Pelog1,
+    
+    // for testing 
+    TM_test
 };
 
 // different 12 key/octave keyboards
 // MIDI keyboards are always mapped to integral index (n*microtonal)
 
 enum class TuningVariation : uint16_t {
-    TV_LINEAR,      // fill continously - may be ok for non octave centric or non keyboard usage
-    TV_OPTIMAL,     // built in pattern
-    TV_CUSTOM,      // given by pattern
+    TV_CUSTOM,              // given by pattern
+    TV_LINEAR_1layer,       // 1 layer -- fill continously 1 octave is 12 key or non octave contiguous
+    TV_LINEAR_2layer,       // tuning/layer count specific 
+    TV_LINEAR_3layer,       // tuning/layer count specific 
+    TV_LINEAR_4layer,       // tuning/layer count specific 
+    TV_LINEAR_5layer,       // tuning/layer count specific 
+    TV_LINEAR_6layer,       // tuning/layer count specific 
+    TV_LINEAR_7layer,       // tuning/layer count specific 
+    TV_LINEAR_8layer,       // tuning/layer count specific     
+    TV_LINEAR_24Key,        // 1 layer -- fill continously 1 octave is 24 key 
+    TV_OPTIMAL,             // built in pattern
 };
 
-// generator for any equal tempered
-struct TuningGeneratorET {
-    TuningGeneratorET() = delete;
-    const uint16_t intervalCount;  
-    const double rate;             
-    const double deltaIntervalYcent; 
+class TuningGenerator {
+    static constexpr auto maxSize = 128u;
+    
+private:
+    TuningGenerator() = delete;
+    const uint32_t intervalCount;  
+    const double rate;          
+    const double deltaIntervalYcentET; 
+    const double * const deltaIntervalYcent; 
 
-    TuningGeneratorET( uint32_t intervalCount, uint32_t rateNom = 2, uint32_t rateDenom = 1 )
-    :   intervalCount( intervalCount )
-    ,   rate( double( rateNom ) / double( rateDenom ))
-    ,   deltaIntervalYcent( getYcentPeriod() / intervalCount )
+public:
+    // for stretched 
+    static constexpr double octaveTolerance = 0.1;
+
+    // ctor ET
+    TuningGenerator( uint32_t ic, uint32_t rateNom, uint32_t rateDenom )
+    :   intervalCount( ic )
+    ,   rate(double( rateNom ) / double( rateDenom ) )
+    ,   deltaIntervalYcentET( getYcentPeriod() / intervalCount )
+    ,   deltaIntervalYcent(nullptr)
+    {}
+    
+    // ctor ET
+    TuningGenerator( uint32_t ic, double rate )
+    :   intervalCount( ic )
+    ,   rate( rate )
+    ,   deltaIntervalYcentET( getYcentPeriod() / intervalCount )
+    ,   deltaIntervalYcent(nullptr)
     {}
 
-    inline double getYcentN( uint16_t N ) const
-    {
-        return ( N % intervalCount ) * deltaIntervalYcent;
-    };
+    // ctor table -- DOESN'T CONTAIN THE 0.0 element
+    TuningGenerator( uint32_t ic, uint32_t rateNom, uint32_t rateDenom, const double * noteList )
+    :   intervalCount( ic + 1 )
+    ,   rate(double( rateNom ) / double( rateDenom ) )
+    ,   deltaIntervalYcentET( 0.0 )
+    ,   deltaIntervalYcent( noteList )
+    {}
 
-    inline uint16_t getPeriod( uint16_t N ) const
+    // ctor table -- DOESN'T CONTAIN THE 0.0 element
+    TuningGenerator( uint32_t ic, double rate, const double * noteList )
+    :   intervalCount( ic + 1 )
+    ,   rate( rate )
+    ,   deltaIntervalYcentET( 0.0 )
+    ,   deltaIntervalYcent( noteList )
+    {}
+
+    double getYcentN( uint32_t N ) const
     {
-        return N / intervalCount;
+        const auto NN = N % intervalCount;
+        if( NN == 0 ) { // 1st interval is always the base = 0
+            return 0.0;
+        }
+        if( deltaIntervalYcent == nullptr ) {            
+            return NN * deltaIntervalYcentET;
+        } 
+        return deltaIntervalYcent[ NN - 1 ];
     };
     
     inline double getYcentPeriod() const
     {
         return interval2ycent(rate);
     }
-};
 
-// generator for any just intonation
-template < uint16_t arraySize >
-struct TuningGenerator {
-    TuningGenerator() = delete;
-    static constexpr uint16_t size = arraySize;
-    typedef std::array<double,size> arrayType;
-    const uint16_t intervalCount;   // intervalCount <= size
-    const double rate;              // cleanup sequence
-    const arrayType notes;
-
-    TuningGenerator( uint32_t rateNom, uint32_t rateDenom, uint32_t ic, const arrayType& noteList )
-    :   intervalCount( ic <= size ? ic : size )
-    ,   rate( double( rateNom ) / double( rateDenom ) )    
-    ,   notes(noteList)
-    {}
-
-    inline double getYcentN( uint16_t N ) const
+    inline auto getIntervalCount() const
     {
-        return notes[ N % intervalCount ];
+        return intervalCount;
     }
-
-    inline uint16_t getPeriod( uint16_t N ) const
+    
+    inline auto getRate( uint32_t N ) const
     {
-        return N / intervalCount;
-    };
-
-    inline double getYcentPeriod() const
+        return rate;
+    }
+    
+    bool isOctave() const
     {
-        return interval2ycent(rate);
+        return ((2.0-octaveTolerance) < rate ) && ((2.0+octaveTolerance) > rate );
     }
 };
-
-typedef struct TuningGenerator<12> TuningGenerator12Notes;
-typedef struct TuningGenerator<43> TuningGenerator43Notes;
 
 } // end namespace Tuning

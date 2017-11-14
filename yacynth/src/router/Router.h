@@ -202,8 +202,10 @@ protected:
                 InnerController::getInstance().setMidiSwitch( cdt.index, controllerValue );
                 break;
 
-            default: // set value: should be 0..127 - not checked here -- radio button -- value == cdt.mode
-                InnerController::getInstance().setMidiSwitch( cdt.index, cdt.mode );
+            default:
+                if( cdt.mode < 128 ) {
+                    InnerController::getInstance().setMidiSwitch( cdt.index, cdt.mode );                    
+                }
                 break;
 
             }
