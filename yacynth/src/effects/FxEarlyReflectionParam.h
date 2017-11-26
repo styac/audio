@@ -45,7 +45,7 @@ public:
     static constexpr char const * const slavename   = " ^EarlyReflectionDelayedOutput";
     // optional
     static constexpr std::size_t channelCount       = 2;
-    static constexpr std::size_t tapCount           = 1<<4;
+    static constexpr std::size_t tapCount           = 1<<4; // 5 ?
     static constexpr std::size_t tapCountMask       = tapCount-1;
     static constexpr std::size_t coeffSetCount      = 1<<4;
     static constexpr std::size_t coeffSetCountMask  = coeffSetCount-1;
@@ -55,23 +55,12 @@ public:
     static constexpr int delayOffsMaxLng    = delayLng - 1;
     static constexpr int delayOffsMinLng    = effectFrameSize * 2;
 
-    // types for each sub struct
-
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
-    // no Tap... type is used because of the modulation experiment
-
     struct Mode01 {
-
-        static constexpr uint8_t subtype         = uint8_t(TagEffectFxEarlyReflectionMode::SetParametersMode01);
-
+        static constexpr uint8_t subtype = uint8_t(TagEffectFxEarlyReflectionMode::SetParametersMode01);
         static constexpr char const * const delayLateReverbName = "lateReverbDelay";
         static constexpr char const * const earlyreflectionName = "earlyReflection";
-
-        DelayModulatedTapArrayNCH< tapCount, channelCount > tap;
-        // left-right delay for late reverb
-        // need a controller later !
-        DelayTapArrayNCH< 1, channelCount >                 lateReverb;
 
         bool check()
         {
@@ -108,6 +97,12 @@ public:
             }
             return true;
         }
+
+        DelayModulatedTapArrayNCH< tapCount, channelCount > tap;
+        // left-right delay for late reverb
+        // need a controller later !
+        DelayTapArrayNCH< 1, channelCount >                 lateReverb;
+        // uint8_t tapCount;
     } mode01;
 };
 

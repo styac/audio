@@ -177,29 +177,44 @@ struct ToneShaper {
     static constexpr uint32_t transientVectorSize = transientKnotCount;
 
     enum OscType : uint8_t{
-        OSC_NONE,       // no sound
+        OSC_NONE,               // no sound
         OSC_SIN,
-        OSC_SINSIN,     // waveSinTable[ uint16_t( waveSinTable[phase >>16] )]
-        OSC_TRIANGLE,
-
-        OSC_PD00,       // phase distorsion0 waveSinTable[ uint16_t((waveSinTable[phase >>16]) + (phase >>16))]
-        OSC_PD01,       // phase distorsion1 waveSinTable[ uint16_t((waveSinTable[phase >>16]>>1) + (phase >>16))]
-        OSC_PD02,       // phase distorsion2 waveSinTable[ uint16_t((waveSinTable[phase >>16]>>2) + (phase >>16))]
-        OSC_PD03,       // phase distorsion3 waveSinTable[ uint16_t((waveSinTable[phase >>16]>>3) + (phase >>16))]
-
-        OSC_12OV0,      // tone 1 + 2 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>15)]));};
-        OSC_12OV1,      // tone 1 + 2 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>15)]>>1));};
-        OSC_12OV2,      // tone 1 + 2 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>15)]>>2));};
-
-        OSC_13OV0,      // tone 1 + 3 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>14)]));};
-        OSC_13OV1,      // tone 1 + 3 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>14)]>>1));};
-        OSC_13OV2,      // tone 1 + 3 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>14)]>>2));};
-
-        // 2CH tones with phase shift of PI/2
-        OSC_SIN_2CH_PH,         
-        OSC_SINSIN_2CH_PH,     // waveSinTable[ uint16_t( waveSinTable[phase >>16] )]
+        OSC_SIN_2CH_PH,         // PH = pi half = PI/2
+        OSC_SIN_2CH_FR,         // freq diff : left= p - dp ; right = p + dp
+        OSC_SINSIN,             // waveSinTable[ uint16_t( waveSinTable[phase >>16] )]
+        OSC_SINSIN_2CH_PH,      // waveSinTable[ uint16_t( waveSinTable[phase >>16] )]
+        OSC_SINSIN_2CH_FR,      // waveSinTable[ uint16_t( waveSinTable[phase >>16] )]
+        OSC_TRIANGLE,           // ok < 1kHz
         OSC_TRIANGLE_2CH_PH,
+        OSC_TRIANGLE_2CH_FR,
 
+        OSC_D12V11,         // tone 1 + 2 
+        OSC_D12V12,         // tone 1 + 2 
+        OSC_D13V11,         // tone 1 + 3 
+        OSC_D13V12,         // tone 1 + 3         
+        OSC_D23V11,         // tone 2 + 3 
+        OSC_D23V12,         // tone 2 + 3 
+
+        OSC_T123V111,       // tone 1 + 2 + 3
+        OSC_T123V121,       // tone 1 + 2 + 3
+        OSC_T123V112,       // tone 1 + 2 + 3
+        OSC_T123V122,       // tone 1 + 2 + 3
+        OSC_T234V111,       // tone 2 + 3 + 4
+        OSC_T234V121,       // tone 2 + 3 + 4
+        OSC_T234V112,       // tone 2 + 3 + 4
+        OSC_T234V122,       // tone 2 + 3 + 4
+
+        OSC_PD00,           // phase distorsion0 waveSinTable[ uint16_t((waveSinTable[phase >>16]) + (phase >>16))]
+        OSC_PD01,           // phase distorsion1 waveSinTable[ uint16_t((waveSinTable[phase >>16]>>1) + (phase >>16))]
+        OSC_PD02,           // phase distorsion2 waveSinTable[ uint16_t((waveSinTable[phase >>16]>>2) + (phase >>16))]
+        OSC_PD03,           // phase distorsion3 waveSinTable[ uint16_t((waveSinTable[phase >>16]>>3) + (phase >>16))]
+        OSC_PD10,
+        OSC_PD20,
+        OSC_PD30,
+        OSC_PD40,
+        
+        // 2CH tones with phase shift of PI/2
+#if 0
         OSC_PD00_2CH_PH,       // phase distorsion0 waveSinTable[ uint16_t((waveSinTable[phase >>16]) + (phase >>16))]
         OSC_PD01_2CH_PH,       // phase distorsion1 waveSinTable[ uint16_t((waveSinTable[phase >>16]>>1) + (phase >>16))]
         OSC_PD02_2CH_PH,       // phase distorsion2 waveSinTable[ uint16_t((waveSinTable[phase >>16]>>2) + (phase >>16))]
@@ -212,11 +227,9 @@ struct ToneShaper {
         OSC_13OV0_2CH_PH,      // tone 1 + 3 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>14)]));};
         OSC_13OV1_2CH_PH,      // tone 1 + 3 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>14)]>>1));};
         OSC_13OV2_2CH_PH,      // tone 1 + 3 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>14)]>>2));};
-
+#endif
         // 2CH tones with frequency shift
-        OSC_SIN_2CH_FR,        
-        OSC_SINSIN_2CH_FR,     // waveSinTable[ uint16_t( waveSinTable[phase >>16] )]
-        OSC_TRIANGLE_2CH_FR,
+#if 0
 
         OSC_PD00_2CH_FR,       // phase distorsion0 waveSinTable[ uint16_t((waveSinTable[phase >>16]) + (phase >>16))]
         OSC_PD01_2CH_FR,       // phase distorsion1 waveSinTable[ uint16_t((waveSinTable[phase >>16]>>1) + (phase >>16))]
@@ -230,6 +243,7 @@ struct ToneShaper {
         OSC_13OV0_2CH_FR,      // tone 1 + 3 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>14)]));};
         OSC_13OV1_2CH_FR,      // tone 1 + 3 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>14)]>>1));};
         OSC_13OV2_2CH_FR,      // tone 1 + 3 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>14)]>>2));};
+#endif
         
         // TODO need 2CH noises
         // wide noise
@@ -246,6 +260,7 @@ struct ToneShaper {
         OSC_NOISE_BLUE1,
         OSC_NOISE_BLUE2,
         OSC_NOISE_BLUE3,
+        //OSC_NOISE_VELVET4,
 
         // TODO need 2CH noises
         // narrow noise - correlated (common input)

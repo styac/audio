@@ -34,14 +34,15 @@
 namespace yacynth {
 
 class ToneShaperMatrix {
-    static constexpr const char * const typeName = "ToneShaperMatrix";        
-    
+    static constexpr const char * const typeName = "ToneShaperMatrix";
+
 private:
 
 public:
     ToneShaperMatrix() = default;
     void clear( void );
-    bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); 
+    bool setPitchVector( int32_t *pitchVector, uint16_t pitchCount, uint16_t vectorIndex );
+    bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
     std::array< ToneShaperVector,  settingVectorSize>   toneShapers;
 };
 

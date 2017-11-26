@@ -80,8 +80,18 @@ public:
             p = 0;
         }
         gainRange[ 0 ][ 0 ] = gainRange[ 0 ][ 1 ] = 0.5f;
+        gainRange[ 1 ][ 0 ] = gainRange[ 1 ][ 1 ] = 0.5f;
     }
 
+    bool setRange( uint8_t ch, float ch0, float ch1 ) 
+    {
+        if( ch >= inputCount || std::abs(ch0) > 1.0f || std::abs(ch1) > 1.0f ) {
+            return false;
+        }
+        gainRange[ ch ][ 0 ] = ch0;
+        gainRange[ ch ][ 1 ] = ch1;
+        return true;
+    }
 
     union {
         float       gainRange[ inputCount ][ 2 ];  // for each stereo channel

@@ -31,6 +31,23 @@
 #if 0
 doc:
 
+https://www.acousticfields.com/early-reflections-vs-reverb-why-do-they-matter/
+
+http://www.acousticfrontiers.com/early-reflections-101/
+
+http://www.akutek.info/Papers/TH_Coloration2001.pdf
+
+http://download.savannah.nongnu.org/releases/freeverb3/
+
+https://www.exponentialaudio.com/tips-and-tricks-what-are-early-reflections/
+
+
+
+http://www.mdpi.com/2076-3417/7/5/483/pdf-vor
+http://freeverb3vst.osdn.jp/doc/Reverberation%20algorithms.pdf
+http://freeverb3vst.osdn.jp/doc/reverberation_algorithms.pdf
+
+
 https://ccrma.stanford.edu/~jos/Reverb/
 https://ccrma.stanford.edu/realsimple/Reverb/
 

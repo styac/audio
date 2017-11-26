@@ -24,7 +24,7 @@
  *
  * Created on February 6, 2016, 5:15 PM
  */
-
+#if 0
 #include    "yacynth_globals.h"
 #include    "v4.h"
 #include    "../utils/Fastexp.h"
@@ -58,11 +58,12 @@ inline uint32_t ycent2deltafi( uint32_t base,  int32_t delta )
     const uint16_t  ind = logv >> 8;
     const uint16_t  xpo = logv >> 24;    
     const uint64_t  y1 = tables::exp2Table[ ind ];
-    const uint64_t  dy = (( tables::exp2Table[ ind + 1 ] - y1 ) * ( logv & 0x0FF )) >> 8;        
+    const uint64_t  dy = (( tables::exp2Table[ ind + 1 ] - y1 ) * uint8_t( logv )) >> 8;        
     const uint64_t  rs = ( y1 + dy ) >> ( precMultExp - xpo );
     return rs ;
 } // end ycent2deltafi( uint32_t logv )
 
 
 } // end namespace yacynth
+#endif
 

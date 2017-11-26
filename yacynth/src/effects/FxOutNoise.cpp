@@ -98,6 +98,45 @@ bool FxOutNoise::setSprocessNext( uint16_t mode )
     case 2:
         sprocesspNext = sprocess_02;
         break;
+    case 3:
+        sprocesspNext = sprocess_03;
+        break;
+    case 4:
+        sprocesspNext = sprocess_04;
+        break;
+    case 5:
+        sprocesspNext = sprocess_05;
+        break;
+    case 6:
+        sprocesspNext = sprocess_06;
+        break;
+    case 7:
+        sprocesspNext = sprocess_07;
+        break;
+    case 8:
+        sprocesspNext = sprocess_08;
+        break;
+    case 9:
+        sprocesspNext = sprocess_09;
+        break;
+    case 10:
+        sprocesspNext = sprocess_10;
+        break;
+    case 11:
+        sprocesspNext = sprocess_11;
+        break;
+    case 12:
+        sprocesspNext = sprocess_12;
+        break;
+    case 13:
+        sprocesspNext = sprocess_13;
+        break;
+    case 14:
+        sprocesspNext = sprocess_14;
+        break;
+    case 15:
+        sprocesspNext = sprocess_15;
+        break;
     default:
         return false;
     }
@@ -110,6 +149,118 @@ bool FxOutNoise::setSprocessNext( uint16_t mode )
     }
     sprocessp = FxBase::sprocessCrossFade;
     return true;
+}
+
+void FxOutNoise::sprocess_01( void * thp )
+{
+    constexpr float gain = 1.0f/(1<<23);
+//    const float gain = static_cast< MyType * >(thp)->param.gains[ 1 - 1 ];
+    static_cast< MyType * >(thp)->fillWhite();
+    static_cast< MyType * >(thp)->mult(gain);
+}
+void FxOutNoise::sprocess_02( void * thp )
+{
+    constexpr float gain = 1.0f/(1<<23);
+//    const float gain = static_cast< MyType * >(thp)->param.gains[ 2 - 1 ];
+    static_cast< MyType * >(thp)->fillWhiteStereo();
+    static_cast< MyType * >(thp)->mult(gain);
+}
+
+void FxOutNoise::sprocess_03( void * thp )
+{
+//    constexpr float gain = 1.0f/(1<<26);
+    const float gain = static_cast< MyType * >(thp)->param.gains[ 3 - 1 ];
+    static_cast< MyType * >(thp)->fillWhiteLowCut();
+    static_cast< MyType * >(thp)->mult(gain);
+}
+void FxOutNoise::sprocess_04( void * thp )
+{
+//    constexpr float gain = 1.0f/(1<<26);
+    const float gain = static_cast< MyType * >(thp)->param.gains[ 4 - 1 ];
+    static_cast< MyType * >(thp)->fillBlue();
+    static_cast< MyType * >(thp)->mult(gain);
+}
+void FxOutNoise::sprocess_05( void * thp )
+{
+//    constexpr float gain = 1.0f/(1<<24);
+    const float gain = static_cast< MyType * >(thp)->param.gains[ 5 - 1 ];
+    static_cast< MyType * >(thp)->fillRed();
+    static_cast< MyType * >(thp)->mult(gain);
+}
+void FxOutNoise::sprocess_06( void * thp )
+{
+//    constexpr float gain = 1.0f/(1<<21);
+    const float gain = static_cast< MyType * >(thp)->param.gains[ 6 - 1 ];
+    static_cast< MyType * >(thp)->fillPurple();
+    static_cast< MyType * >(thp)->mult(gain);
+}
+void FxOutNoise::sprocess_07( void * thp )
+{
+//    constexpr float gain = 1.0f/(1<<27);
+    const float gain = static_cast< MyType * >(thp)->param.gains[ 7 - 1 ];
+    static_cast< MyType * >(thp)->fillPink();
+    static_cast< MyType * >(thp)->mult(gain);
+}
+void FxOutNoise::sprocess_08( void * thp )
+{
+//    constexpr float gain = 1.0f/(1<<26);
+    const float gain = static_cast< MyType * >(thp)->param.gains[ 8 - 1 ];
+    static_cast< MyType * >(thp)->fillPinkLow();
+    static_cast< MyType * >(thp)->mult(gain);
+}
+void FxOutNoise::sprocess_09( void * thp )
+{
+//    constexpr float gain = 1.0f/(1<<21);
+    const float gain = static_cast< MyType * >(thp)->param.gains[ 9 - 1 ];
+    static_cast< MyType * >(thp)->fillPurpleVar( static_cast< MyType * >(thp)->param.purplePole );
+    static_cast< MyType * >(thp)->mult(gain);
+}
+void FxOutNoise::sprocess_10( void * thp )
+{
+//        constexpr float gain = 1.0f/(1<<24);
+    const float gain = static_cast< MyType * >(thp)->param.gains[ 10 - 1 ];
+    static_cast< MyType * >(thp)->fillRedVar( static_cast< MyType * >(thp)->param.redPole );
+    static_cast< MyType * >(thp)->mult(gain);
+}
+
+void FxOutNoise::sprocess_11( void * thp )
+{
+    constexpr float gain = 1.0f/(1<<2);
+//    const float gain = static_cast< MyType * >(thp)->param.gains[ 10 - 1 ];
+    static_cast< MyType * >(thp)->fillVelvet<2>();
+    static_cast< MyType * >(thp)->mult(gain);
+}
+
+void FxOutNoise::sprocess_12( void * thp )
+{
+    constexpr float gain = 1.0f/(1<<2);
+//    const float gain = static_cast< MyType * >(thp)->param.gains[ 10 - 1 ];
+    static_cast< MyType * >(thp)->fillVelvet<3>();
+    static_cast< MyType * >(thp)->mult(gain);
+}
+
+void FxOutNoise::sprocess_13( void * thp )
+{
+    constexpr float gain = 1.0f/(1<<2);
+//    const float gain = static_cast< MyType * >(thp)->param.gains[ 10 - 1 ];
+    static_cast< MyType * >(thp)->fillVelvet2CH<3>();
+    static_cast< MyType * >(thp)->mult(gain);
+}
+
+void FxOutNoise::sprocess_14( void * thp )
+{
+    constexpr float gain = 1.0f/(1<<2);
+//    const float gain = static_cast< MyType * >(thp)->param.gains[ 10 - 1 ];
+    static_cast< MyType * >(thp)->fillVelvetTriangle();
+    static_cast< MyType * >(thp)->mult(gain);
+}
+
+void FxOutNoise::sprocess_15( void * thp )
+{
+//    constexpr float gain = 1.0f/(1<<2);
+//    const float gain = static_cast< MyType * >(thp)->param.gains[ 10 - 1 ];
+    static_cast< MyType * >(thp)->fillVelvetTriangle2CH();
+//    static_cast< MyType * >(thp)->mult(gain);
 }
 
 // --------------------------------------------------------------------

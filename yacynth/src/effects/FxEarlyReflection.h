@@ -178,7 +178,7 @@ private:
                 out().channel[ chB ] );
 
         // 1..n added
-        for( uint32_t si=1; si<FxEarlyReflectionParam::tapCount; ++si ) {
+        for( uint32_t si = 1; si < FxEarlyReflectionParam::tapCount; ++si ) {
             delayLine.addTDLSection(
                 param.mode01.tap.delayIndex.v2[ si ][ chA ],
                 param.mode01.tap.delayIndex.v2[ si ][ chB ],
@@ -187,6 +187,7 @@ private:
                 out().channel[ chA ],
                 out().channel[ chB ] );
         }
+        // cross taps  L -> R R -> L
 //        out().copyCH<chB>(inp<0>());
     }
 

@@ -122,17 +122,17 @@ void preset0( Sysman  * sysman )
     ToneShaper ts;
     ts.clear();
     ts.pitch = 0;
-    ts.sustain.decayCoeff.setPar( 0, 0 );
+    ts.sustain.decayCoeff.setPar( 2000, 0 );
     ts.sustain.modDepth  = 0;     // 100 / 256
     ts.sustain.modDeltaPhase = 0; //300;
     ts.tickFrameRelease.setPar( 100, 0, 2 );
     ts.transient[ 2 ].tickFrame.setPar( 20, 0, 2 );
     ts.transient[ 2 ].targetValue = uint32_t( 32000.0 * 65535.0 );
-    ts.transient[ 1 ].tickFrame.setPar( 300, 0, 1 );
+    ts.transient[ 1 ].tickFrame.setPar( 50, 0, 1 );
     ts.transient[ 1 ].targetValue = uint32_t( 20000.0 * 65535.0 );
 
     ts.oscillatorType = ToneShaper::OSC_SIN; // OSC_SIN;
-    ts.detune2CH = 10<<4;
+    ts.detune2CH = 10<<12;
     // filter test
     // ts.oscillatorType = ToneShaper::OSC_NOISE_SV3x4_PEEK;
     ts.filterBandwidth = 0x60;
@@ -151,22 +151,23 @@ void preset0( Sysman  * sysman )
 
     // velo BOOST test
     int32_t overtoneDetune = 10000;
-    constexpr   int overToneCount = 3;
+    constexpr   int overToneCount = 10;
     for( auto vi=1u; vi < overToneCount; ++vi ) {
 //        const float onevi = 1.0f/float(vi+1);
 //        ts.pitch = relFreq2pitch( vi+1 );
+//        const double onevi = 1.0/double( vi );
         const double onevi = 1.0/double( vi + 1 );
         ts.pitch = interval2ycent( vi + 1 ) + overtoneDetune * vi;
-        ts.sustain.decayCoeff.setPar( 0, 0 );
+        ts.sustain.decayCoeff.setPar( 1000, 0 );
         ts.sustain.modDepth  = 0;     // 100 / 256
         ts.sustain.modDeltaPhase = 0; // 300;
         ts.tickFrameRelease.setPar( 100, 0, 2 );
         ts.transient[ 2 ].tickFrame.setPar( 20, 0, 2 );
         ts.transient[ 2 ].targetValue = uint32_t( 52000.0 * 65535.0 * onevi );
-        ts.transient[ 1 ].tickFrame.setPar( 300, 0, 1 );
+        ts.transient[ 1 ].tickFrame.setPar( 100, 0, 1 );
         ts.transient[ 1 ].targetValue = uint32_t( 20000.0 * 65535.0 * onevi );
 
-        ts.oscillatorType = ToneShaper::OSC_SINSIN;
+        ts.oscillatorType = ToneShaper::OSC_SIN;
         if( vi & 1) {
             ts.detune2CH = 127<<4;            
         } else {

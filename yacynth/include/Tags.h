@@ -123,17 +123,6 @@ namespace TagToneShaperLevel_01 {
     };
 } // end namespace
 
-#if 0
-namespace TagEffectFactoryLevel_01 {
-    enum class EffectFactory : uint8_t {
-        Nop,
-        Clear,
-        ClearState,
-        Preset,     // param[0] - presetnumber
-        Create,     // create a new effect
-    };
-} // end namespace
-#endif
 namespace TagEffectRunnerLevel_01 {
     enum class TagEffectRunner : uint8_t {
         Nop,
@@ -241,9 +230,30 @@ namespace TagTunerLevel_01 {
         SetAbsolute,            // param[0] = layer 0 .. 7 -- absolute pitch 128 * int32_t
         SetTuningET,            // param[0,1,2] = intervalCount, nom, denom, max 12 notes
         SetTuningJI,            // param[0] = layer 0 .. 7 -- data : just interval params max 12 notes
-        SetTuningETX,           // any notes
-        SetTuningJIX,           // any notes
+        SetTuningETX,           // param[0] = layer 0 .. 7
+        SetTuningJIX,           // param[0] = layer 0 .. 7
     };
+
+    // store the scala scl format
+    struct Scl {
+        static constexpr size_t size = 1024;    // the file can be any long but we work max with 1024
+        int32_t     rateYcent;      // last element in scl file
+        int32_t     count;
+        int32_t     relativePitchYcent[ size ] ;
+    };
+
+    struct TuningETX {
+        uint32_t    nomET;
+        uint32_t    denomET;
+        uint16_t    intervalCountET;
+    };
+
+    struct ScaleETX : public TuningETX {
+        static constexpr uint8_t maxStepCount = 128;
+        uint8_t     intervalCountScale; // param ?
+        uint8_t     scaleSteps[ maxStepCount ];
+    };
+
 } // end namespace
 
 namespace TagEffectCollectorLevel_01 {

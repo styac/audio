@@ -68,10 +68,10 @@ private:
         if( isMasterVolumeChanged ) {
             const float cgainChA = gainCache[ 0 ].getExpValueFloat() * param.gainRange[ 0 ][ chA ];
             const float cgainChB = gainCache[ 0 ].getExpValueFloat() * param.gainRange[ 0 ][ chB ];
-            out().fadeAddV4( inp<0>(), gain[ 0 ][ chA ], gain[ 0 ][ chB ],
+            out().fadeV4( inp<0>(), gain[ 0 ][ chA ], gain[ 0 ][ chB ],
                 ( cgainChA - gain[ 0 ][ chA ] ), ( cgainChB - gain[ 0 ][ chB ] ) );
         } else {
-            out().multSet( inp<0>(), gain[ 0 ][ chA ], gain[ 0 ][ chB ] );
+            out().mult( inp<0>(), gain[ 0 ][ chA ], gain[ 0 ][ chB ] );
         }
 
         // channel k = MASTER VOLUME * channel volume
@@ -80,17 +80,18 @@ private:
                 if( gainCache[ cin ].update( param.gainIndex[ cin ] ) || isMasterVolumeChanged ) {
                     const float cgainChA = gainCache[ cin ].getExpValueFloat() * param.gainRange[ cin ][ chA ] * gain[ 0 ][ chA ];
                     const float cgainChB = gainCache[ cin ].getExpValueFloat() * param.gainRange[ cin ][ chB ] * gain[ 0 ][ chB ];
+                    // TODO check add
                     out().fadeAddV4( inp( cin ), gain[ cin ][ chA ], gain[ cin ][ chB ],
                         ( cgainChA - gain[ cin ][ chA ] ), ( cgainChB - gain[ cin ][ chB ] ) );
                 } else {
-                    out().multSet( inp( cin ), gain[ cin ][ chA ], gain[ cin ][ chB ] );
-                }
+                    out().multAdd( inp( cin ), gain[ cin ][ chA ], gain[ cin ][ chB ] );
+                }                
             }
         }
     }
 
     float   gain[ FxMixerParam::inputCount ][ 2 ]; // for each stereo channel
-    ControllerCache gainCache[FxMixerParam::inputCount];
+    ControllerCache gainCache[ FxMixerParam::inputCount ];
 //    ControllerCacheRate<8> gainCache[FxMixerParam::inputCount];
 };
 

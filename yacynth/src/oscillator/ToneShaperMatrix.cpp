@@ -112,13 +112,16 @@ bool ToneShaperMatrix::parameter( yaxp::Message& message, uint8_t tagIndex, uint
         }
         message.setStatus( yaxp::MessageT::illegalDataLength );
         return false;
-        
+
     // array of int32_t * pitchCount
     case  TagToneShaper::SetPitchVector :
         TAG_DEBUG(TagToneShaper::SetOvertoneCount, tagIndex, paramIndex, "ToneShaperMatrix" );
         {
             const uint16_t vectorIndex = message.getParam(paramIndex);
             const uint16_t pitchCount = message.getParam(++paramIndex);
+
+            // call ToneShaperMatrix::setPitchVector ?
+            
             if( vectorIndex >= settingVectorSize ) {
                 message.setStatus( yaxp::MessageT::illegalTargetIndex );
                 return false;
@@ -133,14 +136,13 @@ bool ToneShaperMatrix::parameter( yaxp::Message& message, uint8_t tagIndex, uint
             }
             int32_t *pitch = (int32_t * )(&message.data[0]);
             for( auto vi=0u; vi < pitchCount; ++vi, ++pitch ) {
-                toneShapers[vectorIndex].toneShaper[ vi ].pitch = *pitch;             
+                toneShapers[vectorIndex].toneShaper[ vi ].pitch = *pitch;
             }
         }
         message.setStatusSetOk();
-        return true;        
-        
-        
-#if 0    
+        return true;
+
+#if 0
     case  TagToneShaper::SetOvertoneVector :
         TAG_DEBUG(TagToneShaper::SetOvertoneCount, tagIndex, paramIndex, "ToneShaperMatrix" );
         if( message.length == sizeof(ToneShaper) ) {
@@ -151,7 +153,7 @@ bool ToneShaperMatrix::parameter( yaxp::Message& message, uint8_t tagIndex, uint
                 return false;
             }
             auto &dst = toneShapers[vectorIndex].toneShaper;
-            
+
             for( auto vi=0u; vi<overtoneCount; ++vi ) {
                 dst[ vi ] = message
             }
@@ -188,9 +190,26 @@ bool ToneShaperMatrix::parameter( yaxp::Message& message, uint8_t tagIndex, uint
 #endif
     default:
         break;
-    }  
+    }
     message.setStatus( yaxp::MessageT::illegalTag );
     return false;
 }
+
+bool ToneShaperMatrix::setPitchVector( int32_t *pitchVector, uint16_t pitchCount, uint16_t vectorIndex )
+{
+    if( vectorIndex >= settingVectorSize ) {
+        return false;
+    }
+    if( pitchCount >= ToneShaperVector::toneShaperVectorSize ) {
+        return false;
+    }
+
+    auto & tsv = toneShapers[ vectorIndex ];
+    for( auto i=0u; i < pitchCount; ++i ) {
+        tsv.toneShaper[ i ].pitch = pitchVector[ i ];
+    }
+    return true;
+}
+
 
 } // end namespace yacynth

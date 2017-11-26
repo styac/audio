@@ -117,6 +117,10 @@ enum class TuningVariation : uint16_t {
     TV_OPTIMAL,             // built in pattern
 };
 
+enum class ModalScales : uint16_t {
+    MS_JustIntonation,      // just intonation approx
+};
+
 class TuningGenerator {
     static constexpr auto maxSize = 128u;
     
@@ -195,5 +199,65 @@ public:
         return ((2.0-octaveTolerance) < rate ) && ((2.0+octaveTolerance) > rate );
     }
 };
+
+
+// modal scales: subset of a scale
+template< uint8_t maxSize >
+class ModalSteps {
+private:    
+    static constexpr uint8_t size = maxSize;
+    const TuningGenerator& tuningGenerator;
+    const uint8_t stepCount; 
+    bool  ok;
+    std::array<uint16_t, size> step;
+    ModalSteps() = delete;
+
+public:
+    ModalSteps( const TuningGenerator& tg, uint8_t count, const uint8_t * const stepList )
+    :   tuningGenerator(tg)
+    ,   stepCount(count)
+    ,   ok(false)
+    {
+        if( count > size || count < 2 ) {
+            return;
+        }
+        uint16_t next = 0;
+        for( auto i=0u; i < count; ++i ) {
+            next += stepList[ i ];  // 1st step would be 0.0
+            step[ i ] = next;
+            std::cout
+                << " i: " << i
+                << " step: " << step[ i ]                    
+                << " stepList: " << uint16_t(stepList[ i ])
+                << " next: " << next
+                << std::endl;
+        }
+        if( next > tuningGenerator.getIntervalCount() ) {
+            return;
+        }
+        ok =  true;
+        std::cout << " ok " << std::endl;
+    }
+    
+    ~ModalSteps() = default;
+
+    inline bool isOK() const { return ok; }
+
+    // TODO : test
+    double getYcentN( uint32_t N ) const
+    {
+        const auto NN = N % stepCount;
+        if( ( NN == 0 ) || ( ! ok ) ) { // 1st interval is always the base = 0
+            return 0.0;
+        }
+        return tuningGenerator.getYcentN( step[ NN - 1 ] ) ;
+    };
+};
+
+// normal keyboard
+typedef ModalSteps<12> ModalSteps12;
+
+// 2 keyboards with 2 layers or double octave
+typedef ModalSteps<24> ModalSteps24;
 
 } // end namespace Tuning

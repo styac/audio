@@ -29,11 +29,9 @@
 
 // http://mc2method.org/white-noise/
 
-
 using namespace noiser;
 
 namespace yacynth {
-
 
 template< std::size_t fexp >
 struct FrameFloat {
@@ -46,7 +44,7 @@ struct FrameFloat {
     static constexpr std::size_t channelCount       = 1;
     inline void clear(void)
     {
-        for( auto& ichn : channel ) memset( ichn, 0, sectionSize*sizeof(float) );
+        memset( channel, 0, sizeof(channel) );
     }
 
     union  alignas(16) {
@@ -66,7 +64,7 @@ struct FrameInt {
     static constexpr std::size_t channelCount       = 1;
     inline void clear(void)
     {
-        for( auto& ichn : channel ) memset( ichn, 0, sectionSize*sizeof(int32_t) );
+        memset( channel, 0, sizeof(channel) );
     }
     union  alignas(16) {
         v4si    vchannel[ channelCount ][ vsectionSize ];
@@ -81,6 +79,7 @@ struct FrameInt {
 template< typename Tstore >
 class NoiseFrame : public Tstore {
 public:
+    static constexpr std::size_t sectionSizeExp     = Tstore::sectionSizeExp;
     static constexpr std::size_t sectionSize        = Tstore::sectionSize;
     static constexpr std::size_t sectionSizeMask    = sectionSize-1;
     static constexpr std::size_t vsectionSize       = Tstore::vsectionSize;
@@ -384,7 +383,118 @@ public:
             }
         }
     };
+// #define VELVET_TEST
+    // velvet noise mono
+    // TODO : test alternate sign -- bad high freq sine -- low freq cut
+    // TODO : test avg 1/2, 1, 1/2 -- aliasing
+    
+    template< uint8_t pulseCountExp > 
+    inline void fillVelvet()    
+    {
+        static_assert( pulseCountExp < sectionSizeExp - 1, "pulse count too high");
+        constexpr uint8_t slotSizeExp   = sectionSizeExp - pulseCountExp;
+        constexpr uint8_t slotSize      = 1<<slotSizeExp;
+        constexpr int32_t slotSizeMask  = slotSize - 1;
+        Tstore::clear();
+        for( auto pi=0u; pi < sectionSize; pi += slotSize ) {
+            const int32_t rand0 = noise.getWhiteRaw();
+            const int32_t sign0 = (rand0>>31) | 1; // +1,-1
+            const int32_t position0 = rand0 & slotSizeMask;
+            
+            if( 2 == channelCount ) {
+                Tstore::channel[ 1 ][ pi + position0 ] = Tstore::channel[ 0 ][ pi + position0 ] = sign0;
+            } else {
+                Tstore::channel[ 0 ][ pi + position0 ] = sign0;                
+            }     
+        }
+    }
 
+    // velvet noise stereo
+    template< uint8_t pulseCountExp > 
+    inline void fillVelvet2CH()    
+    {
+        static_assert( 2 == channelCount, "must be 2 channel");
+        static_assert( pulseCountExp < sectionSizeExp - 1, "pulse count too high");
+        constexpr uint8_t slotSizeExp   = sectionSizeExp - pulseCountExp;
+        constexpr uint8_t slotSize      = 1<<slotSizeExp;
+        constexpr int32_t slotSizeMask  = slotSize - 1;
+        Tstore::clear();
+        for( auto pi=0u; pi < sectionSize; pi += slotSize ) {
+            const int32_t rand0 = noise.getWhiteRaw();
+            const int32_t rand1 = noise.getWhiteRaw();
+            const int32_t sign0 = (rand0>>31) | 1; // +1,-1
+            const int32_t sign1 = (rand1>>31) | 1; // +1,-1
+            const int32_t position0 = rand0 & slotSizeMask;
+            const int32_t position1 = rand1 & slotSizeMask;            
+            Tstore::channel[ 0 ][ pi + position0 ] = sign0;
+            Tstore::channel[ 1 ][ pi + position1 ] = sign1;
+        }
+    }
+    
+    inline void fillVelvetTriangle()    
+    {
+        constexpr uint8_t pulseCountExp = 2;
+        constexpr uint8_t slotSizeExp   = sectionSizeExp - pulseCountExp;
+        constexpr uint8_t slotSize      = 1<<slotSizeExp;
+        constexpr int32_t slotSizeMask  = (slotSize - 1) & 0xFFFCU;
+        Tstore::clear();
+        for( auto pi=0u; pi < sectionSize; pi += slotSize ) {
+            const int32_t rand0 = noise.getWhiteRaw();
+            const int32_t sign0 = (rand0>>31) | 1; // +1,-1
+            const int32_t position0 = rand0 & slotSizeMask;
+            
+            if( 2 == channelCount ) {
+                Tstore::channel[ 1 ][ pi + position0 ] = Tstore::channel[ 0 ][ pi + position0 ] = sign0;
+                Tstore::channel[ 1 ][ pi + position0 + 1 ] = Tstore::channel[ 0 ][ pi + position0 + 1 ] = sign0<<1;
+                Tstore::channel[ 1 ][ pi + position0 + 2] = Tstore::channel[ 0 ][ pi + position0 + 2 ] = sign0;
+            } else {
+                Tstore::channel[ 0 ][ pi + position0 ] = sign0;
+                Tstore::channel[ 0 ][ pi + position0 + 1 ] = sign0<<1;
+                Tstore::channel[ 0 ][ pi + position0 + 2 ] = sign0;                
+            }     
+        }
+    }
+
+    inline void fillVelvetTriangle2CH()    
+    {
+        constexpr uint8_t pulseCountExp = 2;
+        constexpr uint8_t slotSizeExp   = sectionSizeExp - pulseCountExp;
+        constexpr uint8_t slotSize      = 1<<slotSizeExp;
+        constexpr int32_t slotSizeMask  = (slotSize - 1) & 0xFFFCU;
+        constexpr uint8_t dcLimit       = 4;
+        Tstore::clear();
+        for( auto pi=0u; pi < sectionSize; pi += slotSize ) {
+            const int32_t rand0 = noise.getWhiteRaw();
+            const int32_t rand1 = noise.getWhiteRaw();
+            int32_t sign0 = (rand0>>31) | 1; // +1,-1
+            int32_t sign1 = (rand1>>31) | 1; // +1,-1
+            s[ 0 ] += sign0;
+            s[ 1 ] += sign1;
+            if( std::abs(s[0] > dcLimit ) ) {
+#ifdef VELVET_TEST
+                std::cout << " !!! velvet DC0: " << s[0] << std::endl;
+#endif
+                sign0 = -sign0;
+                s[ 0 ] += sign0;
+            }
+            if( std::abs(s[1] > dcLimit ) ) {
+#ifdef VELVET_TEST
+                std::cout << " !!! velvet DC1: " << s[1] << std::endl;
+#endif
+                sign1 = -sign1;
+                s[ 1 ] += sign1;
+            }
+            const int32_t position0 = rand0 & slotSizeMask;
+            const int32_t position1 = rand1 & slotSizeMask;            
+            Tstore::channel[ 0 ][ pi + position0 ]      = sign0;
+            Tstore::channel[ 0 ][ pi + position0 + 1 ]  = Tstore::channel[ 0 ][ pi + position0 ] * 2;
+            Tstore::channel[ 0 ][ pi + position0 + 2 ]  = Tstore::channel[ 0 ][ pi + position0 ];
+            Tstore::channel[ 1 ][ pi + position1 ]      = sign1;
+            Tstore::channel[ 1 ][ pi + position1 + 1 ]  = Tstore::channel[ 1 ][ pi + position1 ] * 2;
+            Tstore::channel[ 1 ][ pi + position1 + 2 ]  = Tstore::channel[ 1 ][ pi + position1 ];
+        }
+    }
+    
     inline const auto& getFrame(void) const
     {
         return Tstore::channel[0];

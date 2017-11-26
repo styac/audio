@@ -102,9 +102,9 @@ static void teststuff(void)
         << "\n ycentA400_48000:         "   << int32_t(TuningTable::ycentA400_48000)
         << "\n ycentMidi0_48000:        "   << int32_t(TuningTable::ycentMidi0_48000_ET12)
         << "\n ycentMidi127_48000:      "   << int32_t(TuningTable::ycentMidi127_48000_ET12)
-        << "\n deltaPhaseA400_48000:    "   << ycent2deltafi(TuningTable::ycentA400_48000 ,0)
-        << "\n deltaPhaseMidi0_48000:   "   << ycent2deltafi(TuningTable::ycentMidi0_48000_ET12,0)
-        << "\n deltaPhaseMidi127_48000: "   << ycent2deltafi(TuningTable::ycentMidi127_48000_ET12,0)
+        << "\n deltaPhaseA400_48000:    "   << ExpTable::ycent2deltafi(TuningTable::ycentA400_48000)
+        << "\n deltaPhaseMidi0_48000:   "   << ExpTable::ycent2deltafi(TuningTable::ycentMidi0_48000_ET12)
+        << "\n deltaPhaseMidi127_48000: "   << ExpTable::ycent2deltafi(TuningTable::ycentMidi127_48000_ET12)
         << "\n cent2ycent:              "   << cent2ycent
         << "\n ycent2cent:              "   << ycent2cent
         << "\n midi res:                "   << (100.0/16384.0)

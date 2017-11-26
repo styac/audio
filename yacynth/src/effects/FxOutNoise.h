@@ -51,79 +51,21 @@ public:
     virtual bool connect( const FxBase * v, uint16_t ind ) override;
 
 private:
-    // 00 is always clear for output or bypass for in-out
-    // clearState should clear and this would be a nop
-    static void sprocess_01( void * thp )
-    {
-    //    constexpr float gain = 1.0f/(1<<26);
-        const float gain = static_cast< MyType * >(thp)->param.gains[ 1 - 1 ];
-        static_cast< MyType * >(thp)->fillWhite();
-        static_cast< MyType * >(thp)->mult(gain);
-    }
-    static void sprocess_02( void * thp )
-    {
-    //    constexpr float gain = 1.0f/(1<<26);
-        const float gain = static_cast< MyType * >(thp)->param.gains[ 2 - 1 ];
-        static_cast< MyType * >(thp)->fillWhiteStereo();
-        static_cast< MyType * >(thp)->mult(gain);
-    }
-
-    static void sprocess_03( void * thp )
-    {
-    //    constexpr float gain = 1.0f/(1<<26);
-        const float gain = static_cast< MyType * >(thp)->param.gains[ 3 - 1 ];
-        static_cast< MyType * >(thp)->fillWhiteLowCut();
-        static_cast< MyType * >(thp)->mult(gain);
-    }
-    static void sprocess_04( void * thp )
-    {
-    //    constexpr float gain = 1.0f/(1<<26);
-        const float gain = static_cast< MyType * >(thp)->param.gains[ 4 - 1 ];
-        static_cast< MyType * >(thp)->fillBlue();
-        static_cast< MyType * >(thp)->mult(gain);
-    }
-    static void sprocess_05( void * thp )
-    {
-    //    constexpr float gain = 1.0f/(1<<24);
-        const float gain = static_cast< MyType * >(thp)->param.gains[ 5 - 1 ];
-        static_cast< MyType * >(thp)->fillRed();
-        static_cast< MyType * >(thp)->mult(gain);
-    }
-    static void sprocess_06( void * thp )
-    {
-    //    constexpr float gain = 1.0f/(1<<21);
-        const float gain = static_cast< MyType * >(thp)->param.gains[ 6 - 1 ];
-        static_cast< MyType * >(thp)->fillPurple();
-        static_cast< MyType * >(thp)->mult(gain);
-    }
-    static void sprocess_07( void * thp )
-    {
-    //    constexpr float gain = 1.0f/(1<<27);
-        const float gain = static_cast< MyType * >(thp)->param.gains[ 7 - 1 ];
-        static_cast< MyType * >(thp)->fillPink();
-        static_cast< MyType * >(thp)->mult(gain);
-    }
-    static void sprocess_08( void * thp )
-    {
-    //    constexpr float gain = 1.0f/(1<<26);
-        const float gain = static_cast< MyType * >(thp)->param.gains[ 8 - 1 ];
-        static_cast< MyType * >(thp)->fillPinkLow();
-        static_cast< MyType * >(thp)->mult(gain);
-    }
-    static void sprocess_09( void * thp )
-    {
-    //    constexpr float gain = 1.0f/(1<<21);
-        const float gain = static_cast< MyType * >(thp)->param.gains[ 9 - 1 ];
-        static_cast< MyType * >(thp)->fillPurpleVar( static_cast< MyType * >(thp)->param.purplePole );
-        static_cast< MyType * >(thp)->mult(gain);
-    }
-    static void sprocess_10( void * thp )
-    {
-//        constexpr float gain = 1.0f/(1<<24);
-        const float gain = static_cast< MyType * >(thp)->param.gains[ 10 - 1 ];
-        static_cast< MyType * >(thp)->fillRedVar( static_cast< MyType * >(thp)->param.redPole );
-        static_cast< MyType * >(thp)->mult(gain);
-    }
+    static void sprocess_01( void * thp );
+    static void sprocess_02( void * thp );
+    static void sprocess_03( void * thp );
+    static void sprocess_04( void * thp );
+    static void sprocess_05( void * thp );
+    static void sprocess_06( void * thp );
+    static void sprocess_07( void * thp );
+    static void sprocess_08( void * thp );
+    static void sprocess_09( void * thp );
+    static void sprocess_10( void * thp );
+    static void sprocess_11( void * thp );
+    static void sprocess_12( void * thp );
+    static void sprocess_13( void * thp );
+    static void sprocess_14( void * thp );
+    static void sprocess_15( void * thp );
 };
 
 // --------------------------------------------------------------------

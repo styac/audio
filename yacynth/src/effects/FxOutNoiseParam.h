@@ -38,33 +38,46 @@ public:
     // mandatory fields
     static constexpr char const * const name    = "NoiseSource";
     static constexpr TagEffectType  type        = TagEffectType::FxOutNoise;
-    static constexpr std::size_t maxMode        = 10; // 0 is always exist> 0,1,2
+    static constexpr std::size_t maxMode        = 11; // 0 is always exist> 0,1,2
     static constexpr std::size_t inputCount     = 0;
 
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
     static constexpr uint8_t subtype = uint8_t(TagEffectFxOutNoiseMode::SetParametersMode01);
+    static constexpr float inigains[ maxMode ] = {
+        1.0 / (1<<28),  // 1 - mode 1
+        1.0 / (1<<26),  // 2
+        1.0 / (1<<26),  // 3
+        1.0 / (1<<26),  // 4
+        1.0 / (1<<24),  // 5
+        1.0 / (1<<21),  // 6
+        1.0 / (1<<27),  // 7
+        1.0 / (1<<26),  // 8
+        1.0 / (1<<21),  // 9
+        1.0 / (1<<24),  // 10
+        1.0 / (1<<24),  // 10
+    };
 
     void clear()
     {
-        static const float inigains[ maxMode ] = {
-            1.0 / (1<<26),  // 1 - mode 1
-            1.0 / (1<<26),  // 2
-            1.0 / (1<<26),  // 3
-            1.0 / (1<<26),  // 4
-            1.0 / (1<<24),  // 5
-            1.0 / (1<<21),  // 6
-            1.0 / (1<<27),  // 7
-            1.0 / (1<<26),  // 8
-            1.0 / (1<<21),  // 9
-            1.0 / (1<<24),  // 10
-        };
 
         for( auto gi = 0u; gi < maxMode; ++gi )
             gains[ gi ] = inigains[ gi ];
     }
     
-    float gains[ maxMode ];    // gain for each mode
+    float gains[ maxMode ] = {
+        1.0 / (1<<28),  // 1 - mode 1
+        1.0 / (1<<26),  // 2
+        1.0 / (1<<26),  // 3
+        1.0 / (1<<26),  // 4
+        1.0 / (1<<24),  // 5
+        1.0 / (1<<21),  // 6
+        1.0 / (1<<27),  // 7
+        1.0 / (1<<26),  // 8
+        1.0 / (1<<21),  // 9
+        1.0 / (1<<24),  // 10
+        1.0 / (1<<24),  // 11
+    };    // gain for each mode
     
     // optional fields
     uint8_t redPole;

@@ -16,7 +16,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-/* 
+/*
  * File:   TuningTablesFill.cpp
  * Author: Istvan Simon -- stevens37 at gmail dot com
  *
@@ -28,7 +28,7 @@ namespace Tuning {
 
 #define REF_TM_TABLE(p) \
     extern TuningGenerator table_ ## p;
-        
+
 REF_TM_TABLE(TM_21_Werckmeister3);
 REF_TM_TABLE(TM_21_Young2);
 REF_TM_TABLE(TM_21_Pythagorean);
@@ -44,7 +44,7 @@ namespace yacynth {
 void TuningTable::fill( const TuningGenerator& etg, uint8_t layer )
 {
     uint16_t index = 0;
-    double ycentBase = 0;
+    double ycentBase = 1; // will be renormalized
     int32_t ycent = 0;
     const double ycentPeriod = etg.getYcentPeriod();
     const auto intervalCount = etg.getIntervalCount();
@@ -65,14 +65,14 @@ void TuningTable::fill( const TuningGenerator& etg, uint8_t layer )
                 for( auto i=0; i < restOctave; ++i ) {
                     for( auto micro = 0u; micro < modifierCount; ++micro ) {
                         relativeYcent[ index + micro ] = ycent;
-                    }            
+                    }
                     index += (whiteKeys[ note++ ] << modifierCountExp);
                 }
                 ycentBase += ycentPeriod;
             }
             return;
-        } 
-        
+        }
+
         // fill all leys 1 layer - extend the rest
         if( intervalCount < 12 ) {
             const int restOctave = 12 - intervalCount;
@@ -90,15 +90,15 @@ void TuningTable::fill( const TuningGenerator& etg, uint8_t layer )
                 for( auto i=0; i < restOctave; ++i ) {
                     for( auto micro = 0u; micro < modifierCount; ++micro ) {
                         relativeYcent[ index + micro ] = ycent;
-                    }            
+                    }
                     index += indexInc;
                 }
                 ycentBase += ycentPeriod;
             }
             return;
-        } 
+        }
     }
-    
+
     // fill all keys 1layer
     while( index < size ) {
         uint16_t note = 0;
@@ -110,14 +110,14 @@ void TuningTable::fill( const TuningGenerator& etg, uint8_t layer )
             note++;
         }
         ycentBase += ycentPeriod;
-    }        
+    }
 }
 #if 0
 void TuningTable::fillETContinuous( uint32_t intervalCount, uint32_t rateNom, uint32_t rateDenom, uint32_t step )
 {
     TuningGenerator etg( intervalCount, rateNom, rateDenom );
     fill( etg );
-#if 0    
+#if 0
     uint16_t index = 0;
     double ycentBase = 0;
     const double ycentPeriod = etg.getYcentPeriod();
@@ -163,20 +163,20 @@ void TuningTable::fillETContinuous1_7( uint32_t intervalCount, uint32_t rateNom,
             << " note "     << note
             << " ycent "    << ycent
             << std::endl;
-#endif        
+#endif
             index += (whiteKeys[ note++ ] << modifierCountExp);
         }
         for( auto i=0; i < restOctave; ++i ) {
             for( auto micro = 0u; micro < modifierCount; ++micro ) {
                 relativeYcent[ index + micro ] = ycent;
-            }            
+            }
 #if 0
         std::cout
             << "index "     << index
             << " note "     << note
             << " ycent "    << ycent
             << std::endl;
-#endif        
+#endif
             index += (whiteKeys[ note++ ] << modifierCountExp);
         }
         ycentBase += ycentPeriod;
@@ -209,7 +209,7 @@ void TuningTable::fillETContinuous8_11( uint32_t intervalCount, uint32_t rateNom
         for( auto i=0; i < restOctave; ++i ) {
             for( auto micro = 0u; micro < modifierCount; ++micro ) {
                 relativeYcent[ index + micro ] = ycent;
-            }            
+            }
             index += indexInc;
         }
         ycentBase += ycentPeriod;
@@ -241,26 +241,26 @@ bool TuningTable::fill( TuningType ttype, TuningVariation tv )
 
     case TuningType::TM_21_ET_5:
         fillET( 5, 2, 1 );
-        break;        
-        
+        break;
+
     case TuningType::TM_21_ET_7:
         fillET( 7, 2, 1 );
-        break;        
+        break;
 
     case TuningType::TM_21_ET_9:
         fillET( 9, 2, 1 );
-        break;        
-        
+        break;
+
     case TuningType::TM_21_ET_10:
         fillET( 10, 2, 1 );
-        break;        
-        
+        break;
+
     case TuningType::TM_31_ET_13:
         fillET( 13, 3, 1 );
         break;
-        
+
     case TuningType::TM_32_ET_9:
-        fillET( 9, 3, 2 );        
+        fillET( 9, 3, 2 );
         break;
 
     case TuningType::TM_21_Ptolemy:
@@ -282,7 +282,7 @@ bool TuningTable::fill( TuningType ttype, TuningVariation tv )
     case TuningType::TM_21_Pelog1:
         fill( Tuning::table_TM_21_Pelog1 );
         break;
-        
+
     // test case
     case TuningType::TM_test:
 //        fill( Tuning::table_TM_21_test_ET12 );
@@ -304,4 +304,4 @@ void TuningTable::fill( int32_t * src, uint8_t layer )
     }
 }
 
-} // end namespace yacynth 
+} // end namespace yacynth

@@ -238,6 +238,7 @@ private:
     static NoiseFrame<FrameInt<oscillatorFrameSizeExp>>
                                     whiteNoiseFrame;
     static const ToneShaperMatrix   toneShaperMatrix;
+//    static const OvertoneMatrix   overtoneMatrix;
 }; // end class Oscillator
 // --------------------------------------------------------------------
 } // end namespace yacynth

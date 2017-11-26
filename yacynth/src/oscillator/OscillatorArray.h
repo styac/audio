@@ -57,6 +57,13 @@ public:
     }
     
 private:
+    
+    // TODO modulateFm
+    void modulateFm()
+    {
+        
+    }
+    
     OscillatorInGenerate    oscillatorParamGenerate;
     OscillatorInChange      oscillatorParamChange;
     int32_t                 commonFMPitch;
@@ -65,9 +72,13 @@ private:
     uint8_t                 maxVoice;
     bool                    monoPhone;
     bool                    enableFM;
-    
-    
+        
     // new
+//    ControllerIndex         modulateFmFrequencyIndex;
+//    ControllerIndex         modulateFmDepthIndex;
+//    ControllerIndex         phaseFmIndex;
+//    ControllerIndex         phaseDeltaFmIndex;
+    
     ControllerIndex         pitchBendIndex;
     ControllerCache         pitchBendCache;
     ControllerPitchBend     pitchBendRange;

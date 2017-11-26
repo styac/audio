@@ -63,6 +63,13 @@
 // http://www.nonoctave.com/tuning/scales/Ptolemy's_Scale_Catalog.html
 // http://www.flutopedia.com/
 
+// http://sethares.engr.wisc.edu/consemi.html
+
+// http://www.oddmusic.com/
+// http://barthopkin.com/
+//
+//
+
 
 namespace yacynth {
 

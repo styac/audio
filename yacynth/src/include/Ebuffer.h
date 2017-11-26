@@ -185,16 +185,16 @@ struct EIObuffer : public EbufferPar {
     inline void mult( const EIObuffer& inp, float gain )
     {
         for( auto i=0u; i < vsectionSize; ++i ) {
-            vchannel[chA][i] = inp.vchannel[chA][i] * gain;
-            vchannel[chB][i] = inp.vchannel[chB][i] * gain;
+            vchannel[ chA ][ i ] = inp.vchannel[ chA ][ i ] * gain;
+            vchannel[ chB ][ i ] = inp.vchannel[ chB ][ i ] * gain;
         }
     }
 
     inline void mult( const EIObuffer& inp, float gain0, float gain1 )
     {
         for( auto i=0u; i < vsectionSize; ++i ) {
-            vchannel[chA][i] = inp.vchannel[chA][i] * gain0;
-            vchannel[chB][i] = inp.vchannel[chB][i] * gain1;
+            vchannel[ chA ][ i ] = inp.vchannel[ chA ][ i ] * gain0;
+            vchannel[ chB ][ i ] = inp.vchannel[ chB ][ i ] * gain1;
         }
     }
     
@@ -206,6 +206,14 @@ struct EIObuffer : public EbufferPar {
         }
     }
     
+    inline void multAdd( const EIObuffer& inp, float gain0, float gain1 )
+    {
+        for( auto i=0u; i < vsectionSize; ++i ) {
+            vchannel[ chA ][ i ] += inp.vchannel[ chA ][ i ] * gain0;
+            vchannel[ chB ][ i ] += inp.vchannel[ chB ][ i ] * gain1;
+        }
+    }
+
     inline void mult( const EIObuffer& inp0, const EIObuffer& inp1,
                       float gain0, float gain1 )
     {
@@ -278,7 +286,7 @@ struct EIObuffer : public EbufferPar {
 
     inline void fade( const EIObuffer& inp, float& gain, float dgain )
     {
-        static constexpr float fadeGain     =  (1.0f/(1<<6));
+        static constexpr float fadeGain =  (1.0f/(1<<6));
         dgain *= fadeGain;
         float gaini = gain;
         for( auto i=0u; i < sectionSize; ++i ) {
@@ -302,6 +310,25 @@ struct EIObuffer : public EbufferPar {
         gain = gaini;
     }
 
+    inline void fadeV4( const EIObuffer& inp, float& gain0, float& gain1, float dgain0, float dgain1 )
+    {
+        constexpr float fadeGainV4   =  (1.0f/(1<<4));
+        dgain0 *= fadeGainV4;
+        dgain1 *= fadeGainV4;
+        float gaintmp0 = gain0;
+        float gaintmp1 = gain1;
+        for( auto i=0u; i < vsectionSize; ++i ) {
+            gaintmp0 += dgain0;
+            vchannel[ chA ][ i ] = inp.vchannel[ chA ][ i ] * gaintmp0;
+        }
+        for( auto i=0u; i < vsectionSize; ++i ) {
+            gaintmp1 += dgain1;
+            vchannel[ chB ][ i ] = inp.vchannel[ chB ][ i ] * gaintmp1;
+        }
+        gain0 = gaintmp0;
+        gain1 = gaintmp1;
+    }
+
     inline void fadeAdd( const EIObuffer& inp, float& gain0, float& gain1, float dgain0, float dgain1 )
     {
         constexpr float fadeGainV4   =  (1.0f/(1<<6));
@@ -310,12 +337,12 @@ struct EIObuffer : public EbufferPar {
         float gaintmp0 = gain0;
         for( auto i=0u; i < sectionSize; ++i ) {
             gaintmp0 += dgain0;
-            channel[chA][i] = inp.channel[chA][i] * gaintmp0;
+            channel[chA][i] += inp.channel[chA][i] * gaintmp0;
         }
         float gaintmp1 = gain1;
         for( auto i=0u; i < sectionSize; ++i ) {
             gaintmp1 += dgain1;
-            channel[chB][i] = inp.channel[chB][i] * gaintmp1;
+            channel[chB][i] += inp.channel[chB][i] * gaintmp1;
         }
         gain0 = gaintmp0;
         gain1 = gaintmp1;
@@ -329,12 +356,12 @@ struct EIObuffer : public EbufferPar {
         float gaintmp0 = gain0;
         for( auto i=0u; i < vsectionSize; ++i ) {
             gaintmp0 += dgain0;
-            vchannel[chA][i] = inp.vchannel[chA][i] * gaintmp0;
+            vchannel[chA][i] += inp.vchannel[chA][i] * gaintmp0;
         }
         float gaintmp1 = gain1;
         for( auto i=0u; i < vsectionSize; ++i ) {
             gaintmp1 += dgain1;
-            vchannel[chB][i] = inp.vchannel[chB][i] * gaintmp1;
+            vchannel[chB][i] += inp.vchannel[chB][i] * gaintmp1;
         }
         gain0 = gaintmp0;
         gain1 = gaintmp1;

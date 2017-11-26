@@ -58,17 +58,30 @@ bool FxMixerParam::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t 
         message.setStatus( yaxp::MessageT::illegalDataLength );
         return false;
 
-    case TagEffectFxMixerMode::SetVolumeRange :
+    case TagEffectFxMixerMode::SetVolumeRange : {
         TAG_DEBUG(TagEffectFxMixerMode::SetVolumeRange, tagIndex, paramIndex, "FxMixerParam" );
-// TODO : 2 ch        
-//        if( message.setTargetData( gainRange[channel] ) ) {
-//            std::cout <<  "--- channel " << channel <<  " volume " << gainRange[channel] << std::endl;
-//            message.setStatusSetOk();
-//            return true;
-//        }
+        if( message.length != 2 * sizeof(float) ) {
+            message.setStatus( yaxp::MessageT::illegalDataLength );
+            return false;            
+        }
+        const float * chx = (float *) message.data;
+        if( setRange( channel, chx[0], chx[1] ) ) {
+            std::cout <<  "--- channel " << channel <<  " volume " << gainRange[channel] << std::endl;
+            message.setStatusSetOk();
+            return true;
+        }
+        }
         message.setStatus( yaxp::MessageT::illegalDataLength );
         return false;
 
+    case TagEffectFxMixerMode::SetChannelCount :
+        TAG_DEBUG(TagEffectFxMixerMode::SetChannelCount, tagIndex, paramIndex, "FxMixerParam" );
+        effectiveInputCount = channel;
+        message.setStatusSetOk();
+                std::cout << "---- effectiveInputCount " << uint16_t(effectiveInputCount)  << std::endl;
+
+        return true;
+                                       
     case TagEffectFxMixerMode::Preset : {
         TAG_DEBUG(TagEffectFxMixerMode::Preset, tagIndex, paramIndex, "FxMixerParam" );
         preset0();
