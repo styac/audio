@@ -188,12 +188,12 @@ struct ToneShaper {
         OSC_TRIANGLE_2CH_PH,
         OSC_TRIANGLE_2CH_FR,
 
-        OSC_D12V11,         // tone 1 + 2 
-        OSC_D12V12,         // tone 1 + 2 
-        OSC_D13V11,         // tone 1 + 3 
-        OSC_D13V12,         // tone 1 + 3         
-        OSC_D23V11,         // tone 2 + 3 
-        OSC_D23V12,         // tone 2 + 3 
+        OSC_D12V11,         // tone 1 + 2
+        OSC_D12V12,         // tone 1 + 2
+        OSC_D13V11,         // tone 1 + 3
+        OSC_D13V12,         // tone 1 + 3
+        OSC_D23V11,         // tone 2 + 3
+        OSC_D23V12,         // tone 2 + 3
 
         OSC_T123V111,       // tone 1 + 2 + 3
         OSC_T123V121,       // tone 1 + 2 + 3
@@ -212,7 +212,7 @@ struct ToneShaper {
         OSC_PD20,
         OSC_PD30,
         OSC_PD40,
-        
+
         // 2CH tones with phase shift of PI/2
 #if 0
         OSC_PD00_2CH_PH,       // phase distorsion0 waveSinTable[ uint16_t((waveSinTable[phase >>16]) + (phase >>16))]
@@ -244,7 +244,7 @@ struct ToneShaper {
         OSC_13OV1_2CH_FR,      // tone 1 + 3 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>14)]>>1));};
         OSC_13OV2_2CH_FR,      // tone 1 + 3 : (waveSinTable[uint16_t(phase>>16)]+(waveSinTable[uint16_t(phase>>14)]>>2));};
 #endif
-        
+
         // TODO need 2CH noises
         // wide noise
         OSC_NOISE_WHITE   = 0x80,
@@ -289,7 +289,7 @@ struct ToneShaper {
         OSC_NOISE_SV2x4_PEEK,
         OSC_NOISE_SV3x4_PEEK,
 
-        
+
         // check: experimental
         OSC_SIN_MULT_RED_NOISE,
         // sounds bad  TODO recheck
@@ -334,8 +334,8 @@ struct ToneShaper {
     uint8_t             outChannel;         // output channel
     uint8_t             filterBandwidth;    // allpass - uint8_t ok --> -int32_t(filterBw) << 23
     uint8_t             veloBoost;
-    uint8_t             rfu2;    
-    uint8_t             rfu1;    
+    uint8_t             rfu2;
+    uint8_t             rfu1;
 };
 // --------------------------------------------------------------------
 struct ToneShaperVector {

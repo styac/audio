@@ -46,14 +46,11 @@ public:
     // optional
     static constexpr std::size_t channelCount       = 2;
     static constexpr std::size_t tapCount           = 1<<4; // 5 ?
-    static constexpr std::size_t tapCountMask       = tapCount-1;
-    static constexpr std::size_t coeffSetCount      = 1<<4;
-    static constexpr std::size_t coeffSetCountMask  = coeffSetCount-1;
 
-    static constexpr int delayLngExp        = 15; // ca: 600 msec - 512*1.3
+    static constexpr int delayLngExp        = 13; // ca: 150 msec - 128*1.3
     static constexpr int delayLng           = 1<<delayLngExp;
     static constexpr int delayOffsMaxLng    = delayLng - 1;
-    static constexpr int delayOffsMinLng    = effectFrameSize * 2;
+    static constexpr int delayOffsMinLng    = effectFrameSize+1;
 
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
@@ -61,23 +58,28 @@ public:
         static constexpr uint8_t subtype = uint8_t(TagEffectFxEarlyReflectionMode::SetParametersMode01);
         static constexpr char const * const delayLateReverbName = "lateReverbDelay";
         static constexpr char const * const earlyreflectionName = "earlyReflection";
+        static constexpr int delayOffsMaxLng    = FxEarlyReflectionParam::delayOffsMaxLng;
+        static constexpr int delayOffsMinLng    = FxEarlyReflectionParam::delayOffsMinLng;
 
         bool check()
         {
             for( auto &v0 : lateReverb.delayIndex.v ) {
                 if(( v0 > delayOffsMaxLng ) || ( v0 < delayOffsMinLng )) {
+                    std::cout << " error delayOffsMaxLng " << v0 << std::endl;
                     return false;
                 }
             }
 
             for( auto &v0 : tap.coeff.v ) {
                 if(( v0 > 1.0f ) || ( v0 < -1.0f )) {
+                    std::cout << " error coeff " << std::endl;
                     return false;
                 }
             }
 
             for( auto &v0 : tap.modDepth.v ) {
                 if(( v0 > 1.0f ) || ( v0 < -1.0f )) {
+                    std::cout << " error modDepth " << std::endl;
                     return false;
                 }
             }
@@ -86,12 +88,14 @@ public:
             constexpr int32_t maxModDp = freq2deltaPhaseControlLfo(20.0);
             for( auto &v0 : tap.modDeltaPhase.v ) {
                 if(( v0 > maxModDp ) || ( v0 < minModDp )) {
+                    std::cout << " error maxModDp " << std::endl;
                     return false;
                 }
             }
 
             for( auto &v0 : tap.delayIndex.v ) {
                 if(( v0 > delayOffsMaxLng ) || ( v0 < delayOffsMinLng )) {
+                    std::cout << " error delayOffsMaxLng " << v0 << std::endl;
                     return false;
                 }
             }
@@ -101,7 +105,8 @@ public:
         DelayModulatedTapArrayNCH< tapCount, channelCount > tap;
         // left-right delay for late reverb
         // need a controller later !
-        DelayTapArrayNCH< 1, channelCount >                 lateReverb;
+        DelayTapArrayNCH< 1, channelCount >
+                lateReverb;
         // uint8_t tapCount;
     } mode01;
 };

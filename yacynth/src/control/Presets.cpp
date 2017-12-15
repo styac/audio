@@ -126,10 +126,10 @@ void preset0( Sysman  * sysman )
     ts.sustain.modDepth  = 0;     // 100 / 256
     ts.sustain.modDeltaPhase = 0; //300;
     ts.tickFrameRelease.setPar( 100, 0, 2 );
-    ts.transient[ 2 ].tickFrame.setPar( 20, 0, 2 );
+    ts.transient[ 2 ].tickFrame.setPar( 5, 0, 2 );
     ts.transient[ 2 ].targetValue = uint32_t( 32000.0 * 65535.0 );
-    ts.transient[ 1 ].tickFrame.setPar( 50, 0, 1 );
-    ts.transient[ 1 ].targetValue = uint32_t( 20000.0 * 65535.0 );
+    ts.transient[ 1 ].tickFrame.setPar( 100, 0, 1 );
+    ts.transient[ 1 ].targetValue = uint32_t( 7000.0 * 65535.0 );
 
     ts.oscillatorType = ToneShaper::OSC_SIN; // OSC_SIN;
     ts.detune2CH = 10<<12;
@@ -162,10 +162,10 @@ void preset0( Sysman  * sysman )
         ts.sustain.modDepth  = 0;     // 100 / 256
         ts.sustain.modDeltaPhase = 0; // 300;
         ts.tickFrameRelease.setPar( 100, 0, 2 );
-        ts.transient[ 2 ].tickFrame.setPar( 20, 0, 2 );
+        ts.transient[ 2 ].tickFrame.setPar( 2, 0, 2 );
         ts.transient[ 2 ].targetValue = uint32_t( 52000.0 * 65535.0 * onevi );
         ts.transient[ 1 ].tickFrame.setPar( 100, 0, 1 );
-        ts.transient[ 1 ].targetValue = uint32_t( 20000.0 * 65535.0 * onevi );
+        ts.transient[ 1 ].targetValue = uint32_t( 6000.0 * 65535.0 * onevi );
 
         ts.oscillatorType = ToneShaper::OSC_SIN;
         if( vi & 1) {

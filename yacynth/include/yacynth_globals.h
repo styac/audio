@@ -65,6 +65,7 @@ constexpr uint16_t  envelopeKnotSteady          = -1;
 
 constexpr uint16_t  sytemOutChannel             = 2;    // mono = mono/2 stereo
 constexpr double    samplingFrequency           = 48000.0;
+constexpr double    samplingDeltaTime           = 1.0/samplingFrequency;
 
 constexpr uint16_t  scalePhaseIndexExp          = 1<<4;
 constexpr uint64_t  scalePhaseIndex             = 1LL << scalePhaseIndexExp;

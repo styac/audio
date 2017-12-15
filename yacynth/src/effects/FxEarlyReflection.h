@@ -62,8 +62,48 @@ private:
     static void sprocess_03( void * thp );
     static void sprocess_04( void * thp );
 
+    // TODO > make function for slave and put to sprocess
+    inline void processSlave(void)
+    {
+        delayLine.fillTDLSection(
+                param.mode01.lateReverb.delayIndex.v[ chA ],
+                param.mode01.lateReverb.delayIndex.v[ chB ],
+                slaves[ 0 ].out().channel[ chA ],
+                slaves[ 0 ].out().channel[ chB ] );
+    }
+
+    inline void processNonModulated(void)
+    {
+        static_assert(FxEarlyReflectionParam::tapCount>1,"tap count must be greater then 1");
+        static_assert(FxEarlyReflectionParam::channelCount>1,"channel count must be greater then 1");
+        delayLine.pushSection( inp<0>().channel[ chA ], inp<0>().channel[ chB ] );
+
+        // first tap deletes
+        delayLine.fillTDLSection(
+                param.mode01.tap.delayIndex.v2[ 0 ][ chA ],
+                param.mode01.tap.delayIndex.v2[ 0 ][ chB ],
+                param.mode01.tap.coeff.v2[ 0 ][ chA ],
+                param.mode01.tap.coeff.v2[ 0 ][ chB ],
+                out().channel[ chA ],
+                out().channel[ chB ] );
+
+        // 1..n added
+        for( uint32_t si=1; si < FxEarlyReflectionParam::tapCount; ++si ) {
+            delayLine.addTDLSection(
+                param.mode01.tap.delayIndex.v2[ si ][ chA ],
+                param.mode01.tap.delayIndex.v2[ si ][ chB ],
+                param.mode01.tap.coeff.v2[ si ][ chA ],
+                param.mode01.tap.coeff.v2[ si ][ chB ],
+                out().channel[ chA ],
+                out().channel[ chB ] );
+        }
+//        out().copyCH<chB>(inp<0>());
+    }
+
     // simple: no coeff modulation
-    inline void process_01_simple(void)
+    // TODO > make function for slave and put to sprocess
+
+    inline void processNonModulatedWithSlave(void)
     {
         static_assert(FxEarlyReflectionParam::tapCount>1,"tap count must be greater then 1");
         static_assert(FxEarlyReflectionParam::channelCount>1,"channel count must be greater then 1");
@@ -97,7 +137,7 @@ private:
     }
 
     // coeff modulation
-    inline void process_02_modulated(void)
+    inline void processModulatedWithSlave(void)
     {
         static_assert(FxEarlyReflectionParam::tapCount>1,"tap count must be greater then 1");
         static_assert(FxEarlyReflectionParam::channelCount>1,"channel count must be greater then 1");
@@ -131,37 +171,8 @@ private:
         }
     }
 
-    // same as 01 but slave is not supplíed
-    inline void process_03_simple_noslave(void)
-    {
-        static_assert(FxEarlyReflectionParam::tapCount>1,"tap count must be greater then 1");
-        static_assert(FxEarlyReflectionParam::channelCount>1,"channel count must be greater then 1");
-        delayLine.pushSection( inp<0>().channel[ chA ], inp<0>().channel[ chB ] );
-
-        // first tap deletes
-        delayLine.fillTDLSection(
-                param.mode01.tap.delayIndex.v2[ 0 ][ chA ],
-                param.mode01.tap.delayIndex.v2[ 0 ][ chB ],
-                param.mode01.tap.coeff.v2[ 0 ][ chA ],
-                param.mode01.tap.coeff.v2[ 0 ][ chB ],
-                out().channel[ chA ],
-                out().channel[ chB ] );
-
-        // 1..n added
-        for( uint32_t si=1; si < FxEarlyReflectionParam::tapCount; ++si ) {
-            delayLine.addTDLSection(
-                param.mode01.tap.delayIndex.v2[ si ][ chA ],
-                param.mode01.tap.delayIndex.v2[ si ][ chB ],
-                param.mode01.tap.coeff.v2[ si ][ chA ],
-                param.mode01.tap.coeff.v2[ si ][ chB ],
-                out().channel[ chA ],
-                out().channel[ chB ] );
-        }
-//        out().copyCH<chB>(inp<0>());
-    }
-
-    // // same as 02 but slave is not supplíed
-    inline void process_04_modulated_noslave(void)
+    // same as 02 but slave is not supplíed
+    inline void processModulated(void)
     {
         static_assert(FxEarlyReflectionParam::tapCount>1,"tap count must be greater then 1");
         static_assert(FxEarlyReflectionParam::channelCount>1,"channel count must be greater then 1");
@@ -194,28 +205,15 @@ private:
     // to test
     void stepAMcoeff()
     {
-#if 0
-        constexpr std::size_t vsize = V4fMvec<FxEarlyReflectionParam::tapCount,   FxEarlyReflectionParam::channelCount>::size4;
-        // TODO use V4
-        for( auto vi = 0u; vi < size4; ++vi ) {
-            // make triangle
-            const v4si tmp = phase.v4[ vi ]>>1;
-            const v4sf triangle = (v4sf) ((tmp>>30) ^ tmp );
-            // mult int*float with v4 ?
-            coeff.v4[ vi ] = param.mode01.tap.coeff.v4[ vi ] - triangle * param.mode01.tap.modDepth.v4[ vi ];
-            phase.v4[ vi ] += param.mode01.tap.modDeltaPhase.v4[ vi ];
-        }
-#else
         constexpr std::size_t vsize = V4fMvec<FxEarlyReflectionParam::tapCount,   FxEarlyReflectionParam::channelCount>::size;
         for( auto vi = 0u; vi < vsize; ++vi ) {
             // make triangle
-            const int32_t tmp = phase.v[ vi ]>>1;
-            const float triangle = (float) ((tmp>>30) ^ tmp );
+            const int32_t tmp = phase.v[ vi ];
+            const float triangle = (float) ((tmp>>31) ^ tmp );
             // subtract: triangle -- decrease amplitude
             coeff.v[ vi ] = param.mode01.tap.coeff.v[ vi ] - triangle * param.mode01.tap.modDepth.v[ vi ];
             phase.v[ vi ] += param.mode01.tap.modDeltaPhase.v[ vi ];
         }
-#endif
     }
 
     // new
