@@ -13,12 +13,12 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -O3 -mfpmath=sse -msse2 -msse3 -msse4.2
 	
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS}" )
 
-file(GLOB_RECURSE HDR_FILES  ${PROJECT_SOURCE_DIR} *.hpp *.h )
-file(GLOB_RECURSE SRC_FILES  ${PROJECT_SOURCE_DIR} *.cpp *.c )
+file( GLOB_RECURSE project_HDRS ${PROJECT_SOURCE_DIR} *.hpp *.h )
+file( GLOB_RECURSE project_SRCS ${PROJECT_SOURCE_DIR} *.cpp *.c )
 
 include_directories( include src src/include )
 set(CMAKE_BUILD_TYPE RELEASE CACHE STRING "" FORCE)
-add_executable(yacynth ${SRC_FILES} ${HDR_FILES} )
+add_executable( yacynth ${project_SRCS} ${project_HDRS} )
 target_link_libraries( yacynth
 	jack
 	pthread
