@@ -25,9 +25,9 @@
  * Created on February 19, 2016, 11:55 PM
  */
 
-#include    "../../include/protocol.h"
-#include    "../control/Sysman.h"
-#include    "../control/Setting.h"
+#include    "protocol.h"
+#include    "control/Sysman.h"
+#include    "control/Setting.h"
 #include    "spdlog/spdlog.h"
 #include    <iostream>
 #include    <memory>

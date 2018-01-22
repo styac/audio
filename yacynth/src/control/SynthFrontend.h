@@ -26,14 +26,14 @@
  */
 
 #include    "Statistics.h"
-#include    "../oscillator/Tables.h"
-#include    "../oscillator/Oscillator.h"
-#include    "../oscillator/OscillatorArray.h"
-#include    "../oscillator/ToneShaper.h"
-#include    "../yaio/YaIoJack.h"
-#include    "../yaio/IOthread.h"
-#include    "../control/Controllers.h"
-#include    "../oscillator/ToneShaperMatrix.h"
+#include    "oscillator/Tables.h"
+#include    "oscillator/Oscillator.h"
+#include    "oscillator/OscillatorArray.h"
+#include    "oscillator/ToneShaper.h"
+#include    "yaio/YaIoJack.h"
+#include    "yaio/IOthread.h"
+#include    "control/Controllers.h"
+#include    "oscillator/ToneShaperMatrix.h"
 
 
 /*

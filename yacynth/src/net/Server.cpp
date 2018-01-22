@@ -143,6 +143,7 @@ void Server::execute()
         default:
             message.messageType = yaxp::MessageT::illegalContext;
             message.length = 0;
+            logger->warn("** illegalContext" );
         }
         // send response
         if( ! doSend() ) {

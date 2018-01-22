@@ -24,7 +24,7 @@
 
 #include    "YaIoJack.h"
 #include    "CycleCount.h"
-#include    "../control/global.h"
+#include    "control/global.h"
 #include    <thread>
 
 namespace yacynth {

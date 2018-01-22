@@ -25,8 +25,8 @@
  * Created on April 17, 2017, 11:22 AM
  */
 
-#include    "../effects/FxEarlyReflectionParam.h"
-#include    "../effects/FxBase.h"
+#include    "effects/FxEarlyReflectionParam.h"
+#include    "effects/FxBase.h"
 
 namespace yacynth {
 

@@ -26,8 +26,8 @@
  */
 #include    "yacynth_globals.h"
 #include    "v4.h"
-#include    "../utils/Fastsincos.h"
-#include    "../utils/Fastexp.h"
+#include    "utils/Fastsincos.h"
+#include    "utils/Fastexp.h"
 
 #include    "Tags.h"
 #include    "protocol.h"

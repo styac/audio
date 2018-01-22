@@ -25,7 +25,7 @@
  */
 
 #include    "yacynth_globals.h"
-#include    "../effects/FxBase.h"
+#include    "effects/FxBase.h"
 #include    "v4.h"
 #include    "FxInputParam.h"
 

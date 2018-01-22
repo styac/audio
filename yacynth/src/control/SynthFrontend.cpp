@@ -24,7 +24,7 @@
  */
 
 #include    "SynthFrontend.h"
-#include    "../control/global.h"
+#include    "control/global.h"
 
 #include    <unistd.h>
 #include    <atomic>
@@ -86,6 +86,7 @@ bool SynthFrontend::evalMEssage( void )
 } // end SynthFrontend::evalMEssage
 
 // --------------------------------------------------------------------
+// TODO: rework with spinlock if 1 is full
 bool SynthFrontend::generate( void )
 {
     // there should be 0,1 full buffer not more 

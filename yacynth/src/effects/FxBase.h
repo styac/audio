@@ -26,9 +26,9 @@
  */
 
 #include    "Ebuffer.h"
-#include    "../control/Controllers.h"
-#include    "../../include/Tags.h"
-#include    "../../include/protocol.h"
+#include    "control/Controllers.h"
+#include    "Tags.h"
+#include    "protocol.h"
 
 #include    <cstdint>
 #include    <sstream>

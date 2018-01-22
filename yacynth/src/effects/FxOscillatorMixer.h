@@ -26,10 +26,10 @@
  */
 
 #include    "yacynth_globals.h"
-#include    "../effects/FxBase.h"
+#include    "effects/FxBase.h"
 #include    "v4.h"
 #include    "FxOscillatorMixerParam.h"
-#include    "../oscillator/OscillatorOutput.h"
+#include    "oscillator/OscillatorOutput.h"
 
 namespace yacynth {
 class FxOscillatorMixer : public Fx<FxOscillatorMixerParam>  {

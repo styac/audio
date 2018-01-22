@@ -25,13 +25,13 @@
  * Created on June 23, 2016, 7:46 PM
  */
 
-#include    "../utils/Fastsincos.h"
-#include    "../oscillator/Tables.h"
-#include    "../utils/Limiters.h"
-#include    "../effects/DelayTap.h"
-#include    "../oscillator/NoiseSample.h"
-#include    "../effects/FxChorusParam.h"
-#include    "../effects/FxBase.h"
+#include    "utils/Fastsincos.h"
+#include    "oscillator/Tables.h"
+#include    "utils/Limiters.h"
+#include    "effects/DelayTap.h"
+#include    "oscillator/NoiseSample.h"
+#include    "effects/FxChorusParam.h"
+#include    "effects/FxBase.h"
 
 using namespace tables;
 

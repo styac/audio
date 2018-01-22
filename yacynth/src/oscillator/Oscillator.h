@@ -32,10 +32,10 @@
 #include    "NoiseSample.h"
 #include    "OscillatorNoiseInt.h"
 
-#include    "../control/Statistics.h"
-#include    "../utils/GaloisNoiser.h"
-#include    "../utils/Fastsincos.h"
-#include    "../oscillator/ToneShaperMatrix.h"
+#include    "control/Statistics.h"
+#include    "utils/GaloisNoiser.h"
+#include    "utils/Fastsincos.h"
+#include    "oscillator/ToneShaperMatrix.h"
 
 #include    <cstdint>
 #include    <iostream>

@@ -24,7 +24,7 @@
  */
 
 #include    "Sysman.h"
-#include    "../control/global.h"
+#include    "control/global.h"
 
 namespace yacynth {
 using namespace TagMainLevel_00;

@@ -29,7 +29,7 @@
 #include    "Ebuffer.h"
 #include    "yacynth_globals.h"
 //#include    "protocol.h"
-#include    "../effects/FxBase.h"
+#include    "effects/FxBase.h"
 
 #include    <array>
 #include    <iostream>

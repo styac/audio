@@ -27,8 +27,8 @@
 
 #include    "protocol.h"
 #include    "Tags.h"
-#include    "../control/Controllers.h"
-#include    "../effects/DelayTap.h"
+#include    "control/Controllers.h"
+#include    "effects/DelayTap.h"
 
 namespace yacynth {
 using namespace TagEffectTypeLevel_02;

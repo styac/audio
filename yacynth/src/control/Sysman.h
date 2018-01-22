@@ -24,15 +24,15 @@
  *
  * Created on February 21, 2016, 8:31 AM
  */
-#include    "../../include/protocol.h"
-#include    "../oscillator/Tables.h"
-#include    "../oscillator/Oscillator.h"
-//#include    "../oscillator/BaseSetting.h"
-#include    "../oscillator/OscillatorArray.h"
-#include    "../oscillator/ToneShaper.h"
-#include    "../yaio/YaIoJack.h"
-#include    "../yaio/IOthread.h"
-#include    "../router/Router.h"
+#include    "protocol.h"
+#include    "oscillator/Tables.h"
+#include    "oscillator/Oscillator.h"
+//#include    "oscillator/BaseSetting.h"
+#include    "oscillator/OscillatorArray.h"
+#include    "oscillator/ToneShaper.h"
+#include    "yaio/YaIoJack.h"
+#include    "yaio/IOthread.h"
+#include    "router/Router.h"
 #include    "Tags.h"
 
 #include    <cstdlib>

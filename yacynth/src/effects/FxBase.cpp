@@ -24,7 +24,7 @@
  */
 
 #include    "FxBase.h"
-#include    "../yaio/CycleCount.h"
+#include    "yaio/CycleCount.h"
 
 #include    <chrono>
 #include    <sys/time.h>

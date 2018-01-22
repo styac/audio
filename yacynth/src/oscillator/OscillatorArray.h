@@ -27,8 +27,8 @@
 
 #include    "Oscillator.h"
 #include    "OscillatorOutput.h"
-#include    "../message/yamsg.h"
-#include    "../control/Controllers.h"
+#include    "message/yamsg.h"
+#include    "control/Controllers.h"
 
 #include    <array>
 

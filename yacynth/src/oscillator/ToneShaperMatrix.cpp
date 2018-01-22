@@ -23,7 +23,7 @@
  * Created on April 4, 2016, 11:52 AM
  */
 
-#include    "../oscillator/ToneShaperMatrix.h"
+#include    "oscillator/ToneShaperMatrix.h"
 #include    "memory.h"
 
 namespace yacynth {

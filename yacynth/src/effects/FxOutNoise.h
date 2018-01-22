@@ -26,9 +26,9 @@
  */
 
 #include    "FxOutNoiseParam.h"
-#include    "../oscillator/NoiseFrame.h"
-#include    "../utils/GaloisNoiser.h"
-#include    "../effects/FxBase.h"
+#include    "oscillator/NoiseFrame.h"
+#include    "utils/GaloisNoiser.h"
+#include    "effects/FxBase.h"
 
 using namespace noiser;
 

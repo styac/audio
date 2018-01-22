@@ -27,7 +27,7 @@
 
 #include    "protocol.h"
 #include    "Tags.h"
-#include    "../control/Controllers.h"
+#include    "control/Controllers.h"
 
 
 namespace yacynth {

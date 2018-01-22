@@ -23,8 +23,8 @@
  * Created on February 15, 2016, 4:59 PM
  */
 
-#include    "../yaio/IOthread.h"
-#include    "../yaio/CycleCount.h"
+#include    "yaio/IOthread.h"
+#include    "yaio/CycleCount.h"
 #include    <sys/time.h>
 #include    <ctime>
 #include    <atomic>

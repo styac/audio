@@ -29,8 +29,8 @@
 #define     YAIO
 
 #include    "yacynth_globals.h"
-#include    "../message/yamsg.h"
-#include    "../message/Midi.h"
+#include    "message/yamsg.h"
+#include    "message/Midi.h"
 
 #include    <cstddef>
 #include    <cstdint>

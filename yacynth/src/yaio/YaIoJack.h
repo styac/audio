@@ -30,7 +30,7 @@
 
 #include    "YaIo.h"
 #include    "YaIoJackPort.h"
-#include    "../message/Midi.h"
+#include    "message/Midi.h"
 
 #include    <jack/jack.h>
 #include    <jack/midiport.h>

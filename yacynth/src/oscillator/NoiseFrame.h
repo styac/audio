@@ -24,7 +24,7 @@
  *
  * Created on May 30, 2016, 6:31 PM
  */
-#include    "../utils/GaloisNoiser.h"
+#include    "utils/GaloisNoiser.h"
 
 
 // http://mc2method.org/white-noise/

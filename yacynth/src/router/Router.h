@@ -25,12 +25,12 @@
  */
 
 #include    "yacynth_globals.h"
-#include    "../message/yamsg.h"
-#include    "../message/Midi.h"
-#include    "../control/Controllers.h"
-#include    "../router/ControlQueue.h"
-#include    "../router/TuningTables.h"
-#include    "../router/MidiTuning.h"
+#include    "message/yamsg.h"
+#include    "message/Midi.h"
+#include    "control/Controllers.h"
+#include    "router/ControlQueue.h"
+#include    "router/TuningTables.h"
+#include    "router/MidiTuning.h"
 
 #include    <iostream>
 #include    <fstream>

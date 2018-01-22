@@ -26,8 +26,8 @@
  */
 
 #include    "FxOutOscillatorParam.h"
-#include    "../utils/Fastsincos.h"
-#include    "../effects/FxBase.h"
+#include    "utils/Fastsincos.h"
+#include    "effects/FxBase.h"
 
 using namespace tables;
 

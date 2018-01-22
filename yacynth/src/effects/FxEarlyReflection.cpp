@@ -23,7 +23,7 @@
  * Created on April 17, 2017, 11:22 AM
  */
 
-#include    "../effects/FxEarlyReflection.h"
+#include    "effects/FxEarlyReflection.h"
 #include    <iomanip>
 #include    <iostream>
 

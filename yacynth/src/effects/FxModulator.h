@@ -26,7 +26,7 @@
  */
 
 #include    "FxModulatorParam.h"
-#include    "../effects/FxBase.h"
+#include    "effects/FxBase.h"
 
 namespace yacynth {
 class FxModulator : public Fx<FxModulatorParam>  {

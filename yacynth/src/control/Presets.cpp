@@ -24,12 +24,12 @@
  */
 // #include    "Presets.h"
 
-#include    "../oscillator/Tables.h"
-#include    "../oscillator/Oscillator.h"
-#include    "../oscillator/OscillatorArray.h"
-#include    "../oscillator/ToneShaper.h"
-#include    "../control/Controllers.h"
-#include    "../control/Sysman.h"
+#include    "oscillator/Tables.h"
+#include    "oscillator/Oscillator.h"
+#include    "oscillator/OscillatorArray.h"
+#include    "oscillator/ToneShaper.h"
+#include    "control/Controllers.h"
+#include    "control/Sysman.h"
 #include    "TuningConst.h"
 
 using namespace yacynth;

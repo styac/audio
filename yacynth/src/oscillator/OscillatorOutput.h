@@ -25,7 +25,7 @@
  */
 
 #include    "yacynth_globals.h"
-#include    "../message/yamsg.h"
+#include    "message/yamsg.h"
 #include    <algorithm>
 #include    <array>
 #include    <atomic>

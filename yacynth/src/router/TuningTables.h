@@ -27,7 +27,7 @@
 #include    "yacynth_globals.h"
 #include    "protocol.h"
 #include    "TuningConst.h"
-#include    "../control/Controllers.h"
+#include    "control/Controllers.h"
 
 #include    <array>
 #include    <iostream>

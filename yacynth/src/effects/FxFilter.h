@@ -27,10 +27,10 @@
 
 #include    "FxFilterParam.h"
 
-#include    "../effects/FxBase.h"
-#include    "../utils/Filter4Pole.h"
-#include    "../utils/FilterAllpass.h"
-#include    "../utils/FilterStateVariable.h"
+#include    "effects/FxBase.h"
+#include    "utils/Filter4Pole.h"
+#include    "utils/FilterAllpass.h"
+#include    "utils/FilterStateVariable.h"
 
 // TODO : BW : stage 0 (tan) - FREQ : STAGE 1 (cos)
 using namespace filter;

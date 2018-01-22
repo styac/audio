@@ -24,7 +24,7 @@
  */
 
 #include    "YaIoAlsa.h"
-#include    "../control/global.h"
+#include    "control/global.h"
 #include    <alsa/asoundlib.h>
 #include    <thread>
 
