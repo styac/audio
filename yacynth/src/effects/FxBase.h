@@ -55,6 +55,7 @@ class FxCollector;
 // effects inserted by their own ctor !
 // index 0 -- nilFx
 
+extern const EffectTypes effectTypes[ int(TagEffectType::END) - int(TagEffectType::FxNop) ];
 
 class FxCollector {
 public:

@@ -136,9 +136,10 @@ struct AmplitudeTransient  {
 // --------------------------------------------------------------------
 struct AmplitudeSustain {
     static constexpr const char * const typeName = "AmplitudeSustain";
+    // TODO check
     void clear(void)
     {
-        *this = {0};
+        memset( this, 0, sizeof(*this));;
     }
     bool check(void) const
     {

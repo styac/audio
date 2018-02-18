@@ -69,7 +69,7 @@ struct EffectListEntry
     uint8_t id;
     uint8_t fxType;
     uint8_t dynamic;
-    uint8_t fxMaxMode;
+    uint8_t fxMaxMode;  // might be obsolete - new mode setting
     uint8_t inputCount;
     uint8_t masterId;
     uint8_t instanceIndex;
@@ -269,7 +269,8 @@ namespace TagEffectCollectorLevel_01 {
         CreateEffect,               // create a new effect
         CreateEffectSet,            // create a set of new effect - buff = list of effects (max 64)
         DeleteEffects,              // delete dynamic effects
-    };
+        GetEffectTypes,             // get list of effect types
+    };    
 } // end namespace
 
 //
@@ -294,7 +295,18 @@ namespace TagEffectTypeLevel_02 {
         FxEarlyReflection,
         FxChorus,
         FxFlanger,
+        
+        // 
+        END,
     };
+   
+    struct EffectTypes
+    {
+        static constexpr size_t fxNameSize = 32;
+        uint8_t fxId;        
+        uint8_t creatable;   
+        char    fxName[ EffectListEntry::nameLength ];
+    };    
 } // end namespace
 // /Effect/TagFxFilter/TagMode_01_ap22x4x  FxCollectorid, struct Mode_01_ap22x4x
 

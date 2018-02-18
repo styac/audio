@@ -31,10 +31,13 @@
 
 typedef __uint128_t     uint128_t;
 
+#ifndef NON_COPYABLE_NOR_MOVABLE
 #define NON_COPYABLE_NOR_MOVABLE(T) \
       T(T const &) = delete; \
-      void operator=(T const &) = delete; \
+      T& operator=(T const &) = delete; \
+      T& operator=(T &&) = delete; \
       T(T &&) = delete;
+#endif
 
 #define YAC_DEBUG    1
 

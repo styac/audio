@@ -38,7 +38,7 @@ namespace yacynth {
 using namespace TagEffectTypeLevel_02;
 using namespace TagEffectFxEchoModeLevel_03;
 
-class FxEchoParam {
+class FxEchoParam final {
 public:
     // mandatory fields
     static constexpr char const * const name        = "Echo";

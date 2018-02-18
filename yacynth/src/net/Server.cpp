@@ -53,12 +53,12 @@ Server::Type Server::create( Sysman& sysman, const Setting& setting )
             Server::Type me( new RemoteServer( sysman, setting.getControlPortRemote(), setting.getAuthKeyFile() ));
             return me;
         }
-    case yaxp::CONN_MODE::CONNECTION_LOCAL: {
+    default: {
+//    case yaxp::CONN_MODE::CONNECTION_LOCAL: {
             Server::Type me( new LocalServer( sysman, setting.getControlPortLocal(), setting.getAuthKeyFile() ));
             return me;
         }
-    default:
-        throw std::runtime_error("illegal connection type");
+//        throw std::runtime_error("illegal connection type");
     }
 }
 
@@ -137,8 +137,13 @@ void Server::execute()
         case yaxp::MessageT::stopServer:
             stopServer = true;
             logger->warn("** stop server" );
-            // response : connection shutdown
             return;
+            
+        case yaxp::MessageT::heartbeatRequest:
+            logger->warn("** heartbeatRequest" );
+            message.messageType = yaxp::MessageT::heartbeatResponse;
+            message.length = 0;
+            break;
 
         default:
             message.messageType = yaxp::MessageT::illegalContext;
@@ -220,6 +225,8 @@ bool Server::doRecv()
         logger->warn( "header received error" );
         return false;
     }
+    // TODO 
+    // if( ( message.length == 0 ) || ( message.messageType < yacynth::yaxp::MessageT::validLength ) ) {
     if( message.messageType < yaxp::MessageT::validLength ) {
         message.print(str);
         logger->warn( "received {0}", str.data() );
@@ -311,6 +318,8 @@ bool Server::fillRandom( uint8_t * dst )
 
 bool Server::setAuthSeed( const std::string& seedFileName )
 {
+    // TODO for local - there is a default key
+    // const char * defaultAuth = localNet ? "LOCAL-AUTH-DEFAULT-KEY";
     std::ifstream seedFile( seedFileName );
     if( ! seedFile.is_open() ) {
         logger->warn("setAuthSeed open err {:d}", errno );
@@ -349,7 +358,7 @@ RemoteServer::RemoteServer( Sysman& sysman, const uint16_t port, const std::stri
     memset( &statusSockAddr6, '0', sizeof(statusSockAddr6) );
     sockaddr_in serv_addr;
     socketListen = socket( AF_INET, SOCK_STREAM, 0 );
-    memset( &serv_addr, '0', sizeof(serv_addr) );
+    memset( &serv_addr, 0, sizeof(serv_addr) );
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     serv_addr.sin_port = htons(portControl);
@@ -440,6 +449,7 @@ LocalServer::LocalServer( Sysman&  sysman, const char *port, const std::string& 
     sockaddr_un serv_addr;
     socketListen = socket( PF_LOCAL, SOCK_STREAM, 0 );
     unlink(portControl.data());
+    // TODO '0' or 0
     memset( &serv_addr, '0', sizeof(serv_addr) );
     serv_addr.sun_family = AF_LOCAL;
     strncpy( serv_addr.sun_path, portControl.data(), sizeof(serv_addr.sun_path) );

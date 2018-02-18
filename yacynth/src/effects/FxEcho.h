@@ -51,7 +51,7 @@ using namespace limiter;
 namespace yacynth {
 // --------------------------------------------------------------------
 
-class FxEcho : public Fx<FxEchoParam> {
+class FxEcho final : public Fx<FxEchoParam> {
 
 public:
     using MyType = FxEcho;

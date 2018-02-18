@@ -42,7 +42,7 @@ public:
     static constexpr std::size_t maxMode            = 4; // 0 is always exist> 0,1,2
     static constexpr std::size_t inputCount         = 1;
     static constexpr std::size_t slaveCount         = 1; // 0-base signal 1-modulation
-    static constexpr char const * const slavename   = " ^EarlyReflectionDelayedOutput";
+    static constexpr char const * const slavename   = "^ EarlyReflectionDelayedOutput";
     // optional
     static constexpr std::size_t channelCount       = 2;
     static constexpr std::size_t tapCount           = 1<<4; // 5 ?

@@ -67,7 +67,7 @@ bool ToneShaperMatrix::parameter( yaxp::Message& message, uint8_t tagIndex, uint
         return true;
 
     case  TagToneShaper::SetOvertone :
-        TAG_DEBUG(TagToneShaper::SetOvertoneCount, tagIndex, paramIndex, "ToneShaperMatrix" );
+        TAG_DEBUG(TagToneShaper::SetOvertone, tagIndex, paramIndex, "ToneShaperMatrix" );
         if( message.length == sizeof(ToneShaper) ) {
             const uint16_t vectorIndex      = message.getParam(paramIndex);
             const uint16_t overtoneIndex    = message.getParam(++paramIndex);
@@ -94,7 +94,7 @@ bool ToneShaperMatrix::parameter( yaxp::Message& message, uint8_t tagIndex, uint
         return false;
 
     case  TagToneShaper::GetOvertone :
-        TAG_DEBUG(TagToneShaper::SetOvertoneCount, tagIndex, paramIndex, "ToneShaperMatrix" );
+        TAG_DEBUG(TagToneShaper::GetOvertone, tagIndex, paramIndex, "ToneShaperMatrix" );
         if( message.size >= sizeof(ToneShaper) ) {
             const uint16_t vectorIndex      = message.getParam(paramIndex);
             const uint16_t overtoneIndex    = message.getParam(++paramIndex);
@@ -115,7 +115,7 @@ bool ToneShaperMatrix::parameter( yaxp::Message& message, uint8_t tagIndex, uint
 
     // array of int32_t * pitchCount
     case  TagToneShaper::SetPitchVector :
-        TAG_DEBUG(TagToneShaper::SetOvertoneCount, tagIndex, paramIndex, "ToneShaperMatrix" );
+        TAG_DEBUG(TagToneShaper::SetPitchVector, tagIndex, paramIndex, "ToneShaperMatrix" );
         {
             const uint16_t vectorIndex = message.getParam(paramIndex);
             const uint16_t pitchCount = message.getParam(++paramIndex);

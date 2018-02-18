@@ -276,7 +276,7 @@ protected:
 
 // exp( - 2 * pi * f / fs ) -- 1 pole filter
 
-class FilterTableExp2Pi : public FilterTable {
+class FilterTableExp2Pi final : public FilterTable {
 public:
     inline static FilterTableExp2Pi& getInstance(void)
     {
@@ -285,6 +285,8 @@ public:
     }
 
 private:
+    ~FilterTableExp2Pi() = default;
+
     FilterTableExp2Pi()
     {
         for( auto octave = FilterTable::minOctave; octave < FilterTable::maxOctave; ++octave ) {
@@ -316,7 +318,7 @@ private:
     }
 };
 
-class FilterTableSinCosPi2 : public FilterTable {
+class FilterTableSinCosPi2 final : public FilterTable {
 public:
     inline static FilterTableSinCosPi2& getInstance(void)
     {
@@ -324,6 +326,8 @@ public:
         return instance;
     }
 private:
+    ~FilterTableSinCosPi2() = default;
+
     FilterTableSinCosPi2()
     {
         for( auto octave = FilterTable::minOctave; octave < FilterTable::maxOctave; ++octave ) {
@@ -355,7 +359,7 @@ private:
     }
 };
 
-class FilterTable2SinPi : public FilterTable {
+class FilterTable2SinPi final : public FilterTable {
 public:
     inline static FilterTable2SinPi& getInstance(void)
     {
@@ -363,6 +367,8 @@ public:
         return instance;
     }
 private:
+    ~FilterTable2SinPi() = default;
+
     FilterTable2SinPi()
     {
         for( auto octave = FilterTable::minOctave; octave < FilterTable::maxOctave; ++octave ) {
@@ -393,7 +399,7 @@ private:
     }
 };
 
-class FilterTableCos2Pi : public FilterTable {
+class FilterTableCos2Pi final : public FilterTable {
 public:
     inline static FilterTableCos2Pi& getInstance(void)
     {
@@ -401,6 +407,8 @@ public:
         return instance;
     }
 private:
+    ~FilterTableCos2Pi() = default;
+    
     FilterTableCos2Pi()
     {
         for( auto octave = FilterTable::minOctave; octave < FilterTable::maxOctave; ++octave ) {

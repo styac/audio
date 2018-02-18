@@ -380,7 +380,7 @@ protected:
 // a singleton for the effect stage noise vectors
 
 template< uint64_t seed >
-class GaloisShifterSingle : public GaloisShifter {
+class GaloisShifterSingle final : public GaloisShifter {
 public:
     inline static GaloisShifterSingle& getInstance(void)
     {
@@ -394,6 +394,8 @@ public:
     }
 
 private:
+    ~GaloisShifterSingle() = default;
+    
     GaloisShifterSingle()
     :   GaloisShifter(seed)
     {};

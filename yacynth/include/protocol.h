@@ -41,11 +41,13 @@ namespace yacynth {
 // 3. read data length=Header.length (ReqSet)
 //
 namespace yaxp {
+
 constexpr uint16_t minCOntrolPort = 5000;
 constexpr uint16_t maxCOntrolPort = 50000;
 constexpr uint16_t seedLength = 32;
 constexpr uint16_t remoteDefaultPort = 7373;
 
+const char * const configPathName = ".local/share/";
 const char * const configDirName  = ".yacconfig";
 const char * const profileDirName = "default";
 const char * const authKeyName    = ".yyauth.key";
@@ -72,34 +74,19 @@ const char * const localPortStatusSuffix  = "_status";    // local AF_LOCAL suff
 //
 //
 
-
 enum class CONN_MODE {
     CONNECTION_LOCAL,      // AF_UNIX or PIPE
     CONNECTION_REMOTE,     // AF_INET
 };
 
-
 enum class MessageT : uint8_t {
-    // short messages - only header > length is not used
-    nop,                // 0 is illegal
-    stopServer,         // stop
-    heartbeatRequest,
-    heartbeatResponse,
-
-    // full messages
-    validLength = 0x40, // the length field is valid from this
-
-    authRequest,    // authentication request from server to client
-    authResponse,   // authentication response from client to server
-    authError,      // authentication response from client to server
-    requestC2E,     // request  : controller to engine
-    requestE2C,     // request  : engine to controller
-    adviceC2E,      // advice   : controller to engine
-    adviceE2C,      // advice   : engine to controller
-
+    nop,                // 0 is illegal    
     // responses
-    responseSetOK = 0x80,           // data length = 0 -- not used yet "nop" is used
-    responseGetOK,                  // data length is valid
+    responseSetOK,    
+    heartbeatResponse,              // nop
+    // authentication response from client to server
+    authRequestExpected,            // by Controller from Engine
+    // error responses
     noParameter,                    // 130
     targetRetCode,                  // 131
     illegalTag,                     // 132
@@ -117,6 +104,30 @@ enum class MessageT : uint8_t {
     illegalContext,                 // 144
     nothingToDo,                    // 145
     internalError,                  // 146
+
+    // short messages - only header : length is not used
+    shortCommands = 0x40,
+    stopServer,         // rename stopEngine
+    heartbeatRequest,
+    
+    // full messages
+    validLength = 0x80, // the length field is valid from this
+    responseGetOK  = 0x81,          // data length is valid
+
+    authRequest,    // authentication request from server to client
+    authResponse,   // authentication response from client to server
+    requestC2E,     // request  : controller to engine
+    requestE2C,     // request  : engine to controller -- not needed
+    adviceC2E,      // advice   : controller to engine -- not needed
+    adviceE2C,      // advice   : engine to controller
+    
+    // UDP channel -- maybe adviceE2C subcommands
+    statusE2C = 0x84,
+    errorStatusE2C, // 
+    logStrE2C,      // log string 
+    statisticsE2C,  // fix struct
+    amplitudeE2C,   // fix struct 
+    mididataE2C,    // fix struct 
 };
 
 struct alignas(16) Header
@@ -272,7 +283,6 @@ struct Message : public Header
     static constexpr std::size_t    size = 1<<16;
     static constexpr std::uint8_t   headerSize = sizeof(Header);
 
-
     template<typename T>
     void getTargetData(const T& d)
     {
@@ -359,20 +369,16 @@ struct Message : public Header
 
 #pragma GCC diagnostic pop
 
+struct alignas(16) StatusMessage : public Header
+{
+    union {
+        char    strBuf[ 256 ];  // null terminated string
+        float   amplitude[ 32 ][ 2 ]; // 32 stereo amplitude
+        // statistics
+        // midi control
+    };       
+};
+
 } // end namespace Yaxp
 } // end namespace yacynth
 
-#if 0
-
-auth req:
-
-buffer:
-32 bytes of random data
-
-auth req:
-buffer:
-32 bytes of response hash data
-N bytes of
-
-
-#endif
