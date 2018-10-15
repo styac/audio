@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 ist
+ * Copyright (C) 2018 Istvan Simon
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -17,35 +17,37 @@
  */
 
 /* 
- * File:   TuningTablesModalScales.cpp
+ * File:   FxBaseTypeList.cpp
  * Author: Istvan Simon -- stevens37 at gmail dot com
  *
- * Created on November 14, 2017, 9:20 PM
+ * Created on February 22, 2018, 11:01 PM
  */
 #include "yacynth_config.h"
+#include "effects/FxBase.h"
 
-#include "TuningConst.h"
+namespace yacynth {
 
-namespace Tuning {
+// add more info
 
-#define MAKE_MS12_TABLE(p,n) \
-    ModalSteps12 modalTable_ ## p ## _ ## n \
-        ( tuningGenerator_ ## p,sizeof(modalTable_ ## p ## _ ## n ## __), modalTable_ ## p ## _ ## n ## __ );
+#define FXTYPE(cr,t) \
+    { uint8_t(TagEffectType::t), cr, #t }
 
-TuningGenerator tuningGenerator_TM_21_ET_72(72,2,1);
+const EffectTypes effectTypes[] = {        
+    FXTYPE(false,FxNop),
+    FXTYPE(false,FxNil),
+    FXTYPE(false,FxSlave),
+    FXTYPE(true,FxMixer),
+    FXTYPE(false,FxOscillatorMixer),
+    FXTYPE(false,FxInput),
+    FXTYPE(true,FxModulator),
+    FXTYPE(true,FxOutNoise),
+    FXTYPE(true,FxOutOscillator),
+    FXTYPE(true,FxFilter),
+    FXTYPE(true,FxEcho),
+    FXTYPE(true,FxLateReverb),
+    FXTYPE(true,FxEarlyReflection),
+    FXTYPE(true,FxChorus),
+    FXTYPE(true,FxFlanger),
+};
 
-// 72 tone equal modes:
-// 7 5 7 4 7 5 7 7 4 7 5 7 	"Just" Chromatic
-// 
-
-static uint8_t modalTable_TM_21_ET_72_JustChromatic__ [] =
-    {
-        7, 5, 7, 4, 7, 5, 7, 7, 4, 7, 5, 7,        
-    };
-
-// name modalTable_TM_21_ET_72_JustChromatic
-
-MAKE_MS12_TABLE(TM_21_ET_72,JustChromatic);
-
-} // end namespace Tuning 
-
+} // end namespace yacynth 

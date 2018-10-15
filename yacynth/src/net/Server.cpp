@@ -22,14 +22,16 @@
  *
  * Created on February 20, 2016, 7:25 AM
  */
+#include "yacynth_config.h"
 
-#include    "Server.h"
-#include    <unistd.h>
-#include    <errno.h>
-#include    <fstream>
-#include    <linux/random.h>
-#include    <sys/syscall.h>
-#include    "sha3.h"
+#include "Server.h"
+#include "nsleep.h"
+#include <unistd.h>
+#include <errno.h>
+#include <fstream>
+#include <linux/random.h>
+#include <sys/syscall.h>
+#include "sha3.h"
 
 namespace yacynth {
 namespace net {
@@ -78,6 +80,16 @@ Server::Server( Sysman& sysmanP, const std::string& authKeyFile )
     }
 }
 
+// TODO: make singleton and call  stop from signal handler to avoid TIME_WAIT
+void Server::stop( void )
+{
+    stopServer = true;
+    shut();
+    close(socketListen);
+    socketListen = -1;
+    nsleep(1000*1000*100);
+}
+
 bool Server::run()
 {
     if( errnoNet ) {
@@ -107,11 +119,12 @@ bool Server::run()
 
 void Server::shut()
 {
-    logger->warn(" ***** Server::shut" );
     if( socketAccept > 0 ) {
+        logger->warn(" ***** Server::shut" );
         shutdown( socketAccept, SHUT_RDWR );
         close( socketAccept );
         socketAccept = -1;
+        nsleep(1000);
     }
 }
 
@@ -138,7 +151,7 @@ void Server::execute()
             stopServer = true;
             logger->warn("** stop server" );
             return;
-            
+
         case yaxp::MessageT::heartbeatRequest:
             logger->warn("** heartbeatRequest" );
             message.messageType = yaxp::MessageT::heartbeatResponse;
@@ -225,7 +238,7 @@ bool Server::doRecv()
         logger->warn( "header received error" );
         return false;
     }
-    // TODO 
+    // TODO
     // if( ( message.length == 0 ) || ( message.messageType < yacynth::yaxp::MessageT::validLength ) ) {
     if( message.messageType < yaxp::MessageT::validLength ) {
         message.print(str);
@@ -355,6 +368,8 @@ RemoteServer::RemoteServer( Sysman& sysman, const uint16_t port, const std::stri
 ,   portStatus(port+1)    // on the client side
 
 {
+    // put this in to function
+    int reuse = 1;
     memset( &statusSockAddr6, '0', sizeof(statusSockAddr6) );
     sockaddr_in serv_addr;
     socketListen = socket( AF_INET, SOCK_STREAM, 0 );
@@ -362,8 +377,14 @@ RemoteServer::RemoteServer( Sysman& sysman, const uint16_t port, const std::stri
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     serv_addr.sin_port = htons(portControl);
-    bind( socketListen, (sockaddr*)&serv_addr, sizeof(serv_addr) );
-    if( socketListen < 1 ) {
+
+    if( setsockopt(socketListen, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse, sizeof(reuse)) < 0) {
+        errnoNet = errno;
+    }
+
+    // TODO check return status
+    auto bres = bind( socketListen, (sockaddr*)&serv_addr, sizeof(serv_addr) );
+    if( bres < 0 ) {
         errnoNet = errno;
     }
     //create a UDP socket
@@ -446,6 +467,8 @@ LocalServer::LocalServer( Sysman&  sysman, const char *port, const std::string& 
 {
     portControl += yaxp::localPortControlSuffix;
     portStatus += yaxp::localPortStatusSuffix;
+
+    // put this to a function
     sockaddr_un serv_addr;
     socketListen = socket( PF_LOCAL, SOCK_STREAM, 0 );
     unlink(portControl.data());
@@ -453,8 +476,14 @@ LocalServer::LocalServer( Sysman&  sysman, const char *port, const std::string& 
     memset( &serv_addr, '0', sizeof(serv_addr) );
     serv_addr.sun_family = AF_LOCAL;
     strncpy( serv_addr.sun_path, portControl.data(), sizeof(serv_addr.sun_path) );
-    bind( socketListen, (sockaddr*)&serv_addr, sizeof(serv_addr) );
-    if( socketListen < 1 ) {
+
+//    if( setsockopt( socketListen, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse, sizeof(reuse)) < 0) {
+//        errnoNet = errno;
+//    }
+
+    // TODO check return addr
+    auto bres = bind( socketListen, (sockaddr*)&serv_addr, sizeof(serv_addr) );
+    if( bres < 0 ) {
         errnoNet = errno;
     }
     socketSendStatus = socket( PF_LOCAL, SOCK_DGRAM, 0 );

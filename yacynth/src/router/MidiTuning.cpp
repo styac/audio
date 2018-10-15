@@ -22,12 +22,14 @@
  *
  * Created on November 6, 2017, 5:37 PM
  */
-#include    "MidiTuning.h"
-#include    "protocol.h"
-#include    "Tags.h"
-#include    <iostream>
-#include    <fstream>
-#include    <iomanip>
+#include "yacynth_config.h"
+
+#include "MidiTuning.h"
+#include "protocol.h"
+#include "Tags.h"
+#include <iostream>
+#include <fstream>
+#include <iomanip>
 
 namespace yacynth {
 using namespace TagTunerLevel_01;

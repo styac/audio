@@ -22,18 +22,19 @@
  *
  * Created on October 1, 2017, 9:00 AM
  */
-#include    "FxOscillatorMixer.h"
-#include    "FxMixer.h"
-#include    "FxInput.h"
-#include    "FxEcho.h"
-#include    "FxModulator.h"
-#include    "FxOutNoise.h"
-#include    "FxOutOscillator.h"
-#include    "FxFilter.h"
-#include    "FxLateReverb.h"
-#include    "FxEarlyReflection.h"
-#include    "FxChorus.h"
-#include    "FxFlanger.h"
+#include "yacynth_config.h"
+#include "FxOscillatorMixer.h"
+#include "FxMixer.h"
+#include "FxInput.h"
+#include "FxEcho.h"
+#include "FxModulator.h"
+#include "FxOutNoise.h"
+#include "FxOutOscillator.h"
+#include "FxFilter.h"
+#include "FxLateReverb.h"
+#include "FxEarlyReflection.h"
+#include "FxChorus.h"
+#include "FxFlanger.h"
 
 namespace yacynth {
 

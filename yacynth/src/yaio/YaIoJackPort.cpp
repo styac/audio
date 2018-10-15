@@ -22,8 +22,9 @@
  *
  * Created on January 31, 2016, 1:14 PM
  */
+#include "yacynth_config.h"
 
-#include    "YaIoJackPort.h"
+#include "YaIoJackPort.h"
 
 namespace yacynth {
 

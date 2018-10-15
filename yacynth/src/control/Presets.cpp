@@ -22,15 +22,16 @@
  *
  * Created on October 2, 2017, 9:38 PM
  */
-// #include    "Presets.h"
+// #include "Presets.h"
+#include "yacynth_config.h"
 
-#include    "oscillator/Tables.h"
-#include    "oscillator/Oscillator.h"
-#include    "oscillator/OscillatorArray.h"
-#include    "oscillator/ToneShaper.h"
-#include    "control/Controllers.h"
-#include    "control/Sysman.h"
-#include    "TuningConst.h"
+#include "oscillator/Tables.h"
+#include "oscillator/Oscillator.h"
+#include "oscillator/OscillatorArray.h"
+#include "oscillator/ToneShaper.h"
+#include "control/Controllers.h"
+#include "control/Sysman.h"
+#include "TuningConst.h"
 
 using namespace yacynth;
 using namespace TagMainLevel_00;
@@ -220,7 +221,7 @@ void preset0( Sysman  * sysman )
                 << " dynamic "          << uint16_t(data->dynamic)
                 << " maxMode "          << uint16_t(data->fxMaxMode)
                 << " inputCount "       << uint16_t(data->inputCount )
-                << " masterId "         << uint16_t(data->masterId)
+                << " refId "         << uint16_t(data->refId)
                 << " instanceIndex "    << uint16_t(data->instanceIndex)
                 << "  "                 << data->name
                 << "  "                 << data->fullName
@@ -242,7 +243,7 @@ void preset0( Sysman  * sysman )
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
-    const uint8_t EffectInstance_EndMixer           = effectMap["EndMixer"];
+    const uint8_t EffectInstance_EndMixer           = effectMap["EndMixer.00:00"];
     const uint8_t EffectInstance_Input              = effectMap["Input.00:00"];
     const uint8_t EffectInstance_OscillatorMixer    = effectMap["OscillatorMixer.00:00"];
     

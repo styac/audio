@@ -28,11 +28,11 @@
 // -O3 -mfpmath=sse -msse2 -msse3 -msse4.2 -ffast-math -funsafe-math-optimizations -mfma -mfma4 -mavx -funsafe-loop-optimizations -funswitch-loops -funroll-loops -fvariable-expansion-in-unroller -ftree-vectorizer-verbose=2
 // -O3 -mfpmath=sse -msse2 -msse3 -msse4.2 -ffast-math -funsafe-math-optimizations -mfma -mfma4 -mavx -funsafe-loop-optimizations -funswitch-loops -fvariable-expansion-in-unroller -ftree-vectorizer-verbose=2
 
-#include    "yacynth_globals.h"
+#include "yacynth_globals.h"
 
-#include    <array>
-#include    <iostream>
-#include    <cstring>
+#include <array>
+#include <iostream>
+#include <cstring>
 
 namespace yacynth {
 

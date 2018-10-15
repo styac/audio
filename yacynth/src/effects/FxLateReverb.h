@@ -90,10 +90,10 @@ http://linux-audio.4202.n7.nabble.com/Favourite-Linux-reverbs-td97375.html
 
 #endif
 
-#include    "effects/FxLateReverbParam.h"
-#include    "utils/Fastsincos.h"
-#include    "utils/FilterComb.h"
-#include    "effects/FxBase.h"
+#include "effects/FxLateReverbParam.h"
+#include "utils/Fastsincos.h"
+#include "utils/FilterComb.h"
+#include "effects/FxBase.h"
 
 
 using namespace tables;

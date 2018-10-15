@@ -22,7 +22,8 @@
  *
  * Created on September 16, 2017, 10:37 AM
  */
-#include    "FxInput.h"
+#include "yacynth_config.h"
+#include "FxInput.h"
 
 namespace yacynth {
 using namespace TagEffectFxInputModeLevel_03;

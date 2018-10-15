@@ -22,7 +22,9 @@
  *
  * Created on October 4, 2017, 7:06 PM
  */
-#include    "Router.h"
+#include "yacynth_config.h"
+
+#include "Router.h"
 
 // next generation 
 

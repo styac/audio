@@ -21,8 +21,11 @@
  *
  * Created on January 28, 2016, 5:20 PM
  */
-#include    "Oscillator.h"
-#include    "ToneShaper.h"
+
+#include "yacynth_config.h"
+
+#include "Oscillator.h"
+#include "ToneShaper.h"
 
 namespace yacynth {
 

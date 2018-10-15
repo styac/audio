@@ -25,10 +25,10 @@
  * Created on May 20, 2017, 8:11 PM
  */
 
-#include    "protocol.h"
-#include    "Tags.h"
-#include    "control/Controllers.h"
-#include    "effects/DelayTap.h"
+#include "protocol.h"
+#include "Tags.h"
+#include "control/Controllers.h"
+#include "effects/DelayTap.h"
 
 namespace yacynth {
 using namespace TagEffectTypeLevel_02;

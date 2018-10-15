@@ -25,9 +25,9 @@
  * Created on May 20, 2017, 8:14 PM
  */
 
-#include    "protocol.h"
-#include    "Tags.h"
-#include    "control/Controllers.h"
+#include "protocol.h"
+#include "Tags.h"
+#include "control/Controllers.h"
 
 
 namespace yacynth {

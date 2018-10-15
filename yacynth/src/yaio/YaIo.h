@@ -28,18 +28,18 @@
 #ifndef     YAIO
 #define     YAIO
 
-#include    "yacynth_globals.h"
-#include    "message/yamsg.h"
-#include    "message/Midi.h"
+#include "yacynth_globals.h"
+#include "message/yamsg.h"
+#include "message/Midi.h"
 
-#include    <cstddef>
-#include    <cstdint>
-#include    <vector>
-#include    <cstdio>
-#include    <iostream>
-#include    <cassert>
-#include    <iterator>
-#include    <string>
+#include <cstddef>
+#include <cstdint>
+#include <vector>
+#include <cstdio>
+#include <iostream>
+#include <cassert>
+#include <iterator>
+#include <string>
 
 #define YAC_JACK_DEBUG  1
 

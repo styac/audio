@@ -22,31 +22,32 @@
  *
  * Created on January 26, 2016, 11:09 PM
  */
+#include "yacynth_config.h"
 
-#include    "utils/Limiters.h"
-#include    "utils/GaloisNoiser.h"
-#include    "yaio/YaIoJack.h"
-#include    "yaio/IOthread.h"
-#include    "net/Server.h"
-// #include    "router/SimpleMidiRouter.h"
-#include    "router/Router.h"
-#include    "control/Controllers.h"
-#include    "control/Sysman.h"
-#include    "control/SynthFrontend.h"
-#include    "yacynth_globals.h"
-#include    "v4.h"
-#include    "Setting.h"
+#include "utils/Limiters.h"
+#include "utils/GaloisNoiser.h"
+#include "yaio/YaIoJack.h"
+#include "yaio/IOthread.h"
+#include "net/Server.h"
+// #include "router/SimpleMidiRouter.h"
+#include "router/Router.h"
+#include "control/Controllers.h"
+#include "control/Sysman.h"
+#include "control/SynthFrontend.h"
+#include "yacynth_globals.h"
+#include "v4.h"
+#include "Setting.h"
 
-#include    <cstdlib>
-#include    <iostream>
-#include    <fstream>
-#include    <thread>
-#include    <iomanip>
-#include    <unistd.h>
-#include    <pthread.h>
-#include    <csignal>
-#include    <sys/time.h>
-#include    <chrono>
+#include <cstdlib>
+#include <iostream>
+#include <fstream>
+#include <thread>
+#include <iomanip>
+#include <unistd.h>
+#include <pthread.h>
+#include <csignal>
+#include <sys/time.h>
+#include <chrono>
 
 using namespace yacynth;
 using namespace filter;
@@ -57,15 +58,35 @@ void preset0( Sysman  * sysman );
 void createStaticEfects();
 
 // --------------------------------------------------------------------
+
+void nsleep( uint64_t nsec, uint64_t sec )
+{
+    timespec req;
+    req.tv_nsec = nsec;
+    req.tv_sec = sec;
+    nanosleep(&req,nullptr);
+}
+
+
+// TODO : temp solution -- make server singleton
+
+net::Server::Type uiServer;
+
+// --------------------------------------------------------------------
 //
 // this is not the normal stop method
 //
+
 static void signal_handler( int sig )
 {
     switch( sig ) {
     case SIGTERM:
     case SIGINT:
         YaIoJack::getInstance().shutdown();
+// doesn't help on TIME_WAIT
+//        if( uiServer ) {
+//            uiServer->stop();
+//        }
         exit(-1);
     }
 }
@@ -210,7 +231,13 @@ int main( int argc, char** argv )
         YaIoJack::getInstance().unmute(); // in - out running
 
         //-------------------------
-        net::Server::Type uiServer = net::Server::create( *sysman, settings );
+        // net::Server::Type uiServer = net::Server::create( *sysman, settings );
+        // TODO : make server singleton
+        if( uiServer ) {
+            std::cout << "\n\n============END ERROR ==============\n\n" << std::endl;
+            exit(-1);
+        }
+        uiServer = net::Server::create( *sysman, settings );
         uiServer->run();
 
         std::cout << "\n\n============END==============\n\n" << std::endl;

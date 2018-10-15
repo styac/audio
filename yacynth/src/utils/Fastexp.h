@@ -25,10 +25,10 @@
  * Created on March 31, 2016, 9:45 AM
  */
 
-#include    <cstdint>
-#include    <cmath>
-#include    <algorithm>
-#include    <iostream>
+#include <cstdint>
+#include <cmath>
+#include <algorithm>
+#include <iostream>
 
 
 namespace tables {

@@ -24,7 +24,7 @@
  *
  * Created on May 27, 2016, 8:49 PM
  */
-#include    "utils/FilterBase.h"
+#include "utils/FilterBase.h"
 
 using namespace tables;
 using namespace filter;

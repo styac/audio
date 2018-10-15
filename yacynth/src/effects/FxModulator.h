@@ -25,8 +25,8 @@
  * Created on June 23, 2016, 6:14 PM
  */
 
-#include    "FxModulatorParam.h"
-#include    "effects/FxBase.h"
+#include "FxModulatorParam.h"
+#include "effects/FxBase.h"
 
 namespace yacynth {
 class FxModulator : public Fx<FxModulatorParam>  {

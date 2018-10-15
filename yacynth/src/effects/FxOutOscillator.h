@@ -25,9 +25,9 @@
  * Created on June 23, 2016, 7:46 PM
  */
 
-#include    "FxOutOscillatorParam.h"
-#include    "utils/Fastsincos.h"
-#include    "effects/FxBase.h"
+#include "FxOutOscillatorParam.h"
+#include "utils/Fastsincos.h"
+#include "effects/FxBase.h"
 
 using namespace tables;
 
@@ -39,7 +39,7 @@ public:
     FxOutOscillator()
     :   Fx<FxOutOscillatorParam>()
     {
-        for( auto& si : slaves ) si.setMasterId(id());
+        for( auto& si : slaves ) si.setrefId(id());
     }
 
     virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );

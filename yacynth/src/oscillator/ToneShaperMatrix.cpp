@@ -22,9 +22,10 @@
  *
  * Created on April 4, 2016, 11:52 AM
  */
+#include "yacynth_config.h"
 
-#include    "oscillator/ToneShaperMatrix.h"
-#include    "memory.h"
+#include "oscillator/ToneShaperMatrix.h"
+#include "memory.h"
 
 namespace yacynth {
 using namespace TagToneShaperLevel_01;

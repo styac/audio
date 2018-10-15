@@ -22,13 +22,14 @@
  *
  * Created on October 4, 2017, 7:07 PM
  */
+#include "yacynth_config.h"
 
-#include    "TuningTables.h"
-#include    "protocol.h"
-#include    "Tags.h"
-#include    <iostream>
-#include    <fstream>
-#include    <iomanip>
+#include "TuningTables.h"
+#include "protocol.h"
+#include "Tags.h"
+#include <iostream>
+#include <fstream>
+#include <iomanip>
 
 //  http://xenharmonic.wikispaces.com/
 //  http://www.microtonal-synthesis.com/scales.html

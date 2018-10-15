@@ -25,12 +25,9 @@
  * Created on May 20, 2017, 8:13 PM
  */
 
-
-
-#include    "protocol.h"
-#include    "Tags.h"
-#include    "control/Controllers.h"
-
+#include "protocol.h"
+#include "Tags.h"
+#include "control/Controllers.h"
 
 namespace yacynth {
 
@@ -44,6 +41,8 @@ public:
     static constexpr TagEffectType  type        = TagEffectType::FxModulator;
     static constexpr std::size_t maxMode        = 6; // 0 is always bypass
     static constexpr std::size_t inputCount     = 2; // 0 : base signal; 1 : modulation
+    static constexpr std::size_t slaveCount     = 0; 
+    
     static constexpr char const * const modeName[maxMode+1] =
     {   "copy"
     ,   "processModulation"

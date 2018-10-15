@@ -24,14 +24,14 @@
  *
  * Created on April 4, 2016, 8:00 PM
  */
-//#include    "Serialize.h"
-//#include    "Ebuffer.h"
-#include    "v4.h"
+//#include "Serialize.h"
+//#include "Ebuffer.h"
+#include "v4.h"
 
-#include    <cstdint>
-#include    <cmath>
-#include    <algorithm>
-#include    <array>
+#include <cstdint>
+#include <cmath>
+#include <algorithm>
+#include <array>
 
 namespace yacynth {
 

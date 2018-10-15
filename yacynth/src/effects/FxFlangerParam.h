@@ -25,12 +25,9 @@
  * Created on May 20, 2017, 8:12 PM
  */
 
-
-
-#include    "protocol.h"
-#include    "Tags.h"
-#include    "control/Controllers.h"
-
+#include "protocol.h"
+#include "Tags.h"
+#include "control/Controllers.h"
 
 namespace yacynth {
 
@@ -44,6 +41,7 @@ public:
     static constexpr TagEffectType  type            = TagEffectType::FxFlanger;
     static constexpr std::size_t maxMode            = 4;
     static constexpr std::size_t inputCount         = 1;
+    static constexpr std::size_t slaveCount         = 0; 
 
     static constexpr std::size_t delayLngExp        = 11; // 2048
     static constexpr std::size_t delayLng           = 1<<delayLngExp;

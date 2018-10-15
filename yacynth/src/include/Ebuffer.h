@@ -26,10 +26,10 @@
  */
 #include   "v4.h"
 
-#include    <array>
-#include    <cstring>
-#include    <iostream>
-// #include    <ieee754.h>
+#include <array>
+#include <cstring>
+#include <iostream>
+// #include <ieee754.h>
 
 namespace yacynth {
 // --------------------------------------------------------------------

@@ -25,12 +25,12 @@
  * Created on February 6, 2016, 10:42 PM
  */
 
-#include    "yacynth_globals.h"
-#include    "protocol.h"
+#include "yacynth_globals.h"
+#include "protocol.h"
 
-#include    <array>
-#include    <map>
-#include    <string>
+#include <array>
+#include <map>
+#include <string>
 
 namespace yacynth {
 //

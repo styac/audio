@@ -27,11 +27,11 @@
 
 
 
-#include    "protocol.h"
-#include    "Tags.h"
+#include "protocol.h"
+#include "Tags.h"
 
-#include    "control/Controllers.h"
-#include    "effects/DelayTap.h"
+#include "control/Controllers.h"
+#include "effects/DelayTap.h"
 
 namespace yacynth {
 
@@ -45,6 +45,7 @@ public:
     static constexpr TagEffectType  type            = TagEffectType::FxEcho;
     static constexpr std::size_t maxMode            = 2;
     static constexpr std::size_t inputCount         = 1;
+    static constexpr std::size_t slaveCount         = 0; 
     
     static constexpr std::size_t channelCount       = 2;
     static constexpr std::size_t tapOutputCount     = 8;

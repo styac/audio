@@ -22,8 +22,8 @@
  *
  * Created on June 23, 2016, 7:46 PM
  */
-
-#include    "FxChorus.h"
+#include "yacynth_config.h"
+#include "FxChorus.h"
 
 namespace yacynth {
 using namespace TagEffectFxChorusModeLevel_03;

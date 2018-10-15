@@ -22,14 +22,14 @@
  *
  * Created on April 6, 2016, 11:22 PM
  */
+#include "yacynth_config.h"
+#include "FxBase.h"
+#include "yaio/CycleCount.h"
 
-#include    "FxBase.h"
-#include    "yaio/CycleCount.h"
-
-#include    <chrono>
-#include    <sys/time.h>
-#include    <ctime>
-#include    <time.h>
+#include <chrono>
+#include <sys/time.h>
+#include <ctime>
+#include <time.h>
 
 // TODO split the file to 
 //  FxBase.cpp
@@ -46,27 +46,6 @@ using namespace TagEffectCollectorLevel_01;
 FxBase      fxNil("Nil",0,0,TagEffectType::FxNil);
 uint16_t    FxBase::count = -1;
 // template <typename T>  uint16_t S<T>::something_relevant = 0;
-
-#define FXTYPE(cr,t) \
-    { uint8_t(TagEffectType::t), cr, #t }
-
-const EffectTypes effectTypes[] = {        
-    FXTYPE(false,FxNop),
-    FXTYPE(false,FxNil),
-    FXTYPE(false,FxSlave),
-    FXTYPE(true,FxMixer),
-    FXTYPE(false,FxOscillatorMixer),
-    FXTYPE(false,FxInput),
-    FXTYPE(true,FxModulator),
-    FXTYPE(true,FxOutNoise),
-    FXTYPE(true,FxOutOscillator),
-    FXTYPE(true,FxFilter),
-    FXTYPE(true,FxEcho),
-    FXTYPE(true,FxLateReverb),
-    FXTYPE(true,FxEarlyReflection),
-    FXTYPE(true,FxChorus),
-    FXTYPE(true,FxFlanger),
-};
 
 // --------------------------------------------------------------------
 

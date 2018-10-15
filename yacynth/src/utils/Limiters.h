@@ -25,10 +25,10 @@
  * Created on March 12, 2016, 7:13 AM
  */
 
-#include    <iostream>
-#include    <array>
-#include    <cmath>
-#include    <type_traits>
+#include <iostream>
+#include <array>
+#include <cmath>
+#include <type_traits>
 
 namespace limiter {
 

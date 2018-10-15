@@ -25,12 +25,12 @@
  * Created on February 1, 2016, 4:47 PM
  */
 
-#include    "Oscillator.h"
-#include    "OscillatorOutput.h"
-#include    "message/yamsg.h"
-#include    "control/Controllers.h"
+#include "Oscillator.h"
+#include "OscillatorOutput.h"
+#include "message/yamsg.h"
+#include "control/Controllers.h"
 
-#include    <array>
+#include <array>
 
 namespace yacynth {
 

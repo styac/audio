@@ -25,15 +25,15 @@
  * Created on February 17, 2016, 7:44 AM
  */
 
-#include    "Statistics.h"
-#include    "oscillator/Tables.h"
-#include    "oscillator/Oscillator.h"
-#include    "oscillator/OscillatorArray.h"
-#include    "oscillator/ToneShaper.h"
-#include    "yaio/YaIoJack.h"
-#include    "yaio/IOthread.h"
-#include    "control/Controllers.h"
-#include    "oscillator/ToneShaperMatrix.h"
+#include "Statistics.h"
+#include "oscillator/Tables.h"
+#include "oscillator/Oscillator.h"
+#include "oscillator/OscillatorArray.h"
+#include "oscillator/ToneShaper.h"
+#include "yaio/YaIoJack.h"
+#include "yaio/IOthread.h"
+#include "control/Controllers.h"
+#include "oscillator/ToneShaperMatrix.h"
 
 
 /*

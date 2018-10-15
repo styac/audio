@@ -24,12 +24,9 @@
  * Created on September 16, 2017, 10:37 AM
  */
 
-
-
-#include    "protocol.h"
-#include    "Tags.h"
-#include    "control/Controllers.h"
-
+#include "protocol.h"
+#include "Tags.h"
+#include "control/Controllers.h"
 
 namespace yacynth {
 
@@ -46,6 +43,7 @@ public:
     static constexpr TagEffectType  type     = TagEffectType::FxInput;
     static constexpr std::size_t maxMode     = 1; //
     static constexpr std::size_t inputCount  = 0; // input is audio input
+    static constexpr std::size_t slaveCount  = 0; 
     static constexpr uint8_t subtype         = uint8_t(TagEffectFxInputMode::SetParametersMode01);
 
     // temp

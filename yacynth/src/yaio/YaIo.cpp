@@ -22,14 +22,15 @@
  *
  * Created on January 31, 2016, 9:17 AM
  */
+#include "yacynth_config.h"
 
-#include    "YaIo.h"
+#include "YaIo.h"
 
 namespace yacynth {
 
 YaIo::YaIo()
-:   sampleRateMin(48000)
-,   sampleRateMax(48000) // TODO 88200, 96000
+:   sampleRateMin(samplingFrequency)
+,   sampleRateMax(samplingFrequency) // TODO 88200, 96000
 ,   bufferSizeMin(64)
 ,   bufferSizeMax(256)
 ,   midiOutProcessing(noMidiProcessing)

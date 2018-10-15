@@ -22,7 +22,7 @@
  *
  * Created on June 21, 2016, 9:57 PM
  */
-
+#include "yacynth_config.h"
 #include "FxFilter.h"
 
 namespace yacynth {

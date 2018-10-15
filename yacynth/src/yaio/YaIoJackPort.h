@@ -27,19 +27,19 @@
 #ifndef     YAIO_JACK_PORT
 #define     YAIO_JACK_PORT
 
-#include    "YaIo.h"
+#include "YaIo.h"
 
-#include    <jack/jack.h>
-#include    <jack/midiport.h>
-#include    <jack/ringbuffer.h>
+#include <jack/jack.h>
+#include <jack/midiport.h>
+#include <jack/ringbuffer.h>
 
-#include    <cstddef>
-#include    <cstdint>
-#include    <cstdio>
-#include    <iostream>
-#include    <cassert>
-#include    <iterator>
-#include    <string>
+#include <cstddef>
+#include <cstdint>
+#include <cstdio>
+#include <iostream>
+#include <cassert>
+#include <iterator>
+#include <string>
 
 namespace yacynth {
 

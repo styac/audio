@@ -25,18 +25,22 @@
  * Created on February 19, 2016, 11:55 PM
  */
 
-#include    "protocol.h"
-#include    "control/Sysman.h"
-#include    "control/Setting.h"
-#include    "spdlog/spdlog.h"
-#include    <iostream>
-#include    <memory>
-#include    <netinet/in.h>
-#include    <arpa/inet.h>
-#include    <sys/un.h>
+#include "protocol.h"
+#include "control/Sysman.h"
+#include "control/Setting.h"
+#include "spdlog/spdlog.h"
+#include <iostream>
+#include <memory>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/un.h>
 
 namespace yacynth {
 namespace net {
+
+// TODO : remove virtual -- local,remote in 1 class
+// TODO : make singleton
+// TODO : signal handler shut,close socket
 
 class Server {
 public:
@@ -53,10 +57,20 @@ public:
     static Server::Type create( Sysman& sysmanP, const Setting& setting );
 
     bool run( void );
+    void stop( void );
 
     virtual bool sendStatus( const yacynth::yaxp::Message& message ) = 0;
 
+//    auto& getInstance()
+//    {
+//        Server instance;
+//        return instance;
+//    }
+
 protected:
+    // remove virtual classes like in gui
+    // Server( Sysman& sysmanP, const char *port, const std::string& authKeyFile );
+    // Server( Sysman& sysmanP, const uint16_t port, const std::string& authKeyFile );
     virtual bool doAccept() = 0;
     bool doRecv();
     bool doSend();
@@ -87,6 +101,13 @@ protected:
     bool                    connected;
     bool                    authenticated;
     bool                    stopServer;
+
+// remove virtual classes like in gui
+//    uint16_t        portControl;    // can be removed
+//    uint16_t        portStatus;     // UDP for sending status updates
+//    sockaddr_un     statusSockAddr;
+//    std::string     portControl;
+//    std::string     portStatus;
 };
 
 class RemoteServer : public Server {

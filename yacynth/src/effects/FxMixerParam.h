@@ -25,9 +25,9 @@
  * Created on May 20, 2017, 8:13 PM
  */
 
-#include    "protocol.h"
-#include    "Tags.h"
-#include    "control/Controllers.h"
+#include "protocol.h"
+#include "Tags.h"
+#include "control/Controllers.h"
 
 
 namespace yacynth {
@@ -42,6 +42,7 @@ public:
     static constexpr TagEffectType  type        = TagEffectType::FxMixer;
     static constexpr std::size_t maxMode        = 1;
     static constexpr std::size_t inputCount     = 16;
+    static constexpr std::size_t slaveCount     = 0; 
 
     static constexpr uint8_t subtype            = uint8_t(TagEffectFxMixerMode::SetParametersMode01);
 

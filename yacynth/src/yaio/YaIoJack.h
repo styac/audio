@@ -28,13 +28,13 @@
 #ifndef     YAIO_JACK
 #define     YAIO_JACK
 
-#include    "YaIo.h"
-#include    "YaIoJackPort.h"
-#include    "message/Midi.h"
+#include "YaIo.h"
+#include "YaIoJackPort.h"
+#include "message/Midi.h"
 
-#include    <jack/jack.h>
-#include    <jack/midiport.h>
-#include    <jack/ringbuffer.h>
+#include <jack/jack.h>
+#include <jack/midiport.h>
+#include <jack/ringbuffer.h>
 
 namespace yacynth {
 
@@ -48,17 +48,17 @@ public:
     // process
     // static JackProcessCallback             processCB;
     // void *arg == this
-    static int processAudioMidiCB( jack_nframes_t nframes, void *arg );
-    static int processAudioCB( jack_nframes_t nframes, void *arg );
+    static int  processAudioMidiCB( jack_nframes_t nframes, void * arg );
+    static int  processAudioCB( jack_nframes_t nframes, void * arg );
+    static void shutdownCB( void * arg );
 
-    // not really needed yet
-    static JackThreadInitCallback          threadInitCB;
-    // jackd was shut down
-    static JackShutdownCallback            shutdownCB;
-    // change buffer size - not allowed
-    static JackBufferSizeCallback          bufsizeCB;
-    // change sample rate  - not allowed
-    static JackSampleRateCallback          samplerateCB;
+//    // not really needed yet
+//    static JackThreadInitCallback           threadInitCB;
+//    // jackd was shut down
+//    // change buffer size - not allowed
+//    static JackBufferSizeCallback           bufsizeCB;
+//    // change sample rate  - not allowed
+//    static JackSampleRateCallback           samplerateCB;
 
     static inline YaIoJack&   getInstance(void)
     {
@@ -118,7 +118,7 @@ protected:
     jack_nframes_t  nframes;
 
 private:
-    int64_t                 cycleCount;
+    int64_t         cycleCount;
     YaIoJack();
     NON_COPYABLE_NOR_MOVABLE(YaIoJack)
 };

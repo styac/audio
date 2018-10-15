@@ -24,7 +24,7 @@
  *
  * Created on May 30, 2016, 6:33 PM
  */
-#include    "utils/GaloisNoiser.h"
+#include "utils/GaloisNoiser.h"
 
 using namespace noiser;
 

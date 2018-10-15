@@ -22,8 +22,9 @@
  *
  * Created on November 8, 2017, 7:25 PM
  */
+#include "yacynth_config.h"
 
-#include    "TuningConst.h"
+#include "TuningConst.h"
 
 namespace Tuning {
 

@@ -25,12 +25,12 @@
  * Created on February 20, 2016, 10:15 AM
  */
 
-#include    <cstdint>
-#include    <string>
-#include    <cstring>
-#include    <array>
-// #include    <iomanip>
-// #include    <iostream>
+#include <cstdint>
+#include <string>
+#include <cstring>
+#include <array>
+// #include <iomanip>
+// #include <iostream>
 
 namespace yacynth {
 //
@@ -122,9 +122,10 @@ enum class MessageT : uint8_t {
     adviceE2C,      // advice   : engine to controller
     
     // UDP channel -- maybe adviceE2C subcommands
-    statusE2C = 0x84,
     errorStatusE2C, // 
     logStrE2C,      // log string 
+
+    // UDP channel -- maybe adviceE2C subcommands
     statisticsE2C,  // fix struct
     amplitudeE2C,   // fix struct 
     mididataE2C,    // fix struct 
@@ -369,8 +370,11 @@ struct Message : public Header
 
 #pragma GCC diagnostic pop
 
-struct alignas(16) StatusMessage : public Header
+struct alignas(16) StatusMessage
 {
+    uint8_t     sequenceNr;     // always inc 
+    MessageT    messageType;    // 
+    uint8_t     rfu[6];
     union {
         char    strBuf[ 256 ];  // null terminated string
         float   amplitude[ 32 ][ 2 ]; // 32 stereo amplitude

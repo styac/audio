@@ -25,7 +25,7 @@
  * Created on March 13, 2016, 11:49 AM
  */
 
-#include    <cstdint>
+#include <cstdint>
 
 typedef float       v4sf __attribute__((mode(SF)))  __attribute__ ((vector_size(16),aligned(16)));
 typedef int32_t     v4si __attribute__((mode(SI)))  __attribute__ ((vector_size(16),aligned(16)));

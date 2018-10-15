@@ -22,13 +22,13 @@
  *
  * Created on February 17, 2016, 7:45 AM
  */
+#include "yacynth_config.h"
+#include "SynthFrontend.h"
+#include "control/global.h"
 
-#include    "SynthFrontend.h"
-#include    "control/global.h"
-
-#include    <unistd.h>
-#include    <atomic>
-#include    <thread>
+#include <unistd.h>
+#include <atomic>
+#include <thread>
 
 
 namespace yacynth {

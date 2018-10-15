@@ -22,14 +22,14 @@
  *
  * Created on April 6, 2016, 11:22 PM
  */
+#include "yacynth_config.h"
+#include "FxBase.h"
+#include "yaio/CycleCount.h"
 
-#include    "FxBase.h"
-#include    "yaio/CycleCount.h"
-
-#include    <chrono>
-#include    <sys/time.h>
-#include    <ctime>
-#include    <time.h>
+#include <chrono>
+#include <sys/time.h>
+#include <ctime>
+#include <time.h>
 
 // TODO split the file to 
 //  FxBase.cpp
@@ -94,14 +94,17 @@ bool FxRunner::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t para
                 return false;
             }
 
-            EffectRunnerSetConnections *data = static_cast<EffectRunnerSetConnections *>((void *)(&message.data[0]));
+            const EffectRunnerSetConnections *data = static_cast<EffectRunnerSetConnections *>((void *)(&message.data[0]));
 
             clearConnections();
+            std::cout << "TagEffectRunner::SetConnections message.length " << message.length << std::endl;
+            std::cout << "TagEffectRunner::SetConnections countParam " << countParam << std::endl;
             for( uint16_t ind = 0; ind < countParam; ++ind, ++data ) {
                 FxRunner::RET ret = connect( data->fxIdOfFxCollectorOutput, data->fxIdOfFxRunnerInput, data->inputId );
                 if( RET::OK != ret  ) {
                     TAG_DEBUG( TagEffectRunner::Fill, tagIndex, paramIndex, "FxRunner connect error" );
                     message.setStatus( yaxp::MessageT::targetRetCode );
+                    std::cout << "TagEffectRunner::SetConnections ind " << ind << std::endl;
                     return false;
                 }
             }
@@ -118,30 +121,29 @@ bool FxRunner::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t para
             }
             message.params[0] = count();
             EffectListEntry *data = static_cast<EffectListEntry *>((void *)(message.data));
-
-            // TODO: must be fixed
-            // add oscillator mixer - always first
-            // add input if running
-            // endMixer ind==0 is always the last
-            // ind == 0 oscillator mixer
-            // ind == 1 fxInput if running -- must be here accessible
-            // ind == 1,2 ...n effects
-            // ind == n+1 endMixer
             
-            for( uint16_t ind = 0; ind < count(); ++ind, ++data ) {
-                data->fxIndex       = ind;
-                data->id            = nodes[ind].thp->id();
-                data->fxType        = uint8_t( nodes[ind].thp->getType() );
-                data->fxMaxMode     = nodes[ind].thp->getMaxMode();
-                data->inputCount    = nodes[ind].thp->getInputCount();
-                data->masterId      = nodes[ind].thp->getMasterId();
-                data->instanceIndex = nodes[ind].thp->myInstanceIndex();
-                std::memset( data->name,'\0',data->nameLength);
-                std::strncpy( data->name,nodes[ind].thp->name().data() ,data->nameLength-1);
+            memset(message.data, 0, sizeof(message.data));
+            uint16_t ind = 1;
+            for( ; ind < count(); ++ind, ++data ) {
+                data->fxIndex       = ind-1;                            // useless
+                data->id            = nodes[ind].thp->id(); // needed
+                data->fxType        = uint8_t( nodes[ind].thp->getType() ); // useless
+                data->fxMaxMode     = nodes[ind].thp->getMaxMode();     // useless
+                data->inputCount    = nodes[ind].thp->getInputCount();  // useless
+                data->outputCount   = 1;            
+                data->refId         = ind;  // needed
+                data->instanceIndex = nodes[ind].thp->myInstanceIndex();// useless
             }
+            // endMixer > ind=max, refId=0
+            data->fxIndex       = ind-1;
+            data->id            = nodes[0].thp->id();  // needed
+            data->fxType        = uint8_t( nodes[0].thp->getType() );
+            data->fxMaxMode     = nodes[0].thp->getMaxMode();
+            data->inputCount    = nodes[0].thp->getInputCount();
+            data->outputCount   = 0;
+            data->refId         = 0;  // needed
+            data->instanceIndex = nodes[0].thp->myInstanceIndex();
             
-            // TODO: must be fixed
-            // endMixer ind==0 is always the last
             message.setStatusGetOk(listLength);
             return true;
         }

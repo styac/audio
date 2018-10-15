@@ -21,13 +21,25 @@
  *
  * Created on January 31, 2016, 9:17 AM
  */
+#include "yacynth_config.h"
 
-#include    "YaIoJack.h"
-#include    "CycleCount.h"
-#include    "control/global.h"
-#include    <thread>
+#include "YaIoJack.h"
+#include "CycleCount.h"
+#include "control/global.h"
+#include <thread>
 
 namespace yacynth {
+
+// TODO : handle jack error - close
+// void jack_on_shutdown 	( 	jack_client_t *  	client,
+//		JackShutdownCallback  	function,
+//		void *  	arg
+//	)
+//void jack_on_info_shutdown 	( 	jack_client_t *  	client,
+//		JackInfoShutdownCallback  	function,
+//		void *  	arg
+//	)
+// jack_on_shutdown (client, jack_shutdown, 0);
 
 // --------------------------------------------------------------------
 YaIoJack::YaIoJack()
@@ -69,13 +81,13 @@ bool YaIoJack::initialize( void )
     client = jack_client_open ( nameClient.c_str(), jackOptions, &jackStatus );
     if( nullptr == client )
         return false;
-    const auto sampleRate = jack_get_sample_rate(client);
+    const uint32_t sampleRate = jack_get_sample_rate(client);
     if( sampleRate < sampleRateMin || sampleRate > sampleRateMax) {
         errorString   += ":illegal sample rate";
 
 #ifdef     YAC_JACK_DEBUG
         std::cout
-            << " illegal sample rate : " << sampleRate
+            << " illegal sample rate : " << std::dec << sampleRate
             << std::endl;
 #endif
         shutdown();
@@ -188,6 +200,17 @@ int YaIoJack::processAudioCB( jack_nframes_t nframes, void *arg )
     }
     return 0;
 } // end YaIoJack::processAudioCB
+
+// --------------------------------------------------------------------
+
+// do exit
+// stop uiServer -- need singleton
+// arg> uiServer
+//
+void YaIoJack::shutdownCB( void *arg )
+{
+
+}
 
 // --------------------------------------------------------------------
 

@@ -24,13 +24,13 @@
  *
  * Created on March 30, 2016, 11:14 PM
  */
-#include    "Limiters.h"
-#include    "Fastsincos.h"
-#include    "Fastexp.h"
-#include    "FilterBase.h"
+#include "Limiters.h"
+#include "Fastsincos.h"
+#include "Fastexp.h"
+#include "FilterBase.h"
 
-#include    <cstdint>
-#include    <cmath>
+#include <cstdint>
+#include <cmath>
 
 using namespace limiter;
 using namespace tables;

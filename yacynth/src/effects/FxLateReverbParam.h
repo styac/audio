@@ -25,10 +25,10 @@
  * Created on May 20, 2017, 8:12 PM
  */
 
-#include    "protocol.h"
-#include    "Tags.h"
-#include    "control/Controllers.h"
-#include    "effects/DelayTap.h"
+#include "protocol.h"
+#include "Tags.h"
+#include "control/Controllers.h"
+#include "effects/DelayTap.h"
 
 namespace yacynth {
 using namespace TagEffectTypeLevel_02;
@@ -41,6 +41,8 @@ public:
     static constexpr TagEffectType  type        = TagEffectType::FxLateReverb;
     static constexpr std::size_t maxMode        = 3;    // 0 is always exist> 0,1,2
     static constexpr std::size_t inputCount     = 1;
+    static constexpr std::size_t slaveCount     = 0; 
+
     static constexpr std::size_t allpassLngExp  = 17;   // much more then needed - will be not used
     static constexpr std::size_t combLngExp     = 17;   // much more then needed
     static constexpr std::size_t allpassCount   = 4;

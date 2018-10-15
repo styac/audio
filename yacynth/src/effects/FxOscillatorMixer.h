@@ -25,11 +25,11 @@
  * Created on June 23, 2016, 9:41 PM
  */
 
-#include    "yacynth_globals.h"
-#include    "effects/FxBase.h"
-#include    "v4.h"
-#include    "FxOscillatorMixerParam.h"
-#include    "oscillator/OscillatorOutput.h"
+#include "yacynth_globals.h"
+#include "effects/FxBase.h"
+#include "v4.h"
+#include "FxOscillatorMixerParam.h"
+#include "oscillator/OscillatorOutput.h"
 
 namespace yacynth {
 class FxOscillatorMixer : public Fx<FxOscillatorMixerParam>  {
@@ -38,7 +38,7 @@ public:
     FxOscillatorMixer()
     :   Fx<FxOscillatorMixerParam>()
     {
-        for( auto& si : slaves ) si.setMasterId(id());
+        for( auto& si : slaves ) si.setrefId(id());
     }
 
     virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ) override;

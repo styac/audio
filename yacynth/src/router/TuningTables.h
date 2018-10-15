@@ -24,15 +24,15 @@
  * Created on October 4, 2017, 7:07 PM
  */
 
-#include    "yacynth_globals.h"
-#include    "protocol.h"
-#include    "TuningConst.h"
-#include    "control/Controllers.h"
+#include "yacynth_globals.h"
+#include "protocol.h"
+#include "TuningConst.h"
+#include "control/Controllers.h"
 
-#include    <array>
-#include    <iostream>
-#include    <fstream>
-#include    <iomanip>
+#include <array>
+#include <iostream>
+#include <fstream>
+#include <iomanip>
 
 using namespace Tuning;
 

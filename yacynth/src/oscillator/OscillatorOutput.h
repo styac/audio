@@ -24,13 +24,13 @@
  * Created on February 1, 2016, 5:25 PM
  */
 
-#include    "yacynth_globals.h"
-#include    "message/yamsg.h"
-#include    <algorithm>
-#include    <array>
-#include    <atomic>
-#include    <cstring>
-#include    <iostream>
+#include "yacynth_globals.h"
+#include "message/yamsg.h"
+#include <algorithm>
+#include <array>
+#include <atomic>
+#include <cstring>
+#include <iostream>
 
 namespace yacynth {
 

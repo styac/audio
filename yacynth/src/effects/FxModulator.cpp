@@ -22,7 +22,7 @@
  *
  * Created on June 23, 2016, 6:14 PM
  */
-
+#include "yacynth_config.h"
 #include "FxModulator.h"
 
 namespace yacynth {

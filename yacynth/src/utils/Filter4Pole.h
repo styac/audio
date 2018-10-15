@@ -25,13 +25,13 @@
  * Created on March 21, 2016, 6:27 PM
  */
 
-#include    "FilterBase.h"
-#include    "Limiters.h"
-#include    "v4.h"
+#include "FilterBase.h"
+#include "Limiters.h"
+#include "v4.h"
 
-#include    <cstdint>
-#include    <iostream>
-#include    <iomanip>
+#include <cstdint>
+#include <iostream>
+#include <iomanip>
 
 using namespace limiter;
 

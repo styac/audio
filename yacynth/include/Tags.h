@@ -25,12 +25,12 @@
  * Created on October 3, 2016, 9:58 PM
  */
 
-#include    <cstdint>
-#include    <string>
-#include    <array>
-#include    <atomic>
-#include    <cstring>
-#include    <map>
+#include <cstdint>
+#include <string>
+#include <array>
+#include <atomic>
+#include <cstring>
+#include <map>
 
 #define TAG_DEBUG_ON 1
 
@@ -59,19 +59,21 @@ struct EffectListEntry
     static constexpr const char * const fxDymanicType = "dynamic";
     static constexpr const char * const fxMaxModeName = "fxMaxMode";
     static constexpr const char * const inputCountName = "inputCount";
-    static constexpr const char * const masterIdName = "masterId";
+    static constexpr const char * const outputCountName = "outputCount";
+    static constexpr const char * const refIdName = "refId";
     static constexpr const char * const instanceIndexName = "instanceIndex";
     static constexpr const char * const nameIdName = "name";
     static constexpr const char * const fullNameIdName = "fullName";
 
     static constexpr uint8_t nameLength = 32;
-    uint8_t fxIndex;
+    uint8_t fxIndex; // not very useful : always 0..n-1
     uint8_t id;
     uint8_t fxType;
     uint8_t dynamic;
     uint8_t fxMaxMode;  // might be obsolete - new mode setting
     uint8_t inputCount;
-    uint8_t masterId;
+    uint8_t outputCount;
+    uint8_t refId;
     uint8_t instanceIndex;
     char    name[nameLength];
     char    fullName[nameLength+8];
@@ -280,7 +282,7 @@ namespace TagEffectCollectorLevel_01 {
 //
 namespace TagEffectTypeLevel_02 {
     enum class TagEffectType : uint8_t {
-        FxNop   = 0x40,
+        FxNop   = 0x40, // pseudo type for init base classes
         FxNil,
         FxSlave,
         FxMixer,

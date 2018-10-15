@@ -35,7 +35,7 @@
 // http://cdn.intechweb.org/pdfs/15188.pdf
 // http://home.deib.polimi.it/bestagini/_Slides/lesson_3.pdf
 
-#include    "FilterBase.h"
+#include "FilterBase.h"
 
 using namespace tables;
 

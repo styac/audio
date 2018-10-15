@@ -22,9 +22,9 @@
  *
  * Created on June 23, 2016, 7:46 PM
  */
-
-#include    "FxLateReverb.h"
-#include    "yacynth_globals.h"
+#include "yacynth_config.h"
+#include "FxLateReverb.h"
+#include "yacynth_globals.h"
 
 namespace yacynth {
 

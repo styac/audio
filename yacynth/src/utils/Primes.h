@@ -25,8 +25,8 @@
  * Created on March 25, 2016, 11:32 PM
  */
 
-#include    <cstdint>
-#include    <array>
+#include <cstdint>
+#include <array>
 
 namespace tables {
 

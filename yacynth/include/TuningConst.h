@@ -24,11 +24,11 @@
  * Created on October 5, 2017, 6:01 PM
  */
 
-#include    <cstdint>
-#include    <cmath>
-#include    <array>
+#include <cstdint>
+#include <cmath>
+#include <array>
 
-#include    <iostream>
+#include <iostream>
 
 namespace Tuning {
 

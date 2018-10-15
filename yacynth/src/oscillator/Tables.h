@@ -25,12 +25,12 @@
  * Created on February 6, 2016, 5:15 PM
  */
 #if 0
-#include    "yacynth_globals.h"
-#include    "v4.h"
-#include    "utils/Fastexp.h"
+#include "yacynth_globals.h"
+#include "v4.h"
+#include "utils/Fastexp.h"
 
-#include    <iostream>
-#include    <array>
+#include <iostream>
+#include <array>
 
 namespace yacynth {
 // --------------------------------------------------------------------

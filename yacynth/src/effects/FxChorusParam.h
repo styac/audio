@@ -25,9 +25,9 @@
  * Created on May 20, 2017, 8:11 PM
  */
 
-#include    "protocol.h"
-#include    "Tags.h"
-#include    "control/Controllers.h"
+#include "protocol.h"
+#include "Tags.h"
+#include "control/Controllers.h"
 
 namespace yacynth {
 
@@ -37,11 +37,12 @@ using namespace TagEffectFxChorusModeLevel_03;
 class FxChorusParam {
 public:
     // mandatory fields
-    static constexpr const char * const typeName    = "FxChorusParam";
+//    static constexpr const char * const typeName    = "FxChorusParam";
     static constexpr char const * const name        = "Chorus";
     static constexpr TagEffectType  type            = TagEffectType::FxChorus;
     static constexpr std::size_t maxMode            = 2;
     static constexpr std::size_t inputCount         = 1;
+    static constexpr std::size_t slaveCount         = 0;
 
     static constexpr int64_t delayLngExp            = 13;   // 8192 sample * 20 nsec - 160msec
     static constexpr int64_t delayLng               = 1<<delayLngExp;
@@ -65,11 +66,11 @@ public:
                         baseDelay[ i ][ j ] = minBaseDelay;
                     }
                     if( baseDelay[ i ][ j ] > maxBaseDelay ) {
-                        baseDelay[ i ][ j ] = maxBaseDelay;               
+                        baseDelay[ i ][ j ] = maxBaseDelay;
                     }
-                }                
+                }
             }
-            
+
             if( wetGain < -1.0 ) {
                 wetGain = -1.0;
             }
@@ -77,7 +78,7 @@ public:
             if( wetGain > 1.0 ) {
                 wetGain = 1.0;
             }
-            
+
             if( tapCount < 1 ) {
                 tapCount = 1;
             }
@@ -88,7 +89,7 @@ public:
             return true;
         }
         int64_t         baseDelay[ tapSize ][ 2 ]; // chorus tap base delay ( fractional value -- high 32 bit delay in samples !)
-        int32_t         depth[ tapSize ][ 2 ];          
+        int32_t         depth[ tapSize ][ 2 ];
         float           wetGain;
 
         // manual
@@ -98,18 +99,18 @@ public:
         ControllerIndex phaseDiffIndex;     // to set the phase diff A-B
 
         // get the sine component of the modulation signal
-        
+
         // TODO yet
 //        ControllerIndex oscMasterIndex[ tapSize ]; // to get the osc phase chA
 //        ControllerIndex oscSlaveIndex[ tapSize ];  // to get the osc phase chB
-        
+
         // TODO > random phase controller
-        
+
         ControllerIndex oscMasterIndex;     // to get the osc phase chA
         ControllerIndex oscSlaveIndex;      // to get the osc phase chB
 
         uint8_t         tapCount;
-        
+
     } mode01;
 };
 

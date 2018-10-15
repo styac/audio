@@ -24,9 +24,9 @@
  * Created on October 3, 2017, 6:46 PM
  */
 
-#include    <cstdint>
-#include    <atomic>
-#include    <string.h>
+#include <cstdint>
+#include <atomic>
+#include <string.h>
 
 namespace yacynth {
 

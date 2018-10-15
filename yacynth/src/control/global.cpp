@@ -22,7 +22,7 @@
  *
  * Created on July 16, 2017, 12:34 PM
  */
-#include    "global.h"
+#include "global.h"
 
 namespace yglobal {
 

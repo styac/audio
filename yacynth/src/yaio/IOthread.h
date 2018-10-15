@@ -25,23 +25,23 @@
  * Created on February 15, 2016, 4:59 PM
  */
 
-#include    "router/ControlQueue.h"
-#include    "oscillator/OscillatorOutput.h"
-#include    "message/Midi.h"
-#include    "control/Controllers.h"
-#include    "utils/GaloisNoiser.h"
-#include    "effects/FxMixer.h"
-#include    "effects/FxOscillatorMixer.h"
-#include    "effects/FxInput.h"
+#include "router/ControlQueue.h"
+#include "oscillator/OscillatorOutput.h"
+#include "message/Midi.h"
+#include "control/Controllers.h"
+#include "utils/GaloisNoiser.h"
+#include "effects/FxMixer.h"
+#include "effects/FxOscillatorMixer.h"
+#include "effects/FxInput.h"
 
-#include    <cstddef>
-#include    <cstdint>
-#include    <vector>
-#include    <cstdio>
-#include    <iostream>
-#include    <cassert>
-#include    <iterator>
-#include    <string>
+#include <cstddef>
+#include <cstdint>
+#include <vector>
+#include <cstdio>
+#include <iostream>
+#include <cassert>
+#include <iterator>
+#include <string>
 
 using namespace noiser;
 

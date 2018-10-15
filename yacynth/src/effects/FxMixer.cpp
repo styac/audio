@@ -21,7 +21,7 @@
  *
  * Created on March 15, 2016, 6:23 PM
  */
-
+#include "yacynth_config.h"
 #include "FxMixer.h"
 
 namespace yacynth {

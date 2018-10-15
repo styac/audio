@@ -22,7 +22,10 @@
  *
  * Created on November 9, 2017, 5:46 PM
  */
-#include    "TuningTables.h"
+
+#include "yacynth_config.h"
+
+#include "TuningTables.h"
 
 namespace Tuning {
 

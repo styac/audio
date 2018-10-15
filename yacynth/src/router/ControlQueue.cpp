@@ -22,7 +22,7 @@
  *
  * Created on October 3, 2017, 6:47 PM
  */
-#include    "ControlQueue.h"
+#include "ControlQueue.h"
 
 namespace yacynth {
 

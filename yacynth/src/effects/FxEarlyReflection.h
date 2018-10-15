@@ -25,8 +25,8 @@
  * Created on April 17, 2017, 11:22 AM
  */
 
-#include    "effects/FxEarlyReflectionParam.h"
-#include    "effects/FxBase.h"
+#include "effects/FxEarlyReflectionParam.h"
+#include "effects/FxBase.h"
 
 namespace yacynth {
 
@@ -40,7 +40,7 @@ public:
     ,   coeff {0}
     ,   delayLine( FxEarlyReflectionParam::delayLngExp - effectFrameSizeExp )
     {
-        for( auto& si : slaves ) si.setMasterId(id());
+        for( auto& si : slaves ) si.setrefId(id());
     }
 
     virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );

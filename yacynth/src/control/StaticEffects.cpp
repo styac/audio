@@ -22,18 +22,19 @@
  *
  * Created on October 4, 2017, 7:01 PM
  */
-// #include    "StaticEffects.h"
+// #include "StaticEffects.h"
+#include "yacynth_config.h"
 
-#include    "effects/FxMixer.h"
-#include    "effects/FxFilter.h"
-#include    "effects/FxOutNoise.h"
-#include    "effects/FxModulator.h"
-#include    "effects/FxOutOscillator.h"
-#include    "effects/FxEcho.h"
-#include    "effects/FxLateReverb.h"
-#include    "effects/FxEarlyReflection.h"
-#include    "effects/FxChorus.h"
-#include    "effects/FxFlanger.h"
+#include "effects/FxMixer.h"
+#include "effects/FxFilter.h"
+#include "effects/FxOutNoise.h"
+#include "effects/FxModulator.h"
+#include "effects/FxOutOscillator.h"
+#include "effects/FxEcho.h"
+#include "effects/FxLateReverb.h"
+#include "effects/FxEarlyReflection.h"
+#include "effects/FxChorus.h"
+#include "effects/FxFlanger.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"

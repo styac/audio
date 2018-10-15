@@ -22,8 +22,8 @@
  *
  * Created on March 7, 2016, 2:05 PM
  */
-
-#include    "FxEcho.h"
+#include "yacynth_config.h"
+#include "FxEcho.h"
 
 namespace yacynth {
 using namespace TagEffectFxEchoModeLevel_03;

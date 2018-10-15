@@ -1,5 +1,6 @@
+#pragma once
 /*
- * Copyright (C) 2017 ist
+ * Copyright (C) 2018 ist
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -17,35 +18,34 @@
  */
 
 /* 
- * File:   TuningTablesModalScales.cpp
+ * File:   yacynth_config.h
  * Author: Istvan Simon -- stevens37 at gmail dot com
  *
- * Created on November 14, 2017, 9:20 PM
+ * Created on October 15, 2018, 6:36 PM
  */
-#include "yacynth_config.h"
 
-#include "TuningConst.h"
+#ifdef YCONF_OVERSAMPLING_RATE
+#if YCONF_OVERSAMPLING_RATE==2
+// 96000Hz
+constexpr int  oversamplingRate     = 2;
+#elif YCONF_OVERSAMPLING_RATE==4
+// 192000Hz
+constexpr int  oversamplingRate     = 4;
+#else
+constexpr int  oversamplingRate     = 1;
+#endif
+#else
+constexpr int  oversamplingRate     = 1;
+#endif
+ 
+#ifdef YCONF_FRAME_SIZEEXP
+#if YCONF_FRAME_SIZEEXP>3 && YCONF_FRAME_SIZEEXP<11
+constexpr int  frameSizeExp         = YCONF_FRAME_SIZE;
+#else
+constexpr int  frameSizeExp         = 6;
+#endif
+#else
+constexpr int  frameSizeExp         = 6;
+#endif
 
-namespace Tuning {
-
-#define MAKE_MS12_TABLE(p,n) \
-    ModalSteps12 modalTable_ ## p ## _ ## n \
-        ( tuningGenerator_ ## p,sizeof(modalTable_ ## p ## _ ## n ## __), modalTable_ ## p ## _ ## n ## __ );
-
-TuningGenerator tuningGenerator_TM_21_ET_72(72,2,1);
-
-// 72 tone equal modes:
-// 7 5 7 4 7 5 7 7 4 7 5 7 	"Just" Chromatic
-// 
-
-static uint8_t modalTable_TM_21_ET_72_JustChromatic__ [] =
-    {
-        7, 5, 7, 4, 7, 5, 7, 7, 4, 7, 5, 7,        
-    };
-
-// name modalTable_TM_21_ET_72_JustChromatic
-
-MAKE_MS12_TABLE(TM_21_ET_72,JustChromatic);
-
-} // end namespace Tuning 
 

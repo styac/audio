@@ -1,4 +1,4 @@
-# set(CMAKE_CXX_COMPILER "/usr/bin/g++-6")
+# set(CMAKE_CXX_COMPILER "/usr/bin/g++-7")
 cmake_minimum_required(VERSION 3.7.2 )
 project(yacynth CXX)
 set(CMAKE_CXX_STANDARD 14)

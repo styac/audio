@@ -23,7 +23,8 @@
  * Created on February 16, 2016, 10:27 AM
  */
 
-#include    "Controllers.h"
+#include "yacynth_config.h"
+#include "Controllers.h"
 
 namespace yacynth {
 

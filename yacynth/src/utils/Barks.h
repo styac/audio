@@ -26,9 +26,9 @@
  */
 
          
-#include    <cstdint>
-#include    <cmath>
-#include    <algorithm>
+#include <cstdint>
+#include <cmath>
+#include <algorithm>
 
 namespace tables {
 

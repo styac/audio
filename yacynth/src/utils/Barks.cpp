@@ -25,7 +25,7 @@
 
 // https://ccrma.stanford.edu/~jos/bbt/Bark_Frequency_Scale.html
 
-#include    "Barks.h"
+#include "Barks.h"
 
 namespace tables {
 

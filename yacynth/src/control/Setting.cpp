@@ -22,14 +22,15 @@
  *
  * Created on February 6, 2016, 10:42 PM
  */
+#include "yacynth_config.h"
 
-#include    "Setting.h"
-#include    <sys/types.h>
-#include    <sys/stat.h>
-#include    <unistd.h>
-#include    <linux/random.h>
-#include    <iostream>
-#include    <fstream>
+#include "Setting.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <linux/random.h>
+#include <iostream>
+#include <fstream>
 
 namespace yacynth {
 

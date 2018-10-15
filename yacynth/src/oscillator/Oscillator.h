@@ -24,24 +24,24 @@
  *
  * Created on January 28, 2016, 5:20 PM
  */
-#include    "yacynth_globals.h"
-#include    "OscillatorOutput.h"
-#include    "Tables.h"
-#include    "ToneShaper.h"
-#include    "NoiseFrame.h"
-#include    "NoiseSample.h"
-#include    "OscillatorNoiseInt.h"
+#include "yacynth_globals.h"
+#include "OscillatorOutput.h"
+#include "Tables.h"
+#include "ToneShaper.h"
+#include "NoiseFrame.h"
+#include "NoiseSample.h"
+#include "OscillatorNoiseInt.h"
 
-#include    "control/Statistics.h"
-#include    "utils/GaloisNoiser.h"
-#include    "utils/Fastsincos.h"
-#include    "oscillator/ToneShaperMatrix.h"
+#include "control/Statistics.h"
+#include "utils/GaloisNoiser.h"
+#include "utils/Fastsincos.h"
+#include "oscillator/ToneShaperMatrix.h"
 
-#include    <cstdint>
-#include    <iostream>
-#include    <random>
-#include    <atomic>
-#include    <tgmath.h>
+#include <cstdint>
+#include <iostream>
+#include <random>
+#include <atomic>
+#include <tgmath.h>
 
 //
 // TODO:

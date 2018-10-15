@@ -23,7 +23,7 @@
  * Created on March 25, 2016, 11:32 PM
  */
 
-#include    "Primes.h"
+#include "Primes.h"
 
 namespace tables {
 

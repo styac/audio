@@ -24,10 +24,10 @@
  * Created on September 16, 2017, 10:37 AM
  */
 
-#include    "yacynth_globals.h"
-#include    "effects/FxBase.h"
-#include    "v4.h"
-#include    "FxInputParam.h"
+#include "yacynth_globals.h"
+#include "effects/FxBase.h"
+#include "v4.h"
+#include "FxInputParam.h"
 
 namespace yacynth {
 

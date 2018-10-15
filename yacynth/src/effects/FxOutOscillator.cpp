@@ -22,9 +22,10 @@
  *
  * Created on June 23, 2016, 7:46 PM
  */
+#include "yacynth_config.h"
 
-#include    "FxOutOscillator.h"
-#include    "yacynth_globals.h"
+#include "FxOutOscillator.h"
+#include "yacynth_globals.h"
 
 namespace yacynth {
 using namespace TagEffectFxOutOscillatorModeLevel_03;

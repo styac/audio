@@ -25,10 +25,10 @@
  * Created on June 18, 2016, 1:06 PM
  */
 
-#include    "FxOutNoiseParam.h"
-#include    "oscillator/NoiseFrame.h"
-#include    "utils/GaloisNoiser.h"
-#include    "effects/FxBase.h"
+#include "FxOutNoiseParam.h"
+#include "oscillator/NoiseFrame.h"
+#include "utils/GaloisNoiser.h"
+#include "effects/FxBase.h"
 
 using namespace noiser;
 

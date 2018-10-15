@@ -22,10 +22,11 @@
  *
  * Created on February 1, 2016, 5:25 PM
  */
+#include "yacynth_config.h"
 
-#include    "OscillatorOutput.h"
+#include "OscillatorOutput.h"
 
-#include    <cstring>
+#include <cstring>
 
 
 namespace yacynth {

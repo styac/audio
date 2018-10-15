@@ -25,10 +25,10 @@
  * Created on March 22, 2016, 6:51 PM
  */
 
-#include    <cstdint>
-#include    <cmath>
-#include    <algorithm>
-#include    <iostream>
+#include <cstdint>
+#include <cmath>
+#include <algorithm>
+#include <iostream>
 
 // singleton class
 //

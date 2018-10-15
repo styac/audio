@@ -25,9 +25,9 @@
  * Created on March 24, 2016, 2:39 PM
  */
 
-#include    "Fastsincos.h"
-#include    "Fastexp.h"
-#include    "Limiters.h"
+#include "Fastsincos.h"
+#include "Fastexp.h"
+#include "Limiters.h"
 
 using namespace limiter;
 using namespace tables;

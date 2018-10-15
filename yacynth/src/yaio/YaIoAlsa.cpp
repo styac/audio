@@ -22,11 +22,12 @@
  *
  * Created on October 2, 2017, 7:30 PM
  */
+#include "yacynth_config.h"
 
-#include    "YaIoAlsa.h"
-#include    "control/global.h"
-#include    <alsa/asoundlib.h>
-#include    <thread>
+#include "YaIoAlsa.h"
+#include "control/global.h"
+#include <alsa/asoundlib.h>
+#include <thread>
 
 namespace yacynth {
 // --------------------------------------------------------------------

@@ -25,14 +25,14 @@
  * Created on March 15, 2016, 6:23 PM
  */
 
-#include    "FxMixerParam.h"
-#include    "Ebuffer.h"
-#include    "yacynth_globals.h"
-//#include    "protocol.h"
-#include    "effects/FxBase.h"
+#include "FxMixerParam.h"
+#include "Ebuffer.h"
+#include "yacynth_globals.h"
+//#include "protocol.h"
+#include "effects/FxBase.h"
 
-#include    <array>
-#include    <iostream>
+#include <array>
+#include <iostream>
 
 namespace yacynth {
 

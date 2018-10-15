@@ -21,10 +21,11 @@
  *
  * Created on February 1, 2016, 4:47 PM
  */
+#include "yacynth_config.h"
 
-#include    "OscillatorArray.h"
-#include    <cstdlib>
-#include    <iostream>
+#include "OscillatorArray.h"
+#include <cstdlib>
+#include <iostream>
 
 namespace yacynth {
 // --------------------------------------------------------

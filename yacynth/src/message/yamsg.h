@@ -24,8 +24,8 @@
  *
  * Created on January 29, 2016, 11:01 PM
  */
-#include    <cstdint>
-#include    <atomic>
+#include <cstdint>
+#include <atomic>
 
 namespace yacynth {
 

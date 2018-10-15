@@ -26,9 +26,9 @@
  */
 #define TONESHAPER_CTOR
 
-#include    "ToneShaper.h"
-#include    "Tags.h"
-#include    "protocol.h"
+#include "ToneShaper.h"
+#include "Tags.h"
+#include "protocol.h"
 
 
 namespace yacynth {

@@ -22,12 +22,13 @@
  *
  * Created on February 15, 2016, 4:59 PM
  */
+#include "yacynth_config.h"
 
-#include    "yaio/IOthread.h"
-#include    "yaio/CycleCount.h"
-#include    <sys/time.h>
-#include    <ctime>
-#include    <atomic>
+#include "yaio/IOthread.h"
+#include "yaio/CycleCount.h"
+#include <sys/time.h>
+#include <ctime>
+#include <atomic>
 
 namespace yacynth {
 
@@ -36,7 +37,7 @@ IOThread:: IOThread( OscillatorOutVector& out )
 ,   fxEndMixer()
 ,   fxOscillatorMixer()
 ,   fxInput()
-,   fxRunner(fxEndMixer)
+,   fxRunner( fxEndMixer, fxOscillatorMixer, fxInput )
 ,   bufferSizeRate(1)
 ,   toClearFxInput(true)
 ,   cycleNoise(0)

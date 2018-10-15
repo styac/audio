@@ -25,15 +25,15 @@
  * Created on April 6, 2016, 11:22 PM
  */
 
-#include    "Ebuffer.h"
-#include    "control/Controllers.h"
-#include    "Tags.h"
-#include    "protocol.h"
+#include "Ebuffer.h"
+#include "control/Controllers.h"
+#include "Tags.h"
+#include "protocol.h"
 
-#include    <cstdint>
-#include    <sstream>
-#include    <ostream>
-#include    <vector>
+#include <cstdint>
+#include <sstream>
+#include <ostream>
+#include <vector>
 
 // #define EFFECT_DEBUG 1
 
@@ -121,7 +121,6 @@ public:
     friend class FxNode;
     friend class FxCollector;
 
-
     FxBase( const char * name,
             uint16_t maxM = 0,
             uint16_t iC = 0,
@@ -136,7 +135,7 @@ public:
     ,   myId(++count)
     ,   inCount(iC)
     ,   maxMode(maxM)
-    ,   masterId(0)
+    ,   refId(0)
     ,   myInstance(0)
     ,   procMode(0)
     ,   dynamic(0)
@@ -149,10 +148,10 @@ public:
     inline uint16_t id(void) const { return myId; };
     inline uint16_t myInstanceIndex(void) const { return myInstance; };
     inline uint16_t getInputCount(void) const { return inCount; };
-    inline uint16_t getMasterId(void) const { return masterId; };
+    inline uint16_t getrefId(void) const { return refId; };
     inline uint16_t getMaxMode(void) const { return maxMode; };
     inline TagEffectType getType(void) const { return myType; };
-    inline bool isSlave(void) const { return masterId != 0; };
+    inline bool isSlave(void) const { return refId != 0; };
     inline uint8_t isDynamic() { return dynamic; }
     inline EIObuffer& out(void) { return *static_cast<EIObuffer *>(this); }
     static inline uint16_t getMaxId(void) { return count; };
@@ -181,7 +180,7 @@ protected:
     const uint8_t       myId;
     const uint8_t       inCount;
     const uint8_t       maxMode;
-    uint8_t             masterId;       // 0 - master , 0 < slave -- value is the id of master
+    uint8_t             refId;       // 0 - master , 0 < slave -- value is the id of master
     uint8_t             myInstance;
     uint8_t             procMode;
     uint8_t             dynamic;        // instance was created dynamically
@@ -223,9 +222,9 @@ public:
     {}
     virtual ~FxSlave() = default;
 
-    inline void setMasterId( uint8_t val )
+    inline void setrefId( uint8_t val )
     {
-        masterId = val;
+        refId = val;
     }
 
     inline void setInstanceIndex( uint8_t val )
@@ -289,7 +288,7 @@ class FxRunner {
 public:
     NON_COPYABLE_NOR_MOVABLE(FxRunner);
 
-    static constexpr std::size_t runFrom    = 1;
+    static constexpr std::size_t runFrom    = 3;
     static constexpr std::size_t nodeCount  = 64;   // need to query the config > max 64 effects - looks enough
 
     enum class RET {
@@ -318,10 +317,12 @@ public:
     //
 
 
-    FxRunner( FxBase& endMixer )
+    FxRunner( FxBase& endMixer, FxBase& oscMixer, FxBase& input )
     :   usedCount(runFrom)
     {
         nodes[0].set( endMixer );
+        nodes[1].set( oscMixer );
+        nodes[2].set( input );
     };
 
     void clear(void)
@@ -340,7 +341,7 @@ public:
         if( usedCount >= nodeCount ) {
             return FxRunner::RET::RUNNERFULL;
         }
-        if( 2 >= ind ) {  // never add nil, endMixer,  ???
+        if( 2 >= ind ) {  // TODO check never add nil, endMixer,  ???
             return FxRunner::RET::LOWID;
         }
         if( isAdded(ind) ) {
@@ -368,7 +369,7 @@ public:
     // change: from -> FxCollector to FxRunner ??? -> SLAVES are not in runners
     FxRunner::RET connect( const uint16_t fromOutFxId, const uint16_t toInRunnerIndex, uint16_t inputIndex = 0 )
     {
-#if 0
+#if 1
         std::cout
             << "FxRunner::connect: toInRunnerIndex " << toInRunnerIndex
             << " fromOutFxId " << fromOutFxId
@@ -389,7 +390,7 @@ public:
 
         // check validity of fromOutId
         // master - running , slave -> master running
-#if 0
+#if 1
         std::cout
            << "FxRunner::connect: to " << nodes[ toInRunnerIndex ].thp->name()
             << " from " <<  FxCollector::getInstance().get(fromOutFxId)->name()
@@ -415,7 +416,7 @@ public:
     };
 
     // test
-    inline void list(void)
+    inline void list(void) const
     {
         for( auto i=0u; i < usedCount; ++i ) {
             auto& node = nodes[i];
@@ -429,7 +430,7 @@ public:
         }
     };
 
-    inline bool isAdded( uint16_t id )
+    inline bool isAdded( uint16_t id ) const
     {
         for( auto i=0u; i < usedCount; ++i ) {
             auto& node = nodes[i];
@@ -439,7 +440,7 @@ public:
         return false;
     };
 
-    inline uint16_t count()
+    inline uint16_t count() const
     {
         return usedCount;
     }

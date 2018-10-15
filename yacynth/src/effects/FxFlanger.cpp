@@ -22,8 +22,8 @@
  *
  * Created on June 23, 2016, 7:46 PM
  */
-
-#include    "FxFlanger.h"
+#include "yacynth_config.h"
+#include "FxFlanger.h"
 
 namespace yacynth {
 using namespace TagEffectFxFlangerModeLevel_03;

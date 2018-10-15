@@ -1,6 +1,7 @@
 #pragma once
+
 /*
- * Copyright (C) 2017 ist
+ * Copyright (C) 2018 Istvan Simon
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -17,37 +18,13 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-/* 
- * File:   YaioAlsa.h
- * Author: Istvan Simon -- stevens37 at gmail dot com
+/*
+ * File:   nsleep.h
+ * Author: Istvan Simon
  *
- * Created on October 2, 2017, 7:31 PM
+ * Created on February 25, 2018, 9:33 AM
  */
 
-#include "YaIo.h"
+#include <cstdint>
 
-namespace yacynth {
-
-class   YaIoAlsa : public YaIo {
-public:
-    virtual ~YaIoAlsa();
-    bool initialize(    void );
-    void shutdown(      void );
-    bool run(           void );
-    
-    static inline YaIoAlsa&   getInstance(void)
-    {
-        static YaIoAlsa inst;
-        return inst;
-    }
-    
-protected:
-
-private:
-    YaIoAlsa();
-    NON_COPYABLE_NOR_MOVABLE(YaIoAlsa)
-};
-
-} // end namespace yacynth
-
-
+void nsleep( uint64_t nsec, uint64_t sec = 0 );

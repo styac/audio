@@ -25,9 +25,9 @@
  * Created on January 26, 2016, 11:35 PM
  */
 
-#include    <cstdint>
-#include    <cmath>
-#include    <algorithm>
+#include <cstdint>
+#include <cmath>
+#include <algorithm>
 
 typedef __uint128_t     uint128_t;
 
@@ -42,6 +42,29 @@ typedef __uint128_t     uint128_t;
 #define YAC_DEBUG    1
 
 namespace yacynth {
+
+//#ifdef YCONF_OVERSAMPLING_RATE
+//#if YCONF_OVERSAMPLING_RATE==2
+//// 96000Hz
+//constexpr uint16_t  oversamplingRate            = 2;
+//#elif YCONF_OVERSAMPLING_RATE==4
+//// 192000Hz
+//constexpr uint16_t  oversamplingRate            = 4;
+//#else
+//constexpr uint16_t  oversamplingRate            = 1;
+//#endif
+//#else
+//constexpr uint16_t  oversamplingRate            = 1;
+//#error "not defd YCONF_OVERSAMPLING_RATE"
+//#endif
+
+
+constexpr double    samplingFrequency           = 48000.0 * oversamplingRate;
+
+constexpr uint16_t  oscillatorFrameSizeExp      = frameSizeExp;        // 64 sample
+constexpr uint16_t  oscillatorFrameSize         = 1<<oscillatorFrameSizeExp;
+constexpr uint16_t  effectFrameSizeExp          = oscillatorFrameSizeExp;        // 64 sample
+constexpr uint16_t  effectFrameSize             = 1<<effectFrameSizeExp;        // 64 sample
 
 #define cArrayElementCount(T)    (sizeof(T) / sizeof(T[0]))
 
@@ -67,7 +90,6 @@ constexpr uint16_t  envelopeKnotRelease         = 0x7F;     // new> own var for 
 constexpr uint16_t  envelopeKnotSteady          = -1;
 
 constexpr uint16_t  sytemOutChannel             = 2;    // mono = mono/2 stereo
-constexpr double    samplingFrequency           = 48000.0;
 constexpr double    samplingDeltaTime           = 1.0/samplingFrequency;
 
 constexpr uint16_t  scalePhaseIndexExp          = 1<<4;
@@ -75,12 +97,8 @@ constexpr uint64_t  scalePhaseIndex             = 1LL << scalePhaseIndexExp;
 //
 constexpr int       waveTableSize               = 1 << 16;
 constexpr int       velocityTableSize           = 1 << 8;
-constexpr uint16_t  oscillatorFrameSizeExp      = 6;        // 64 sample
-constexpr uint16_t  oscillatorFrameSize         = 1<<oscillatorFrameSizeExp;
 constexpr uint16_t  effectChannelCount          = 16;
 
-constexpr uint16_t  effectFrameSizeExp          = oscillatorFrameSizeExp;        // 64 sample
-constexpr uint16_t  effectFrameSize             = 1<<effectFrameSizeExp;        // 64 sample
 
 constexpr uint8_t   oscOutputChannelCountExp    = 5; // 16 x 2
 constexpr uint8_t   oscOutputChannelCount       = 1<<oscOutputChannelCountExp;

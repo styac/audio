@@ -22,10 +22,10 @@
  *
  * Created on April 17, 2017, 11:22 AM
  */
-
-#include    "effects/FxEarlyReflection.h"
-#include    <iomanip>
-#include    <iostream>
+#include "yacynth_config.h"
+#include "effects/FxEarlyReflection.h"
+#include <iomanip>
+#include <iostream>
 
 namespace yacynth {
 

@@ -24,7 +24,7 @@
  * Created on November 6, 2017, 5:37 PM
  */
 
-#include    "TuningTables.h"
+#include "TuningTables.h"
 
 namespace yacynth {
 

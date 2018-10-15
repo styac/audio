@@ -22,19 +22,14 @@
  *
  * Created on April 6, 2016, 11:22 PM
  */
+#include "yacynth_config.h"
+#include "FxBase.h"
+#include "yaio/CycleCount.h"
 
-#include    "FxBase.h"
-#include    "yaio/CycleCount.h"
-
-#include    <chrono>
-#include    <sys/time.h>
-#include    <ctime>
-#include    <time.h>
-
-// TODO split the file to 
-//  FxBase.cpp
-//  FxBaseRunner.cpp
-//  FxBaseCollector.cpp
+#include <chrono>
+#include <sys/time.h>
+#include <ctime>
+#include <time.h>
 
 namespace yacynth {
 using namespace TagEffectRunnerLevel_01;
@@ -48,13 +43,13 @@ void FxCollector::getFullName( const FxBase &fxmaster, const FxBase &fxcurr, cha
     std::string resname(fxmaster.name());
     switch( fxcurr.id() ) {
     case 0:
-        resname = "Nil";
+        resname = "Nil.00:00";
         break;
     case 1:
-        resname = "EndMixer";
+        resname = "EndMixer.00:00";
         break;
     default:
-        if( fxcurr.getMasterId() == 0 ) {
+        if( fxcurr.getrefId() == 0 ) {
             resname += ".00:";
         } else {
             // slave
@@ -75,7 +70,6 @@ void FxCollector::getFullName( const FxBase &fxmaster, const FxBase &fxcurr, cha
 }
 
 // --------------------------------------------------------------------
-
 // chop the 1st parameter as index in FxCollector
 
 bool FxCollector::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )
@@ -132,11 +126,12 @@ bool FxCollector::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t p
                 data->dynamic       = nodes[ind]->isDynamic();
                 data->fxMaxMode     = nodes[ind]->getMaxMode();
                 data->inputCount    = nodes[ind]->getInputCount();
-                data->masterId      = nodes[ind]->getMasterId();
+                data->outputCount   = ind == 1 ? 0 : 1; // endmixer has no output
+                data->refId         = nodes[ind]->getrefId();
                 data->instanceIndex = nodes[ind]->myInstanceIndex();
                 std::memset( data->name,0,data->nameLength );
                 std::strncpy( data->name, nodes[ind]->name().data(), data->nameLength-1);
-                if( nodes[ind]->getMasterId() == 0 ) {
+                if( nodes[ind]->getrefId() == 0 ) {
                     getFullName( *nodes[ind], *nodes[ind], data->fullName, sizeof(data->fullName) );
                     lastMaster = ind;
                 } else {

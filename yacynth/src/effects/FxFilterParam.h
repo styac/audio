@@ -25,11 +25,11 @@
  * Created on May 10, 2017, 8:49 PM
  */
 
-#include    "Tags.h"
-#include    "protocol.h"
-#include    "yacynth_globals.h"
-#include    "v4.h"
-#include    "control/Controllers.h"
+#include "Tags.h"
+#include "protocol.h"
+#include "yacynth_globals.h"
+#include "v4.h"
+#include "control/Controllers.h"
 
 namespace yacynth {
 using namespace TagEffectCollectorLevel_01;
@@ -69,6 +69,7 @@ public:
     static constexpr TagEffectType  type        = TagEffectType::FxFilter;
     static constexpr std::size_t maxMode        = 9;
     static constexpr std::size_t inputCount     = 1;
+    static constexpr std::size_t slaveCount     = 0; 
 
     static constexpr uint8_t  filterCount       = 8;
     static constexpr uint8_t  vfilterCount      = 2;

@@ -25,15 +25,15 @@
  * Created on March 7, 2016, 10:54 AM
  */
 
-#include    "oscillator/Tables.h"
-#include    "utils/Limiters.h"
-#include    "effects/DelayTap.h"
-#include    "effects/FxEchoParam.h"
-#include    "effects/FxBase.h"
+#include "oscillator/Tables.h"
+#include "utils/Limiters.h"
+#include "effects/DelayTap.h"
+#include "effects/FxEchoParam.h"
+#include "effects/FxBase.h"
 
-#include    "Ebuffer.h"
-#include    <array>
-#include    <iostream>
+#include "Ebuffer.h"
+#include <array>
+#include <iostream>
 
 
 using namespace limiter;

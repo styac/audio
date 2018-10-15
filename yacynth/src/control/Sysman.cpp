@@ -22,9 +22,9 @@
  *
  * Created on February 21, 2016, 8:31 AM
  */
-
-#include    "Sysman.h"
-#include    "control/global.h"
+#include "yacynth_config.h"
+#include "Sysman.h"
+#include "control/global.h"
 
 namespace yacynth {
 using namespace TagMainLevel_00;

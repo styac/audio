@@ -25,9 +25,9 @@
  * Created on May 20, 2017, 8:14 PM
  */
 
-#include    "protocol.h"
-#include    "Tags.h"
-#include    "control/Controllers.h"
+#include "protocol.h"
+#include "Tags.h"
+#include "control/Controllers.h"
 
 namespace yacynth {
 using namespace TagEffectTypeLevel_02;
@@ -40,6 +40,7 @@ public:
     static constexpr TagEffectType  type        = TagEffectType::FxOutNoise;
     static constexpr std::size_t maxMode        = 11; // 0 is always exist> 0,1,2
     static constexpr std::size_t inputCount     = 0;
+    static constexpr std::size_t slaveCount     = 0; 
 
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 

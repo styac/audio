@@ -22,7 +22,7 @@
  *
  * Created on June 23, 2016, 9:41 PM
  */
-
+#include "yacynth_config.h"
 #include "FxOscillatorMixer.h"
 
 namespace yacynth {

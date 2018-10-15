@@ -24,19 +24,19 @@
  *
  * Created on February 16, 2016, 10:27 AM
  */
-#include    "yacynth_globals.h"
-#include    "v4.h"
-#include    "utils/Fastsincos.h"
-#include    "utils/Fastexp.h"
+#include "yacynth_globals.h"
+#include "v4.h"
+#include "utils/Fastsincos.h"
+#include "utils/Fastexp.h"
 
-#include    "Tags.h"
-#include    "protocol.h"
+#include "Tags.h"
+#include "protocol.h"
 
-#include    <cstdint>
-#include    <string>
-#include    <array>
-#include    <atomic>
-#include    <cstring>
+#include <cstdint>
+#include <string>
+#include <array>
+#include <atomic>
+#include <cstring>
 
 using namespace tables;
 
