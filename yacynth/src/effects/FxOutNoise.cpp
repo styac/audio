@@ -251,7 +251,7 @@ void FxOutNoise::sprocess_14( void * thp )
 {
     constexpr float gain = 1.0f/(1<<2);
 //    const float gain = static_cast< MyType * >(thp)->param.gains[ 10 - 1 ];
-    static_cast< MyType * >(thp)->fillVelvetTriangle();
+    static_cast< MyType * >(thp)->fillVelvetTriangle<2>();
     static_cast< MyType * >(thp)->mult(gain);
 }
 
@@ -259,7 +259,7 @@ void FxOutNoise::sprocess_15( void * thp )
 {
 //    constexpr float gain = 1.0f/(1<<2);
 //    const float gain = static_cast< MyType * >(thp)->param.gains[ 10 - 1 ];
-    static_cast< MyType * >(thp)->fillVelvetTriangle2CH();
+    static_cast< MyType * >(thp)->fillVelvetTriangle2CH<2>();
 //    static_cast< MyType * >(thp)->mult(gain);
 }
 
