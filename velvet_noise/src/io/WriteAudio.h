@@ -42,12 +42,12 @@ public:
         return 0 == sf_close(file);
     }
 
-    bool read( int16_t * p, sf_count_t count )
+    bool read( short * p, sf_count_t count )
     {
         rcnt = sf_readf_short(file, p, count);
         return rcnt == count;
     }
-    bool read( int32_t * p, sf_count_t count )
+    bool read( int * p, sf_count_t count )
     {
         rcnt = sf_readf_int(file, p, count);
         return rcnt == count;
@@ -65,13 +65,13 @@ public:
         return rcnt == count;
     }
 
-    bool write( int16_t const * p, sf_count_t count )
+    bool write( short const * p, sf_count_t count )
     {
         rcnt = sf_writef_short(file, p, count);
         return rcnt == count;
     }
 
-    bool write( int32_t const * p, sf_count_t count )
+    bool write( int const * p, sf_count_t count )
     {
         rcnt = sf_writef_int(file, p, count);
         return rcnt == count;

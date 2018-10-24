@@ -31,23 +31,26 @@ bool generate_velvet_white( SoundFile& sf, size_t second )
     NoiseFrameType noiseFrame(gs);
     FrameInterleaveType frameInterleave;
 
-    // warm up the filter
-    int64_t count = 1024;
+    // warm up the DC filter
+    int64_t count = 1000;
     while(--count) {
         noiseFrame.fillVelvetTriangle2CH<pulseCountExp>();
         noiseFrame.postFilterDCcut();
-        frameInterleave.set(noiseFrame);
     }
 
     count = 1 + (second * sf.sampleRate()) / NoiseFrameType::sectionSize;
     while(--count) {
         noiseFrame.fillVelvetTriangle2CH<pulseCountExp>();
         noiseFrame.postFilterDCcut();
-        frameInterleave.set(noiseFrame);
+        frameInterleave.set(noiseFrame,256.0f);
         bool res = sf.write( frameInterleave.channel, frameInterleave.interleavedSize/FrameInterleaveType::channelCount );
         if( !res ) {
             return false;
         }
+//        std::cout
+//                << " dc: " << noiseFrame.s[0]
+//                << " " << noiseFrame.s[1]
+//                << std::endl;
     }
     return true;
 }
@@ -61,12 +64,18 @@ bool generate_velvet_white( SoundFile& sf, size_t second )
 
 int main( int argc, char *argv[] )
 {
+    int samplingFrequency( 192000 );
+    int fileType( SF_FORMAT_FLAC | SF_FORMAT_PCM_24 );
+    size_t lengthSec(60);
+    std::string fileext( ".flac" );
+    std::string filename( "velvet_noise" );
 
-    SoundFile soundFile(192000);
 
-    if( !soundFile.open("soundFile.wav", SFM_WRITE) )
+    SoundFile soundFile(4*44100, fileType);
+
+    if( !soundFile.open("velvet_noise_generated_176k-test.flac", SFM_WRITE) )
         exit(-1);
 
-    generate_velvet_white(soundFile, 300);
+    generate_velvet_white(soundFile, 36);
     return 0;
 }

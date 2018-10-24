@@ -36,10 +36,7 @@ file( GLOB SOURCES ${PROJECT_SOURCE_DIR}
 source_group("SOURCES" FILES ${SOURCES})
 
 include_directories(
-    ../yacynth/src/oscillator
-    ../yacynth/src/
     src
-    src/include
 )
 
 set(CMAKE_BUILD_TYPE RELEASE CACHE STRING "" FORCE)

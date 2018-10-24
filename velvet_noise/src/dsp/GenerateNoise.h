@@ -18,21 +18,18 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-constexpr double PI = 3.141592653589793238462643383279502884197169399375105820974944592307816;
+//constexpr double PI = 3.141592653589793238462643383279502884197169399375105820974944592307816;
 
 #include "NoiseFrame.h"
 
-using namespace yacynth;
-using namespace noiser;
 using namespace std;
 
-
 constexpr std::size_t frameSizeExp = 10;
-constexpr std::size_t pulseCountExp = 6;
+constexpr std::size_t pulseCountExp = 4;
 
 typedef FrameInt<frameSizeExp,2> FrameType;
 typedef NoiseFrame<FrameType> NoiseFrameType;
-typedef FrameIntInterleave<frameSizeExp,2> FrameInterleaveType;
+typedef FrameInterleave<int,frameSizeExp,2> FrameInterleaveType;
 
 
 
