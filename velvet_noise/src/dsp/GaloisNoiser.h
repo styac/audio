@@ -50,7 +50,6 @@ public:
     static constexpr int shdownWhite    = 24; // spectrum looks white noise in this slice
 
     GaloisShifter( const uint64_t seed = seedThreadEffect_noise ) // default should be deleted
-//    GaloisShifter( const uint64_t seed )
     :   lfsr(seed)
     {};
 
@@ -105,33 +104,7 @@ public:
         res16[0] = lfsr16[3]^lfsr16[2];
         return res;
     };
-    
-    inline int32_t getWhite24shift(void)
-    {
-        static uint32_t x=123456789, y=362436069, z=521288629;
- 
-        uint32_t t;
-        x ^= x << 16;
-        x ^= x >> 5;
-        x ^= x << 1;
-
-        t = x;
-        x = y;
-        y = z;
-        z = t ^ x ^ y;
-
-        return int32_t(z)>>8;
-    };
-    
-    inline int32_t getWhite24mult(void)
-    {
-        static int64_t g_seed = 0x87232937;
-        
-        g_seed = 214013 * g_seed + 2531011;
-
-        return int32_t(g_seed) >> 8;
-    };
-    
+            
     // good red noise -20 db / decade
     inline int32_t getRed24(void)
     {

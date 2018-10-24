@@ -94,7 +94,7 @@ public:
         return sf_error(file);
     }
 
-    uint32_t sampleRate() const
+    int sampleRate() const
     {
         return info.samplerate;
     }
