@@ -33,9 +33,6 @@ struct FrameFloat {
     static constexpr std::size_t sectionSizeExp     = fexp;
     static constexpr std::size_t sectionSize        = 1<<sectionSizeExp;
     static constexpr std::size_t sectionSizeMask    = sectionSize-1;
-    static constexpr std::size_t vsectionSizeExp    = fexp-2;
-    static constexpr std::size_t vsectionSize       = 1<<vsectionSizeExp;
-    static constexpr std::size_t vsectionSizeMask   = vsectionSize-1;
     static constexpr std::size_t channelCount       = chcount;
     inline void clear(void)
     {
@@ -53,9 +50,6 @@ struct FrameInt {
     static constexpr std::size_t sectionSizeExp     = fexp;
     static constexpr std::size_t sectionSize        = 1<<sectionSizeExp;
     static constexpr std::size_t sectionSizeMask    = sectionSize-1;
-    static constexpr std::size_t vsectionSizeExp    = fexp-2;
-    static constexpr std::size_t vsectionSize       = 1<<vsectionSizeExp;
-    static constexpr std::size_t vsectionSizeMask   = vsectionSize-1;
     static constexpr std::size_t channelCount       = chcount;
     inline void clear(void)
     {
@@ -179,15 +173,15 @@ public:
     }
 
     // velvet noise stereo
-    template< uint8_t pulseCountExp > 
-    inline void fillVelvet2CH()    
+
+    inline void fillVelvet2CH(uint8_t pulseCountExp)
     {
         static_assert( 2 == channelCount, "must be 2 channel");
-        static_assert( pulseCountExp < sectionSizeExp - 1, "pulse count too high");
-        constexpr uint8_t slotSizeExp   = sectionSizeExp - pulseCountExp;
-        constexpr uint8_t slotSize      = 1<<slotSizeExp;
-        constexpr int32_t slotSizeMask  = slotSize - 1;
-        constexpr uint8_t normExp       = 21;
+//        static_assert( pulseCountExp < sectionSizeExp - 1, "pulse count too high");
+        const uint8_t slotSizeExp   = sectionSizeExp - pulseCountExp;
+        const uint8_t slotSize      = 1<<slotSizeExp;
+        const int32_t slotSizeMask  = slotSize - 1;
+        constexpr uint8_t normExp   = 21;
         Tstore::clear();
         for( auto pi=0u; pi < sectionSize; pi += slotSize ) {
             const int32_t rand0 = noise.getWhiteRaw();
@@ -227,18 +221,17 @@ public:
         }
     }
     
-    template< uint8_t pulseCountExp > 
-    inline void fillVelvetTriangle2CH()    
+    inline void fillVelvetTriangle2CH(uint8_t pulseCountExp )
     {
         static_assert( 2 == channelCount, "must be 2 channel");
         static_assert( 11 >= sectionSizeExp, "section size too big (random 24 bit)");
         static_assert( 6 <= sectionSizeExp, "section size too small");
-        static_assert( pulseCountExp < sectionSizeExp - 3, "pulse count too high");        
-        constexpr uint16_t slotSizeExp   = sectionSizeExp - pulseCountExp;
-        constexpr uint16_t slotSize      = 1<<slotSizeExp;
-        static_assert( 2 <= slotSize, "slotSize too small");
-        static_assert( sectionSize / 2 >= slotSize, "slotSize too big");        
-        constexpr int32_t slotSizeMask  = (slotSize - 1) & 0xFFFCU; // 4 dot/wavelet
+//        static_assert( pulseCountExp < sectionSizeExp - 3, "pulse count too high");
+        const uint16_t slotSizeExp   = sectionSizeExp - pulseCountExp;
+        const uint16_t slotSize      = 1<<slotSizeExp;
+//        static_assert( 2 <= slotSize, "slotSize too small");
+//        static_assert( sectionSize / 2 >= slotSize, "slotSize too big");
+        const int32_t slotSizeMask  = (slotSize - 1) & 0xFFFCU; // 4 dot/wavelet
         constexpr uint8_t normExp       = 21; // 24 bit signed
         Tstore::clear();
         for( auto pi=0u; pi < sectionSize; pi += slotSize ) {
@@ -258,6 +251,151 @@ public:
         }
     }
     
+    inline void fillVelvetDoubleTriangle2CH(uint8_t pulseCountExp )
+    {
+        static_assert( 2 == channelCount, "must be 2 channel");
+        static_assert( 11 >= sectionSizeExp, "section size too big (random 24 bit)");
+        static_assert( 6 <= sectionSizeExp, "section size too small");
+        const uint16_t slotSizeExp  = sectionSizeExp - pulseCountExp;
+        const uint16_t slotSize     = 1<<slotSizeExp;
+        const int32_t slotSizeMask  = (slotSize - 1) & 0xFFFCU; // 4 dot/wavelet
+        constexpr uint8_t normExp0  = 21; // 24 bit signed
+        constexpr uint8_t normExp1  = 19; // 24 bit signed
+        Tstore::clear();
+        // primary pulse train
+        for( auto pi=0u; pi < sectionSize; pi += slotSize ) {
+            const int32_t rand0 = noise.getWhiteRaw();
+            const int32_t rand1 = noise.getWhiteRaw();
+            const int32_t sign0 = ((rand0>>31) | 1)<< normExp0; // +1,-1
+            const int32_t sign1 = ((rand1>>31) | 1)<< normExp0; // +1,-1
+            const int32_t position0 = rand0 & slotSizeMask;
+            const int32_t position1 = rand1 & slotSizeMask;
+            Tstore::channel[ 0 ][ pi + position0 + 0 ] = sign0;
+            Tstore::channel[ 0 ][ pi + position0 + 1 ] = sign0 * 2;
+            Tstore::channel[ 0 ][ pi + position0 + 2 ] = sign0;
+
+            Tstore::channel[ 1 ][ pi + position1 + 0 ] = sign1;
+            Tstore::channel[ 1 ][ pi + position1 + 1 ] = sign1 * 2;
+            Tstore::channel[ 1 ][ pi + position1 + 2 ] = sign1;
+        }
+        // secondary pulse train
+        for( auto pi=0u; pi < sectionSize; pi += slotSize ) {
+            const int32_t rand0 = noise.getWhiteRaw();
+            const int32_t rand1 = noise.getWhiteRaw();
+            const int32_t sign0 = ((rand0>>31) | 1)<< normExp1; // +1,-1
+            const int32_t sign1 = ((rand1>>31) | 1)<< normExp1; // +1,-1
+            const int32_t position0 = rand0 & slotSizeMask;
+            const int32_t position1 = rand1 & slotSizeMask;
+            Tstore::channel[ 0 ][ pi + position0 + 1 ] += sign0;
+            Tstore::channel[ 0 ][ pi + position0 + 2 ] += sign0 * 2;
+            Tstore::channel[ 0 ][ pi + position0 + 3 ] += sign0;
+
+            Tstore::channel[ 1 ][ pi + position1 + 1 ] += sign1;
+            Tstore::channel[ 1 ][ pi + position1 + 2 ] += sign1 * 2;
+            Tstore::channel[ 1 ][ pi + position1 + 3 ] += sign1;
+        }
+    }
+
+    // primary : stereo
+    // secondary : mono
+    inline void fillVelvetDoubleTriangle2CH_1CH(uint8_t pulseCountExp )
+    {
+        static_assert( 2 == channelCount, "must be 2 channel");
+        static_assert( 11 >= sectionSizeExp, "section size too big (random 24 bit)");
+        static_assert( 6 <= sectionSizeExp, "section size too small");
+        const uint16_t slotSizeExp  = sectionSizeExp - pulseCountExp;
+        const uint16_t slotSize     = 1<<slotSizeExp;
+        const int32_t slotSizeMask  = (slotSize - 1) & 0xFFFCU; // 4 dot/wavelet
+        constexpr uint8_t normExp0  = 21; // 24 bit signed
+        constexpr uint8_t normExp1  = 20; // 24 bit signed
+        Tstore::clear();
+        // stereo
+        for( auto pi=0u; pi < sectionSize; pi += slotSize ) {
+            const int32_t rand0 = noise.getWhiteRaw();
+            const int32_t rand1 = noise.getWhiteRaw();
+            const int32_t sign0 = ((rand0>>31) | 1)<< normExp0; // +1,-1
+            const int32_t sign1 = ((rand1>>31) | 1)<< normExp0; // +1,-1
+            const int32_t position0 = rand0 & slotSizeMask;
+            const int32_t position1 = rand1 & slotSizeMask;
+            Tstore::channel[ 0 ][ pi + position0 + 0 ] = sign0;
+            Tstore::channel[ 0 ][ pi + position0 + 1 ] = sign0 * 2;
+            Tstore::channel[ 0 ][ pi + position0 + 2 ] = sign0;
+
+            Tstore::channel[ 1 ][ pi + position1 + 0 ] = sign1;
+            Tstore::channel[ 1 ][ pi + position1 + 1 ] = sign1 * 2;
+            Tstore::channel[ 1 ][ pi + position1 + 2 ] = sign1;
+        }
+        // mono
+        for( auto pi=0u; pi < sectionSize; pi += slotSize ) {
+            const int32_t rand0 = noise.getWhiteRaw();
+            const int32_t sign0 = ((rand0>>31) | 1)<< normExp1; // +1,-1
+            const int32_t position0 = rand0 & slotSizeMask;
+            Tstore::channel[ 0 ][ pi + position0 + 1 ] += sign0;
+            Tstore::channel[ 0 ][ pi + position0 + 2 ] += sign0 * 2;
+            Tstore::channel[ 0 ][ pi + position0 + 3 ] += sign0;
+
+            Tstore::channel[ 1 ][ pi + position0 + 1 ] += sign0;
+            Tstore::channel[ 1 ][ pi + position0 + 2 ] += sign0 * 2;
+            Tstore::channel[ 1 ][ pi + position0 + 3 ] += sign0;
+        }
+    }
+
+    inline void fillVelvetTripleTriangle2CH(uint8_t pulseCountExp )
+    {
+        static_assert( 2 == channelCount, "must be 2 channel");
+        static_assert( 11 >= sectionSizeExp, "section size too big (random 24 bit)");
+        static_assert( 6 <= sectionSizeExp, "section size too small");
+        const uint16_t slotSizeExp  = sectionSizeExp - pulseCountExp;
+        const uint16_t slotSize     = 1<<slotSizeExp;
+        const int32_t slotSizeMask  = (slotSize - 1) & 0xFFFCU; // 4 dot/wavelet
+        constexpr uint8_t normExp0  = 21; // 24 bit signed
+        constexpr uint8_t normExp1  = 19; // 24 bit signed
+        constexpr uint8_t normExp2  = 17; // 24 bit signed
+        Tstore::clear();
+        for( auto pi=0u; pi < sectionSize; pi += slotSize ) {
+            const int32_t rand0 = noise.getWhiteRaw();
+            const int32_t rand1 = noise.getWhiteRaw();
+            const int32_t sign0 = ((rand0>>31) | 1)<< normExp0; // +1,-1
+            const int32_t sign1 = ((rand1>>31) | 1)<< normExp0; // +1,-1
+            const int32_t position0 = rand0 & slotSizeMask;
+            const int32_t position1 = rand1 & slotSizeMask;
+            Tstore::channel[ 0 ][ pi + position0 + 0 ] = sign0;
+            Tstore::channel[ 0 ][ pi + position0 + 1 ] = sign0 * 2;
+            Tstore::channel[ 0 ][ pi + position0 + 2 ] = sign0;
+
+            Tstore::channel[ 1 ][ pi + position1 + 0 ] = sign1;
+            Tstore::channel[ 1 ][ pi + position1 + 1 ] = sign1 * 2;
+            Tstore::channel[ 1 ][ pi + position1 + 2 ] = sign1;
+        }
+        for( auto pi=0u; pi < sectionSize; pi += slotSize ) {
+            const int32_t rand0 = noise.getWhiteRaw();
+            const int32_t rand1 = noise.getWhiteRaw();
+            const int32_t sign0 = ((rand0>>31) | 1)<< normExp1; // +1,-1
+            const int32_t sign1 = ((rand1>>31) | 1)<< normExp1; // +1,-1
+            const int32_t position0 = rand0 & slotSizeMask;
+            const int32_t position1 = rand1 & slotSizeMask;
+            Tstore::channel[ 0 ][ pi + position0 + 1 ] += sign0;
+            Tstore::channel[ 0 ][ pi + position0 + 2 ] += sign0 * 2;
+            Tstore::channel[ 0 ][ pi + position0 + 3 ] += sign0;
+
+            Tstore::channel[ 1 ][ pi + position1 + 1 ] += sign1;
+            Tstore::channel[ 1 ][ pi + position1 + 2 ] += sign1 * 2;
+            Tstore::channel[ 1 ][ pi + position1 + 3 ] += sign1;
+        }
+        for( auto pi=0u; pi < sectionSize; pi += slotSize ) {
+            const int32_t rand0 = noise.getWhiteRaw();
+            const int32_t sign0 = ((rand0>>31) | 1)<< normExp1; // +1,-1
+            const int32_t position0 = rand0 & slotSizeMask;
+            Tstore::channel[ 0 ][ pi + position0 + 1 ] += sign0;
+            Tstore::channel[ 0 ][ pi + position0 + 2 ] += sign0 * 2;
+            Tstore::channel[ 0 ][ pi + position0 + 3 ] += sign0;
+
+            Tstore::channel[ 1 ][ pi + position0 + 1 ] += sign0;
+            Tstore::channel[ 1 ][ pi + position0 + 2 ] += sign0 * 2;
+            Tstore::channel[ 1 ][ pi + position0 + 3 ] += sign0;
+        }
+    }
+
 
 
     // 16 dot/ wave
@@ -335,18 +473,18 @@ public:
     inline void postFilterDCcut( uint8_t upsampleRate, uint8_t stateOffs )
     {        
         const uint8_t poleExp = 8 + upsampleRate; // 9..
-        //constexpr uint8_t soffs = 12; // state offset index - use high
+        const int32_t round = 1 << (poleExp-1);
         for( auto pi=0u; pi < sectionSize; ++pi ) {            
             const int32_t x0 = s[ stateOffs+0 ];
             const int32_t x1 = s[ stateOffs+1 ];
             s[ stateOffs+0 ] = Tstore::channel[ 0 ][ pi ];
-            s[ stateOffs+1 ] += x0 - s[ stateOffs+0 ] - (s[ stateOffs+1 ]>>poleExp);
+            s[ stateOffs+1 ] += x0 - s[ stateOffs+0 ] - ((s[ stateOffs+1 ] + round )>>poleExp);
             Tstore::channel[ 0 ][ pi ] = s[ stateOffs+1 ];
             
             const int32_t x2 = s[ stateOffs+2 ];
             const int32_t x3 = s[ stateOffs+3 ];
             s[ stateOffs+2 ] = Tstore::channel[ 1 ][ pi ];
-            s[ stateOffs+3 ] += x2 - s[ stateOffs+2 ] - (s[ stateOffs+3 ]>>poleExp);
+            s[ stateOffs+3 ] += x2 - s[ stateOffs+2 ] - ((s[ stateOffs+3 ] + round )>>poleExp);
             Tstore::channel[ 1 ][ pi ] = s[ stateOffs+3 ];
         }
     }
@@ -355,7 +493,7 @@ public:
     {
         const uint8_t poleExp = 7 + upsampleRate; // 9..
         const uint8_t gainExp = 1 + upsampleRate; // 9..
-        // constexpr uint8_t soffs = 10; // state offset index - use high
+        const int32_t round = 1 << (poleExp-1);
         for( auto pi=0u; pi < sectionSize; ++pi ) {
             s[ stateOffs+0 ] += (Tstore::channel[ 0 ][ pi ]>>gainExp) - (s[ stateOffs+0 ]>>poleExp);
             Tstore::channel[ 0 ][ pi ] = s[ stateOffs+0 ];
@@ -368,7 +506,7 @@ public:
     {
         const uint8_t poleExp = 6 + upsampleRate; // 9..
         const uint8_t gainExp = 3 + upsampleRate; // 9..
-        // constexpr uint8_t soffs = 10; // state offset index - use high
+        const int32_t round = 1 << (poleExp-1);
         for( auto pi=0u; pi < sectionSize; ++pi ) {
             s[ stateOffs+0 ] += (Tstore::channel[ 0 ][ pi ]>>gainExp) - (s[ stateOffs+0 ]>>poleExp);
             s[ stateOffs+1 ] += (s[ stateOffs+0 ]>>gainExp) - (s[ stateOffs+1 ]>>poleExp);
@@ -378,15 +516,6 @@ public:
             s[ stateOffs+3 ] += (s[ stateOffs+2 ]>>gainExp) - (s[ stateOffs+3 ]>>poleExp);
             Tstore::channel[ 1 ][ pi ] = s[ stateOffs+3 ];
         }
-    }
-
-    inline const auto& getFrame(void) const
-    {
-        return Tstore::channel[0];
-    }
-    inline const auto& getVFrame(void) const
-    {
-        return Tstore::vchannel[0];
     }
 
     int32_t s[sSize];

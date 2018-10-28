@@ -18,60 +18,83 @@
 
 #include <iostream>
 #include "io/WriteAudio.h"
-#include "dsp/GenerateNoise.h"
+#include "dsp/NoiseFrame.h"
 #include <iostream>
 #include <cmath>
+
+constexpr std::size_t frameSizeExp = 10;    // 2<<10
+
+
+typedef FrameInt<frameSizeExp,2> FrameType;
+typedef NoiseFrame<FrameType> NoiseFrameType;
+typedef FrameInterleave<int,frameSizeExp,2> FrameInterleaveType;
 
 using namespace std;
 
 //
 // -o filename
 // -l length time in sec
-// -t type - white, pink, red
 // -f sampling base frquency C(ommercial) (44100), P(rofessional) (48000)
-// -u upsamplerate 1,2,..16
+// -u upsamplerate 1,2,3,4
 // -g generator : velvet, galois
-// -n white, red, deepred
+// -n white, red, deepred, rwhite
 //
 
 enum NoiseType {
     NT_white,
     NT_red,
     NT_deepred,
+    NT_rwhite,
+    NT_dwhite,
     NT_max
 };
 
 const char * const noiseTypes[] = {
     "white",
     "red",
-    "deepred"
+    "deepred",
+    "rwhite",
+    "dwhite",
 };
 
 void help()
 {
     std::cout <<
-        "usage: velvet_noise [ -option value ]\n"
+        "\n\nusage: velvet_noise [ -option value ]\n"
         "  options\n"
         " -o output_filename - default: velvet_white_noise [format is flac] - NO OVERWRITE!\n"
         " -l length(sec) - default: 10\n"
         " -f sampling frequency C(ommercial)=44100 P(rofessional)=48000 - default: 44100\n"
         "   noises: red,deepred differs for 48000 44100\n"
         " -u oversampling rate - default: 4 (-> 4*44100)\n"
-        " -n white, red, deepred\n"
+        " -n white, red, deepred, rwhite\n"
+        " r... noises (raw) are not band limited"
         << std::endl;
 }
 
-bool generate_velvet_white( SoundFile& sf, size_t second, size_t upsampleRate )
+// upsampleRate pulseCountExp
+//  1               7
+//  2               6
+//  3               5
+//  4               4
+
+bool generate_velvet_white_blt( SoundFile& sf, size_t second, size_t upsampleRate )
 {
+    // check the minimum for upsample 1,2,4
+
+    std::size_t pulseCountExp = 7-upsampleRate;
+    if( pulseCountExp < 4 ) {
+        pulseCountExp = 4;
+    }
     GaloisShifter gs;
     NoiseFrameType noiseFrame(gs);
     FrameInterleaveType frameInterleave;
     noiseFrame.clear();
     int64_t count = 1 + float((second+1) * sf.sampleRate()) / NoiseFrameType::sectionSize;
-    std::cout << "velvet white" << std::endl;
+    std::cout << "velvet white BLT" << std::endl;
 
     while(--count) {
-        noiseFrame.fillVelvetTriangle2CH<pulseCountExp>();
+        noiseFrame.fillVelvetTriangle2CH(pulseCountExp);
         noiseFrame.postFilterDCcut(upsampleRate, 12);
         frameInterleave.set(noiseFrame,256.0f);
         bool res = sf.write( frameInterleave.channel, frameInterleave.interleavedSize/FrameInterleaveType::channelCount );
@@ -83,17 +106,46 @@ bool generate_velvet_white( SoundFile& sf, size_t second, size_t upsampleRate )
     return true;
 }
 
-bool generate_velvet_red( SoundFile& sf, size_t second, size_t upsampleRate )
+bool generate_velvet_white_double_blt( SoundFile& sf, size_t second, size_t upsampleRate )
 {
+    std::size_t pulseCountExp = 6-upsampleRate;
+    if( pulseCountExp < 3 ) {
+        pulseCountExp = 3;
+    }
     GaloisShifter gs;
     NoiseFrameType noiseFrame(gs);
     FrameInterleaveType frameInterleave;
     noiseFrame.clear();
     int64_t count = 1 + float((second+1) * sf.sampleRate()) / NoiseFrameType::sectionSize;
-    std::cout << "velvet red" << std::endl;
+    std::cout << "velvet white double BLT" << std::endl;
 
     while(--count) {
-        noiseFrame.fillVelvetTriangle2CH<pulseCountExp>();
+        noiseFrame.fillVelvetDoubleTriangle2CH_1CH(pulseCountExp);
+//        noiseFrame.fillVelvetDoubleTriangle2CH(pulseCountExp);
+
+        noiseFrame.postFilterDCcut(upsampleRate, 12);
+        frameInterleave.set(noiseFrame,256.0f);
+        bool res = sf.write( frameInterleave.channel, frameInterleave.interleavedSize/FrameInterleaveType::channelCount );
+        if( !res ) {
+            help();
+            return false;
+        }
+    }
+    return true;
+}
+
+bool generate_velvet_red_blt( SoundFile& sf, size_t second, size_t upsampleRate )
+{
+    const std::size_t pulseCountExp = 8-upsampleRate;
+    GaloisShifter gs;
+    NoiseFrameType noiseFrame(gs);
+    FrameInterleaveType frameInterleave;
+    noiseFrame.clear();
+    int64_t count = 1 + float((second+1) * sf.sampleRate()) / NoiseFrameType::sectionSize;
+    std::cout << "velvet red BLT" << std::endl;
+
+    while(--count) {
+        noiseFrame.fillVelvetTriangle2CH(pulseCountExp);
         noiseFrame.postFilterDCcut(upsampleRate, 12);
         noiseFrame.postFilterLowPass1(upsampleRate, 10);
         frameInterleave.set(noiseFrame,256.0f);
@@ -106,17 +158,18 @@ bool generate_velvet_red( SoundFile& sf, size_t second, size_t upsampleRate )
     return true;
 }
 
-bool generate_velvet_deepred( SoundFile& sf, size_t second, size_t upsampleRate )
+bool generate_velvet_deepred_blt( SoundFile& sf, size_t second, size_t upsampleRate )
 {
+    const std::size_t pulseCountExp = 8-upsampleRate;
     GaloisShifter gs;
     NoiseFrameType noiseFrame(gs);
     FrameInterleaveType frameInterleave;
     noiseFrame.clear();
     int64_t count = 1 + float((second+1) * sf.sampleRate()) / NoiseFrameType::sectionSize;
-    std::cout << "velvet deep red" << std::endl;
+    std::cout << "velvet deep red BLT" << std::endl;
 
     while(--count) {
-        noiseFrame.fillVelvetTriangle2CH<pulseCountExp>();
+        noiseFrame.fillVelvetTriangle2CH(pulseCountExp);
         noiseFrame.postFilterDCcut(upsampleRate, 12);
         noiseFrame.postFilterLowPass2(upsampleRate, 8 );
         frameInterleave.set(noiseFrame,256.0f);
@@ -142,6 +195,30 @@ bool generate_galois_white( SoundFile& sf, size_t second, size_t upsampleRate )
         frameInterleave.set(noiseFrame,32.0f);
         bool res = sf.write( frameInterleave.channel, frameInterleave.interleavedSize/FrameInterleaveType::channelCount );
         if( !res ) {
+            return false;
+        }
+    }
+    return true;
+}
+
+
+bool generate_velvet_white( SoundFile& sf, size_t second, size_t upsampleRate )
+{
+    const std::size_t pulseCountExp = 7-upsampleRate;
+    GaloisShifter gs;
+    NoiseFrameType noiseFrame(gs);
+    FrameInterleaveType frameInterleave;
+    noiseFrame.clear();
+    int64_t count = 1 + float((second+1) * sf.sampleRate()) / NoiseFrameType::sectionSize;
+    std::cout << "velvet white raw" << std::endl;
+
+    while(--count) {
+        noiseFrame.fillVelvet2CH(pulseCountExp);
+        noiseFrame.postFilterDCcut(upsampleRate, 12);
+        frameInterleave.set(noiseFrame,256.0f);
+        bool res = sf.write( frameInterleave.channel, frameInterleave.interleavedSize/FrameInterleaveType::channelCount );
+        if( !res ) {
+            help();
             return false;
         }
     }
@@ -175,6 +252,7 @@ int main( int argc, char *argv[] )
             exit(-1);
         }
 
+        std::string const argvalue(argv[i+1]);
         switch( ap[ 1 ] ) {
         case 'o' :
             filename = argv[i+1];
@@ -189,9 +267,6 @@ int main( int argc, char *argv[] )
             } else {
                 lengthSec = tmp;
             }
-            break;
-
-        case 't' : // ignored -- only white
             break;
 
         case 'f' :
@@ -214,7 +289,7 @@ int main( int argc, char *argv[] )
 
         case 'u' :
             tmp = std::stoi(argv[i+1]);
-            if( (tmp<1) || (tmp>16)) {
+            if( (tmp<1) || (tmp>4)) {
                 std::cerr << "\nillegal upsample rate " << tmp << " use: " << upsampleRate
                     << std::endl;
             } else {
@@ -223,9 +298,10 @@ int main( int argc, char *argv[] )
             break;
 
         case 'n':
-            for( int t = int(NT_white); t < int(NT_max); ++t ) {
-                if( 0==strncmp( noiseTypes[t], argv[i+1], std::min( strlen(noiseTypes[t]), strlen(argv[i+1]) )) ) {
+            for( int t = 0; t < int(NT_max); ++t ) {
+                if( argvalue.compare(noiseTypes[t]) == 0 ) {
                     nt = NoiseType(t);
+                    break;
                 }
             }
             break;
@@ -254,13 +330,19 @@ int main( int argc, char *argv[] )
 
     switch (nt) {
     case NT_white:
+        generate_velvet_white_blt(soundFile, lengthSec, upsampleRate);
+        break;
+    case NT_dwhite:
+        generate_velvet_white_double_blt(soundFile, lengthSec, upsampleRate);
+        break;
+    case NT_rwhite:
         generate_velvet_white(soundFile, lengthSec, upsampleRate);
         break;
     case NT_red:
-        generate_velvet_red(soundFile, lengthSec, upsampleRate);
+        generate_velvet_red_blt(soundFile, lengthSec, upsampleRate);
         break;
     case NT_deepred:
-        generate_velvet_deepred(soundFile, lengthSec, upsampleRate);
+        generate_velvet_deepred_blt(soundFile, lengthSec, upsampleRate);
         break;
     default:
         help();
