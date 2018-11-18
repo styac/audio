@@ -36,37 +36,47 @@ using namespace std;
 //
 
 enum NoiseType {
+    NT_lfwhite,
+    NT_lfred,
+    NT_lfdeepred,
+    NT_lfrwhite,
+    NT_lfdwhite,
+    NT_lfgwhite,
+
     NT_white,
+
     NT_red,
     NT_deepred,
+
     NT_rwhite,
     NT_dwhite,
     NT_gwhite,
 
-    NT_swhite,
-    NT_sred,
-    NT_sdeepred,
-    NT_srwhite,
-    NT_sdwhite,
-
-    NT_sgwhite,
-
+    NT_rred,
+    NT_pink,
+    NT_bandsv,
+    NT_band4pole,
     NT_max
 };
 
 const char * const noiseTypes[] = {
+    "lfwhite",
+    "lfred",
+    "lfdeepred",
+    "lfrwhite",
+    "lfdwhite",
+    "lfgwhite",
+
     "white",
     "red",
     "deepred",
     "rwhite",
     "dwhite",
     "gwhite",
-    "swhite",
-    "sred",
-    "sdeepred",
-    "srwhite",
-    "sdwhite",
-    "sgwhite",
+    "rred",
+    "pink",
+    "bandsv",
+    "band4p",
 };
 
 void help()
@@ -111,7 +121,7 @@ bool generate_velvet_white_blt( SoundFile& sf, size_t second, size_t upsampleRat
     FrameInterleaveType frameInterleave;
     noiseFrame.clear();
     int64_t count = 1 + float((second+1) * sf.sampleRate()) / NoiseFrameType::sectionSize;
-    std::cout << "velvet white BLT" << std::endl;
+    std::cout << "velvet white BLT pulseCountExp:" << pulseCountExp << std::endl;
 
     while(--count) {
         noiseFrame.fillVelvetTriangle2CH(pulseCountExp);
@@ -126,6 +136,7 @@ bool generate_velvet_white_blt( SoundFile& sf, size_t second, size_t upsampleRat
     return true;
 }
 
+
 bool generate_velvet_white_double_blt( SoundFile& sf, size_t second, size_t upsampleRate )
 {
     std::size_t pulseCountExp = 6-upsampleRate;
@@ -137,11 +148,11 @@ bool generate_velvet_white_double_blt( SoundFile& sf, size_t second, size_t upsa
     FrameInterleaveType frameInterleave;
     noiseFrame.clear();
     int64_t count = 1 + float((second+1) * sf.sampleRate()) / NoiseFrameType::sectionSize;
-    std::cout << "velvet white double BLT" << std::endl;
+    std::cout << "velvet white double BLT pulseCountExp:" << pulseCountExp << std::endl;
 
     while(--count) {
-//        noiseFrame.fillVelvetDoubleTriangle2CH_1CH(pulseCountExp);
-        noiseFrame.fillVelvetDoubleTriangle2CH(pulseCountExp);
+        noiseFrame.fillVelvetDoubleTriangle2CH_1CH(pulseCountExp);
+//        noiseFrame.fillVelvetDoubleTriangle2CH(pulseCountExp);
 
         noiseFrame.postFilterDCcut(upsampleRate, 12);
         frameInterleave.set(noiseFrame,256.0f);
@@ -162,7 +173,7 @@ bool generate_velvet_red_blt( SoundFile& sf, size_t second, size_t upsampleRate 
     FrameInterleaveType frameInterleave;
     noiseFrame.clear();
     int64_t count = 1 + float((second+1) * sf.sampleRate()) / NoiseFrameType::sectionSize;
-    std::cout << "velvet red BLT" << std::endl;
+    std::cout << "velvet red BLT pulseCountExp:" << pulseCountExp << std::endl;
 
     while(--count) {
         noiseFrame.fillVelvetTriangle2CH(pulseCountExp);
@@ -186,7 +197,7 @@ bool generate_velvet_deepred_blt( SoundFile& sf, size_t second, size_t upsampleR
     FrameInterleaveType frameInterleave;
     noiseFrame.clear();
     int64_t count = 1 + float((second+1) * sf.sampleRate()) / NoiseFrameType::sectionSize;
-    std::cout << "velvet deep red BLT" << std::endl;
+    std::cout << "velvet deep red BLT pulseCountExp:" << pulseCountExp << std::endl;
 
     while(--count) {
         noiseFrame.fillVelvetTriangle2CH(pulseCountExp);
@@ -230,7 +241,7 @@ bool generate_velvet_white( SoundFile& sf, size_t second, size_t upsampleRate )
     FrameInterleaveType frameInterleave;
     noiseFrame.clear();
     int64_t count = 1 + float((second+1) * sf.sampleRate()) / NoiseFrameType::sectionSize;
-    std::cout << "velvet white raw" << std::endl;
+    std::cout << "velvet white raw pulseCountExp:" << pulseCountExp << std::endl;
 
     while(--count) {
         noiseFrame.fillVelvet2CH(pulseCountExp);
@@ -255,6 +266,8 @@ typedef FrameInt<frameSizeExp,2> FrameType;
 typedef NoiseFrame<FrameType> NoiseFrameType;
 typedef FrameInterleave<int,frameSizeExp,2> FrameInterleaveType;
 
+
+
 bool generate_velvet_white_blt( SoundFile& sf, size_t second, size_t upsampleRate )
 {
     // check the minimum for upsample 1,2,4
@@ -273,7 +286,7 @@ bool generate_velvet_white_blt( SoundFile& sf, size_t second, size_t upsampleRat
     FrameInterleaveType frameInterleave;
     noiseFrame.clear();
     int64_t count = 1 + float((second+1) * sf.sampleRate()) / NoiseFrameType::sectionSize;
-    std::cout << "velvet white BLT SmallFrame" << std::endl;
+    std::cout << "velvet white BLT SmallFrame pulseCountExp:" << pulseCountExp << std::endl;
 
     while(--count) {
         noiseFrame.fillVelvetTriangle2CH(pulseCountExp);
@@ -294,7 +307,7 @@ bool generate_velvet_white_double_blt( SoundFile& sf, size_t second, size_t upsa
     // upscale = 2
     // pulseCountExp = 2 (4) of 64 is ok
 
-    std::size_t pulseCountExp = 2;
+    std::size_t pulseCountExp = 1;
 
 //    std::size_t pulseCountExp = 3-upsampleRate;
 //    if( pulseCountExp < 2 ) {
@@ -305,11 +318,11 @@ bool generate_velvet_white_double_blt( SoundFile& sf, size_t second, size_t upsa
     FrameInterleaveType frameInterleave;
     noiseFrame.clear();
     int64_t count = 1 + float((second+1) * sf.sampleRate()) / NoiseFrameType::sectionSize;
-    std::cout << "velvet white double BLT SmallFrame" << std::endl;
+    std::cout << "velvet white double BLT SmallFrame pulseCountExp:" << pulseCountExp << std::endl;
 
     while(--count) {
-//        noiseFrame.fillVelvetDoubleTriangle2CH_1CH(pulseCountExp);
-        noiseFrame.fillVelvetDoubleTriangle2CH(pulseCountExp);
+        noiseFrame.fillVelvetDoubleTriangle2CH_1CH(pulseCountExp);
+//        noiseFrame.fillVelvetDoubleTriangle2CH(pulseCountExp);
 
         noiseFrame.postFilterDCcut(upsampleRate, 12);
         frameInterleave.set(noiseFrame,256.0f);
@@ -324,17 +337,116 @@ bool generate_velvet_white_double_blt( SoundFile& sf, size_t second, size_t upsa
 
 bool generate_velvet_red_blt( SoundFile& sf, size_t second, size_t upsampleRate )
 {
+    std::size_t pulseCountExp = 1;
+    GaloisShifter gs;
+    NoiseFrameType noiseFrame(gs);
+    FrameInterleaveType frameInterleave;
+    noiseFrame.clear();
+    int64_t count = 1 + float((second+1) * sf.sampleRate()) / NoiseFrameType::sectionSize;
+    std::cout << "velvet red BLT SmallFrame pulseCountExp:" << pulseCountExp << std::endl;
+
+    while(--count) {
+        noiseFrame.fillVelvetDoubleTriangle2CH_1CH(pulseCountExp);
+//        noiseFrame.fillVelvetTriangle2CH(pulseCountExp);
+        noiseFrame.postFilterDCcut(upsampleRate, 12);  // filter out the prev rounding errors also
+        noiseFrame.postFilterLowPass1(upsampleRate, 10);
+        frameInterleave.set(noiseFrame,256.0f);
+        bool res = sf.write( frameInterleave.channel, frameInterleave.interleavedSize/FrameInterleaveType::channelCount );
+        if( !res ) {
+            help();
+            return false;
+        }
+    }
+    return true;
+}
+
+bool generate_velvet_red_raw( SoundFile& sf, size_t second, size_t upsampleRate )
+{
     std::size_t pulseCountExp = 2;
     GaloisShifter gs;
     NoiseFrameType noiseFrame(gs);
     FrameInterleaveType frameInterleave;
     noiseFrame.clear();
     int64_t count = 1 + float((second+1) * sf.sampleRate()) / NoiseFrameType::sectionSize;
-    std::cout << "velvet red BLT SmallFrame" << std::endl;
+    std::cout << "velvet red raw SmallFrame pulseCountExp:" << pulseCountExp << std::endl;
 
     while(--count) {
-        noiseFrame.fillVelvetTriangle2CH(pulseCountExp);
-        noiseFrame.postFilterLowPass1(upsampleRate, 10);
+        noiseFrame.fillVelvetRed2CH(pulseCountExp);
+//        noiseFrame.fillVelvetRedOverlap2CH(pulseCountExp);
+
+//        noiseFrame.postFilterLowPass1(upsampleRate, 10);
+        noiseFrame.postFilterDCcut(upsampleRate, 12);  // filter out the prev rounding errors also
+        frameInterleave.set(noiseFrame,256.0f);
+        bool res = sf.write( frameInterleave.channel, frameInterleave.interleavedSize/FrameInterleaveType::channelCount );
+        if( !res ) {
+            help();
+            return false;
+        }
+    }
+    return true;
+}
+
+
+
+bool generate_velvet_pink( SoundFile& sf, size_t second, size_t upsampleRate )
+{
+    std::size_t pulseCountExp = 2;
+    GaloisShifter gs;
+    NoiseFrameType noiseFrame(gs);
+    FrameInterleaveType frameInterleave;
+    noiseFrame.clear();
+    int64_t count = 1 + float((second+1) * sf.sampleRate()) / NoiseFrameType::sectionSize;
+    std::cout << "velvet pink SmallFrame pulseCountExp:" << pulseCountExp << std::endl;
+
+    while(--count) {
+//        noiseFrame.fillPink();
+        noiseFrame.fillVelvetPink2CH(pulseCountExp);
+        noiseFrame.postFilterDCcut(upsampleRate, 12);  // filter out the prev rounding errors also
+        frameInterleave.set(noiseFrame,256.0f);
+        bool res = sf.write( frameInterleave.channel, frameInterleave.interleavedSize/FrameInterleaveType::channelCount );
+        if( !res ) {
+            help();
+            return false;
+        }
+    }
+    return true;
+}
+
+bool generate_velvet_bandSV( SoundFile& sf, size_t second, size_t upsampleRate )
+{
+    std::size_t pulseCountExp = 2;
+    GaloisShifter gs;
+    NoiseFrameType noiseFrame(gs);
+    FrameInterleaveType frameInterleave;
+    noiseFrame.clear();
+    int64_t count = 1 + float((second+1) * sf.sampleRate()) / NoiseFrameType::sectionSize;
+    std::cout << "velvet band SV SmallFrame pulseCountExp:" << pulseCountExp << std::endl;
+
+    while(--count) {
+        noiseFrame.fillVelvetBandSV2CH(pulseCountExp, 0x10000000, 1);
+        noiseFrame.postFilterDCcut(upsampleRate, 12);  // filter out the prev rounding errors also
+        frameInterleave.set(noiseFrame,256.0f);
+        bool res = sf.write( frameInterleave.channel, frameInterleave.interleavedSize/FrameInterleaveType::channelCount );
+        if( !res ) {
+            help();
+            return false;
+        }
+    }
+    return true;
+}
+
+bool generate_velvet_band4pole( SoundFile& sf, size_t second, size_t upsampleRate )
+{
+    std::size_t pulseCountExp = 2;
+    GaloisShifter gs;
+    NoiseFrameType noiseFrame(gs);
+    FrameInterleaveType frameInterleave;
+    noiseFrame.clear();
+    int64_t count = 1 + float((second+1) * sf.sampleRate()) / NoiseFrameType::sectionSize;
+    std::cout << "velvet band 4pole SmallFrame pulseCountExp:" << pulseCountExp << std::endl;
+
+    while(--count) {
+        noiseFrame.fillVelvetBand4pole2CH(pulseCountExp, (0xFD000000), 32000);
         noiseFrame.postFilterDCcut(upsampleRate, 12);  // filter out the prev rounding errors also
         frameInterleave.set(noiseFrame,256.0f);
         bool res = sf.write( frameInterleave.channel, frameInterleave.interleavedSize/FrameInterleaveType::channelCount );
@@ -354,7 +466,7 @@ bool generate_velvet_deepred_blt( SoundFile& sf, size_t second, size_t upsampleR
     FrameInterleaveType frameInterleave;
     noiseFrame.clear();
     int64_t count = 1 + float((second+1) * sf.sampleRate()) / NoiseFrameType::sectionSize;
-    std::cout << "velvet deep red BLT SmallFrame" << std::endl;
+    std::cout << "velvet deep red BLT SmallFrame pulseCountExp:" << pulseCountExp << std::endl;
 
     while(--count) {
         noiseFrame.fillVelvetTriangle2CH(pulseCountExp);
@@ -377,10 +489,11 @@ bool generate_galois_white( SoundFile& sf, size_t second, size_t upsampleRate )
     FrameInterleaveType frameInterleave;
     noiseFrame.clear();
     int64_t count = 1 + float((second+1) * sf.sampleRate()) / NoiseFrameType::sectionSize;
-    std::cout << "galois white SmallFrame" << std::endl;
-    while(--count) {
+    std::cout << "galois white SmallFrame"  << std::endl;
+    while(--count) {        
+//        noiseFrame.fillWhitePrng();
         noiseFrame.fillWhiteStereo();
-//        noiseFrame.postFilterDCcut();
+        noiseFrame.postFilterDCcut(upsampleRate, 12);
         frameInterleave.set(noiseFrame,32.0f);
         bool res = sf.write( frameInterleave.channel, frameInterleave.interleavedSize/FrameInterleaveType::channelCount );
         if( !res ) {
@@ -400,7 +513,7 @@ bool generate_velvet_white( SoundFile& sf, size_t second, size_t upsampleRate )
     FrameInterleaveType frameInterleave;
     noiseFrame.clear();
     int64_t count = 1 + float((second+1) * sf.sampleRate()) / NoiseFrameType::sectionSize;
-    std::cout << "velvet white raw SmallFrame"  << std::endl;
+    std::cout << "velvet white raw SmallFrame pulseCountExp:" << pulseCountExp  << std::endl;
 
     while(--count) {
         noiseFrame.fillVelvet2CH(pulseCountExp);
@@ -415,22 +528,20 @@ bool generate_velvet_white( SoundFile& sf, size_t second, size_t upsampleRate )
     return true;
 }
 
-
 } // end namespace SmallFrame
-
 
 int main( int argc, char *argv[] )
 {
-    NoiseType nt = NT_white;
+    NoiseType nt = NT_lfwhite;
     int samplingFrequency( 44100 );
     int fileType( SF_FORMAT_FLAC | SF_FORMAT_PCM_24 );
-    size_t lengthSec(30);
-    size_t upsampleRate(4);
+    size_t lengthSec(60);
+    size_t upsampleRate(1);
     std::string fileext( ".flac" );
     std::string filename( "velvet_white_noise" );
 
     int tmp;
-    for( auto i=1u; i < argc; i += 2 ) {
+    for( auto i=1; i < argc; i += 2 ) {
         char * ap = argv[i];
         if( ap[ 0 ] != '-') {
             std::cerr << "\nillegal option " << ap
@@ -450,7 +561,6 @@ int main( int argc, char *argv[] )
         case 'o' :
             filename = argv[i+1];
             break;
-
 
         case 'l' :
             tmp = std::stoi(argv[i+1]);
@@ -522,46 +632,62 @@ int main( int argc, char *argv[] )
     }
 
     switch (nt) {
-    case NT_white:
+    case NT_lfwhite:
         BigFrame::generate_velvet_white_blt(soundFile, lengthSec, upsampleRate);
         break;
-    case NT_dwhite:
+    case NT_lfdwhite:
         BigFrame::generate_velvet_white_double_blt(soundFile, lengthSec, upsampleRate);
         break;
-    case NT_rwhite:
+    case NT_lfrwhite:
         BigFrame::generate_velvet_white(soundFile, lengthSec, upsampleRate);
         break;
-    case NT_red:
+    case NT_lfred:
         BigFrame::generate_velvet_red_blt(soundFile, lengthSec, upsampleRate);
         break;
-    case NT_deepred:
+    case NT_lfdeepred:
         BigFrame::generate_velvet_deepred_blt(soundFile, lengthSec, upsampleRate);
         break;
 
-    case NT_gwhite:
+    case NT_lfgwhite:
         BigFrame::generate_galois_white(soundFile, lengthSec, upsampleRate);
         break;
 
-
-
-    case NT_swhite:
+    case NT_white:
         SmallFrame::generate_velvet_white_blt(soundFile, lengthSec, upsampleRate);
         break;
-    case NT_sdwhite:
+    case NT_dwhite:
         SmallFrame::generate_velvet_white_double_blt(soundFile, lengthSec, upsampleRate);
         break;
-    case NT_srwhite:
+    case NT_rwhite:
         SmallFrame::generate_velvet_white(soundFile, lengthSec, upsampleRate);
         break;
-    case NT_sred:
+    case NT_red:
         SmallFrame::generate_velvet_red_blt(soundFile, lengthSec, upsampleRate);
         break;
-    case NT_sdeepred:
+    case NT_deepred:
         SmallFrame::generate_velvet_deepred_blt(soundFile, lengthSec, upsampleRate);
         break;
-    case NT_sgwhite:
+    case NT_gwhite:
         SmallFrame::generate_galois_white(soundFile, lengthSec, upsampleRate);
         break;
+
+    case NT_rred:
+        SmallFrame::generate_velvet_red_raw(soundFile, lengthSec, upsampleRate);
+        break;
+
+    case NT_pink:
+        SmallFrame::generate_velvet_pink(soundFile, lengthSec, upsampleRate);
+        break;
+
+    case NT_bandsv:
+        SmallFrame::generate_velvet_bandSV(soundFile, lengthSec, upsampleRate);
+        break;
+
+    case NT_band4pole:
+        SmallFrame::generate_velvet_band4pole(soundFile, lengthSec, upsampleRate);
+        break;
+
+
     default:
         help();
         exit(-1);

@@ -58,41 +58,42 @@ public:
         lfsr = seed;
     }
 
-    inline void inc(void)
+    inline void inc()
     {
         lfsr = (lfsr + lfsr) ^ (uint64_t(( int64_t(lfsr)>>63) & feedback ));
-    };
-    inline uint64_t getState(void)
+    }
+
+    inline uint64_t getState()
     {
         return lfsr;
-    };
+    }
 
-    inline uint64_t get(void)
+    inline uint64_t get()
     {
         inc();
         return lfsr;
-    };
+    }
 
-    inline uint16_t get16(void)
+    inline int32_t get16()
     {
         inc();
-        return lfsr16[7];   // most random part
-    };
+        return lfsr16[3];   // most random part
+    }
 
-    inline uint32_t getLow(void)
+    inline int32_t getLow()
     {
         inc();
         return lfsr32[0];
-    };
+    }
 
-    inline uint32_t getHigh(void)
+    inline int32_t getHigh()
     {
         inc();
         return lfsr32[1];
-    };
+    }
 
     // 24 bit significant
-    inline int32_t getWhite24(void)
+    inline int32_t getWhite24()
     {
         union {
             int32_t  res;
@@ -103,19 +104,19 @@ public:
         res16[1] = lfsr8[6]^lfsr8[7];
         res16[0] = lfsr16[3]^lfsr16[2];
         return res;
-    };
+    }
             
     // good red noise -20 db / decade
-    inline int32_t getRed24(void)
+    inline int32_t getRed24()
     {
         static int64_t acc = 0;
         
         inc();
         acc += lfsr32[1]>>8;
         return acc >> 8;
-    };
+    }
     
-    inline int32_t getWhite24Avg(void)
+    inline int32_t getWhite24Avg()
     {
         union {
             int32_t  res;
@@ -128,20 +129,31 @@ public:
         res16[1] = lfsr8[6]^lfsr8[7];
         res16[0] = lfsr16[3]^lfsr16[2];
         return r0 + res;
-    };
+    }
 
-    inline int32_t getWhiteRaw(void)
+    inline int32_t getWhiteRaw()
     {
         inc();
         return (lfsr >> shdownWhite);
-    };
+    }
 
     // 0..8 is BLUE
     inline int32_t getWhiteRaw( const uint8_t sh )
     {
         inc();
         return lfsr >> sh;
-    };
+    }
+
+
+    inline int32_t prng()
+    {
+        static uint32_t p = 12345;
+        p = p * 1103515245 + 12345;
+
+        // scale down
+        return int32_t(p)>>8;
+    }
+
 
 protected:
     union alignas(sizeof(uint64_t)) {
