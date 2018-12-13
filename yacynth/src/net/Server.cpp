@@ -48,23 +48,24 @@ void printHex( const uint8_t *buf, uint16_t lng, const char *name )
     std::cout << std::endl;
 }
 
-Server::Type Server::create( Sysman& sysman, const Setting& setting )
+Server::Type Server::create( Sysman& sysman, const Setting& setting, bool& failed )
 {
+
     switch( setting.getConnMode() ) {
     case yaxp::CONN_MODE::CONNECTION_REMOTE: {
-            Server::Type me( new RemoteServer( sysman, setting.getControlPortRemote(), setting.getAuthKeyFile() ));
+            Server::Type me( new RemoteServer( sysman, setting.getControlPortRemote(), setting.getAuthKeyFile(), failed ));
             return me;
         }
     default: {
 //    case yaxp::CONN_MODE::CONNECTION_LOCAL: {
-            Server::Type me( new LocalServer( sysman, setting.getControlPortLocal(), setting.getAuthKeyFile() ));
+            Server::Type me( new LocalServer( sysman, setting.getControlPortLocal(), setting.getAuthKeyFile(), failed ));
             return me;
         }
 //        throw std::runtime_error("illegal connection type");
     }
 }
 
-Server::Server( Sysman& sysmanP, const std::string& authKeyFile )
+Server::Server( Sysman& sysmanP, const std::string& authKeyFile, bool& failed )
 :   sysman(sysmanP)
 ,   logger(spdlog::stdout_color_mt("console"))
 ,   socketListen(-1)
@@ -75,8 +76,9 @@ Server::Server( Sysman& sysmanP, const std::string& authKeyFile )
 ,   authenticated(false)
 ,   stopServer(false)
 {
+    failed = false;
     if( ! setAuthSeed( authKeyFile ) ) {
-        throw std::runtime_error("can't read the authentication data");
+        failed = true;
     }
 }
 
@@ -362,8 +364,8 @@ bool Server::checkAuth( const uint8_t * randBuff, const uint8_t * respBuff, size
 }
 
 // --------------------------------------------------------------------
-RemoteServer::RemoteServer( Sysman& sysman, const uint16_t port, const std::string& authKeyFile )
-:   Server(sysman, authKeyFile)
+RemoteServer::RemoteServer( Sysman& sysman, const uint16_t port, const std::string& authKeyFile, bool& failed )
+:   Server(sysman, authKeyFile, failed )
 ,   portControl(port)   // on the server side
 ,   portStatus(port+1)    // on the client side
 
@@ -460,8 +462,8 @@ bool RemoteServer::doAccept()
 
 // --------------------------------------------------------------------
 
-LocalServer::LocalServer( Sysman&  sysman, const char *port, const std::string& authKeyFile )
-:   Server(sysman, authKeyFile)
+LocalServer::LocalServer( Sysman&  sysman, const char *port, const std::string& authKeyFile, bool& failed )
+:   Server(sysman, authKeyFile, failed)
 ,   portControl(port)
 ,   portStatus(port)
 {

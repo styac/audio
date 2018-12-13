@@ -221,7 +221,7 @@ void preset0( Sysman  * sysman )
                 << " dynamic "          << uint16_t(data->dynamic)
                 << " maxMode "          << uint16_t(data->fxMaxMode)
                 << " inputCount "       << uint16_t(data->inputCount )
-                << " refId "         << uint16_t(data->refId)
+                << " refId "            << uint16_t(data->refId)
                 << " instanceIndex "    << uint16_t(data->instanceIndex)
                 << "  "                 << data->name
                 << "  "                 << data->fullName

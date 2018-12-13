@@ -114,7 +114,7 @@ struct FrameInterleave {
 // state count ???
 // TODO -> Blue-s from NoiseFrame
 // parameters ??
-template< typename Tstore >
+template< typename Tstore, size_t upsampleRate = 1 > // oversamplingRate
 class NoiseFrame : public Tstore {
 public:
     static constexpr std::size_t sectionSizeExp     = Tstore::sectionSizeExp;
@@ -128,12 +128,14 @@ public:
     NoiseFrame() = delete;
     NoiseFrame( GaloisShifter& gs )
     :   noise(gs)
-    {};
+    {
+        clear();
+    }
 
     inline void clear(void)
     {
         Tstore::clear();
-        for( auto& sref : s ) sref = 0;
+        for( auto& sref : zv ) sref = 0;
     }
 
     // zero gain at fs/2
@@ -141,28 +143,31 @@ public:
     inline void fillAvg(void)
     {
         for( auto i=0u; i<sectionSize; ++i ) {
-            const int32_t x0 = s[0];
-            s[0] = noise.getWhite24();
-            Tstore::channel[0][i] = s[0] + x0;
+            const int32_t x0 = zv[0];
+            zv[0] = noise.getWhite24();
+            Tstore::channel[0][i] = zv[0] + x0;
         }
     }
 
+    
+    // pole += oversampling factor
     // shaped - low-high cut
     inline void fillWhite( void )
     {
         constexpr uint8_t   poleExp  = 9;
         for( auto i=0u; i<sectionSize; ++i ) {
-            const int32_t x0 = s[0];
-            const int32_t x1 = s[1];
-            s[0] = noise.getWhite24();
-            s[1] += x0 - s[0] - ( s[1] >> poleExp );
-            Tstore::channel[0][i] = s[1] + x1;
+            const int32_t x0 = zv[0];
+            const int32_t x1 = zv[1];
+            zv[0] = noise.getWhite24();
+            zv[1] += x0 - zv[0] - ( zv[1] >> poleExp );
+            Tstore::channel[0][i] = zv[1] + x1;
             if( 2 == channelCount ) {
                 Tstore::channel[1][i] = Tstore::channel[0][i];
             }
         }
     };
 
+    // pole += oversampling factor
     // for the peeking filter
     // TODO check 2x,3x,4x oversampling and avg 
     inline void fillWhiteLowCut( void )
@@ -170,12 +175,12 @@ public:
         constexpr uint8_t poleExp   = 8;
         constexpr int32_t poleRound = 1<<(poleExp);      
         for( auto i=0u; i<sectionSize; ++i ) {
-            const int32_t x0 = s[0];
-            const int32_t x1 = s[1];
+            const int32_t x0 = zv[0];
+            const int32_t x1 = zv[1];
 //            const int32_t x2 = s[2];
-            s[0] = noise.getWhite24Avg();
-            s[1] += x0 - s[0] - ( (s[1] + poleRound ) >> poleExp );
-            Tstore::channel[0][i] = (s[1] + x1)>>2; // avoid overflow in filter
+            zv[0] = noise.getWhite24Avg();
+            zv[1] += x0 - zv[0] - ( (zv[1] + poleRound ) >> poleExp );
+            Tstore::channel[0][i] = (zv[1] + x1)>>2; // avoid overflow in filter
 //            s[2] +=      s[1] - ( (s[2] + 1) >> 1 );
 //            Tstore::channel[0][i] = s[2] + x2;
             if( 2 == channelCount ) {
@@ -184,40 +189,42 @@ public:
         }
     };
 
+    // pole += oversampling factor
     inline void fillWhiteBlue1( void )
     {
         constexpr uint8_t   poleExp  = 8;
         for( auto i=0u; i<sectionSize; ++i ) {
-            const int32_t x0 = s[0];
-            const int32_t x1 = s[1];
-            s[0] = noise.getWhite24();
-            s[1] += x0 - s[0] - ( (s[1] + (1 << (poleExp-1)) )>> poleExp );
-            Tstore::channel[0][i] = s[1] + x1;
+            const int32_t x0 = zv[0];
+            const int32_t x1 = zv[1];
+            zv[0] = noise.getWhite24();
+            zv[1] += x0 - zv[0] - ( (zv[1] + (1 << (poleExp-1)) )>> poleExp );
+            Tstore::channel[0][i] = zv[1] + x1;
             if( 2 == channelCount ) {
                 Tstore::channel[1][i] = Tstore::channel[0][i];
             }
         }
     };    
 
-    
+    // pole += oversampling factor
     inline void fillWhiteStereo( void )
     {
         static_assert(channelCount>1, "no stereo -- channelCount < 2");
         constexpr uint8_t   poleExp  = 9;
         for( auto i=0u; i<sectionSize; ++i ) {
-            const int32_t x0 = s[0];
-            const int32_t x1 = s[1];
-            const int32_t x2 = s[2];
-            const int32_t x3 = s[3];
-            s[0] = noise.getWhite24();
-            s[1] += x0 - s[0] - ( s[1] >> poleExp );
-            s[2] = noise.getWhite24();
-            s[3] += x2 - s[2] - ( s[3] >> poleExp );
-            Tstore::channel[0][i] = s[1] + x1;
-            Tstore::channel[1][i] = s[3] + x3;
+            const int32_t x0 = zv[0];
+            const int32_t x1 = zv[1];
+            const int32_t x2 = zv[2];
+            const int32_t x3 = zv[3];
+            zv[0] = noise.getWhite24();
+            zv[1] += x0 - zv[0] - ( zv[1] >> poleExp );
+            zv[2] = noise.getWhite24();
+            zv[3] += x2 - zv[2] - ( zv[3] >> poleExp );
+            Tstore::channel[0][i] = zv[1] + x1;
+            Tstore::channel[1][i] = zv[3] + x3;
         }
     };
 
+    // pole += oversampling factor
     // raw white
     // -24 dB
     inline void fillRaw(void)
@@ -227,47 +234,50 @@ public:
         }
     }
 
+    // pole += oversampling factor
     inline void fillBlue(void)
     {
         for( auto i=0u; i<sectionSize; ++i ) {
-            const int32_t x0 = s[0];
-            const int32_t x1 = s[1];
-            s[0] = noise.getWhite24();
-            s[1] = x0 - s[0];
-            Tstore::channel[0][i] = s[1] + x1;
+            const int32_t x0 = zv[0];
+            const int32_t x1 = zv[1];
+            zv[0] = noise.getWhite24();
+            zv[1] = x0 - zv[0];
+            Tstore::channel[0][i] = zv[1] + x1;
             if( 2 == channelCount ) {
                 Tstore::channel[1][i] = Tstore::channel[0][i];
             }
         }
     };
 
+    // pole += oversampling factor
     inline void fillRed( void )
     {
         constexpr uint8_t   poleExp     = 9;
         for( auto i=0u; i<sectionSize; ++i ) {
-            const int32_t x0 = s[0];
-            const int32_t x2 = s[2];
-            s[0] = noise.getWhite24();
-            s[1] += x0 - s[0] - ( s[1] >> poleExp );
-            s[2] += ( s[1] >> 5 ) - ( s[2] >> poleExp );
-            Tstore::channel[0][i] = s[2] + x2;
+            const int32_t x0 = zv[0];
+            const int32_t x2 = zv[2];
+            zv[0] = noise.getWhite24();
+            zv[1] += x0 - zv[0] - ( zv[1] >> poleExp );
+            zv[2] += ( zv[1] >> 5 ) - ( zv[2] >> poleExp );
+            Tstore::channel[0][i] = zv[2] + x2;
             if( 2 == channelCount ) {
                 Tstore::channel[1][i] = Tstore::channel[0][i];
             }
         }
     };
 
+    // pole += oversampling factor
     inline void fillPurple( void )
     {
         constexpr uint8_t   poleExp     = 9;
         for( auto i=0u; i<sectionSize; ++i ) {
-            const int32_t x0 = s[0];
-            const int32_t x3 = s[3];
-            s[0] = noise.getWhite24();
-            s[1] += x0 - s[0] - ( s[1] >> poleExp );
-            s[2] += ( s[1] >> 5 ) - ( s[2] >> poleExp );
-            s[3] += ( s[2] >> 7 ) - ( s[3] >> poleExp );
-            Tstore::channel[0][i] = s[3] + x3;
+            const int32_t x0 = zv[0];
+            const int32_t x3 = zv[3];
+            zv[0] = noise.getWhite24();
+            zv[1] += x0 - zv[0] - ( zv[1] >> poleExp );
+            zv[2] += ( zv[1] >> 5 ) - ( zv[2] >> poleExp );
+            zv[3] += ( zv[2] >> 7 ) - ( zv[3] >> poleExp );
+            Tstore::channel[0][i] = zv[3] + x3;
             if( 2 == channelCount ) {
                 Tstore::channel[1][i] = Tstore::channel[0][i];
             }
@@ -278,47 +288,50 @@ public:
     // poleExp = 0..15
     inline void setPoleExp( const uint8_t poleExp )
     {
-        s[sSize-1] = ( poleExp & 0x0F ) + 1; ;
+        zv[sSize-1] = ( poleExp & 0x0F ) + 1; ;
     }
 
+    // pole += oversampling factor
     // to test
     // s[sSize-1] - pole param -- function param
     inline void fillRedVar( void )
     {
         // gain compensation factors
-        const int32_t cf1 = (s[sSize-1]>>1) + 1;
-        const int32_t cf2 = cf1 + (s[sSize-1]&1);
+        const int32_t cf1 = (zv[sSize-1]>>1) + 1;
+        const int32_t cf2 = cf1 + (zv[sSize-1]&1);
         for( auto i=0u; i<sectionSize; ++i ) {
-            const int32_t x0 = s[0];
-            const int32_t x2 = s[2];
-            s[0] = noise.getWhiteRaw() >> 4;
-            s[1] += x0 - s[0] - ( s[1] >> s[sSize-1] );
-            s[2] += ( s[1] >> cf1 ) + ( s[1] >> cf2 ) - ( s[2] >> s[sSize-1] );
-            Tstore::channel[0][i] = s[2] + x2;
+            const int32_t x0 = zv[0];
+            const int32_t x2 = zv[2];
+            zv[0] = noise.getWhiteRaw() >> 4;
+            zv[1] += x0 - zv[0] - ( zv[1] >> zv[sSize-1] );
+            zv[2] += ( zv[1] >> cf1 ) + ( zv[1] >> cf2 ) - ( zv[2] >> zv[sSize-1] );
+            Tstore::channel[0][i] = zv[2] + x2;
             if( 2 == channelCount ) {
                 Tstore::channel[1][i] = Tstore::channel[0][i];
             }
         }
     };
 
+    // pole += oversampling factor
     inline void fillRedVar( uint8_t pole )
     {
         // gain compensation factors
         const int32_t cf1 = (pole>>1) + 1;
         const int32_t cf2 = cf1 + (pole&1);
         for( auto i=0u; i<sectionSize; ++i ) {
-            const int32_t x0 = s[0];
-            const int32_t x2 = s[2];
-            s[0] = noise.getWhiteRaw() >> 4;
-            s[1] += x0 - s[0] - ( s[1] >> pole );
-            s[2] += ( s[1] >> cf1 ) + ( s[1] >> cf2 ) - ( s[2] >> pole );
-            Tstore::channel[0][i] = s[2] + x2;
+            const int32_t x0 = zv[0];
+            const int32_t x2 = zv[2];
+            zv[0] = noise.getWhiteRaw() >> 4;
+            zv[1] += x0 - zv[0] - ( zv[1] >> pole );
+            zv[2] += ( zv[1] >> cf1 ) + ( zv[1] >> cf2 ) - ( zv[2] >> pole );
+            Tstore::channel[0][i] = zv[2] + x2;
             if( 2 == channelCount ) {
                 Tstore::channel[1][i] = Tstore::channel[0][i];
             }
         }
     };
     
+    // pole += oversampling factor
     // to test
     // s[sSize-1] - pole param
     inline void fillPurpleVar( uint8_t pole )
@@ -328,39 +341,41 @@ public:
         const int32_t cf3 = pole-2;
 
         for( auto i=0u; i<sectionSize; ++i ) {
-            const int32_t x0 = s[0];
-            const int32_t x3 = s[3];
-            s[0] = noise.getWhiteRaw() >> 4;
-            s[1] += x0 - s[0] - ( s[1] >> pole );
-            s[2] += ( s[1] >> cf1 ) + ( s[1] >> cf2 ) - ( s[2] >> pole );
-            s[3] += ( s[2] >> cf3 ) - ( s[3] >> pole );
-            Tstore::channel[0][i] = s[3] + x3;
+            const int32_t x0 = zv[0];
+            const int32_t x3 = zv[3];
+            zv[0] = noise.getWhiteRaw() >> 4;
+            zv[1] += x0 - zv[0] - ( zv[1] >> pole );
+            zv[2] += ( zv[1] >> cf1 ) + ( zv[1] >> cf2 ) - ( zv[2] >> pole );
+            zv[3] += ( zv[2] >> cf3 ) - ( zv[3] >> pole );
+            Tstore::channel[0][i] = zv[3] + x3;
             if( 2 == channelCount ) {
                 Tstore::channel[1][i] = Tstore::channel[0][i];
             }
         }
     };
 
+    // pole += oversampling factor
     inline void fillPurpleVar( void )
     {
-        const int32_t cf1 = (s[sSize-1]>>1) + 1;
-        const int32_t cf2 = cf1 + (s[sSize-1]&1);
-        const int32_t cf3 = s[sSize-1]-2;
+        const int32_t cf1 = (zv[sSize-1]>>1) + 1;
+        const int32_t cf2 = cf1 + (zv[sSize-1]&1);
+        const int32_t cf3 = zv[sSize-1]-2;
 
         for( auto i=0u; i<sectionSize; ++i ) {
-            const int32_t x0 = s[0];
-            const int32_t x3 = s[3];
-            s[0] = noise.getWhiteRaw() >> 4;
-            s[1] += x0 - s[0] - ( s[1] >> s[sSize-1] );
-            s[2] += ( s[1] >> cf1 ) + ( s[1] >> cf2 ) - ( s[2] >> s[sSize-1] );
-            s[3] += ( s[2] >> cf3 ) - ( s[3] >> s[sSize-1] );
-            Tstore::channel[0][i] = s[3] + x3;
+            const int32_t x0 = zv[0];
+            const int32_t x3 = zv[3];
+            zv[0] = noise.getWhiteRaw() >> 4;
+            zv[1] += x0 - zv[0] - ( zv[1] >> zv[sSize-1] );
+            zv[2] += ( zv[1] >> cf1 ) + ( zv[1] >> cf2 ) - ( zv[2] >> zv[sSize-1] );
+            zv[3] += ( zv[2] >> cf3 ) - ( zv[3] >> zv[sSize-1] );
+            Tstore::channel[0][i] = zv[3] + x3;
             if( 2 == channelCount ) {
                 Tstore::channel[1][i] = Tstore::channel[0][i];
             }
         }
     };
 
+    // pole += oversampling factor
 // The pinking filter consists of several one-pole low-pass filters,
 // where each low-pass is spaced two octaves from its neighbors and
 // filter gains are attenuated in 6dB steps.
@@ -372,24 +387,24 @@ public:
     {
         constexpr int g = 2;
         constexpr int p = 9;
-        int32_t x0 = s[0] + s[1] + s[2] + s[3] + s[4];
+        int32_t x0 = zv[0] + zv[1] + zv[2] + zv[3] + zv[4];
         for( auto i=0u; i<sectionSize; ++i ) {
             // 14.9358 Hz
-            s[0] += ( noise.getWhiteRaw() >> ( p - 0 + 0 + g ) ) - ( s[0]>>(p-0) );
+            zv[0] += ( noise.getWhiteRaw() >> ( p - 0 + 0 + g ) ) - ( zv[0]>>(p-0) );
             // 59.9192 Hz
-            s[1] += ( noise.getWhiteRaw() >> ( p - 2 + 1 + g ) ) - ( s[1]>>(p-2) );
+            zv[1] += ( noise.getWhiteRaw() >> ( p - 2 + 1 + g ) ) - ( zv[1]>>(p-2) );
             // 242.549 Hz
-            s[2] += ( noise.getWhiteRaw() >> ( p - 4 + 2 + g ) ) - ( s[2]>>(p-4) );
+            zv[2] += ( noise.getWhiteRaw() >> ( p - 4 + 2 + g ) ) - ( zv[2]>>(p-4) );
             // 1020.13 Hz
-            s[3] += ( noise.getWhiteRaw() >> ( p - 6 + 3 + g ) ) - ( s[3]>>(p-6) );
+            zv[3] += ( noise.getWhiteRaw() >> ( p - 6 + 3 + g ) ) - ( zv[3]>>(p-6) );
             // 5295.41 Hz
-            s[4] += ( noise.getWhiteRaw() >> ( p - 8 + 4 + g ) ) - ( s[4]>>(p-8) );
-            const int32_t x1 = s[0] + s[1] + s[2] + s[3] + s[4];
-            const int32_t x2 = s[5];
+            zv[4] += ( noise.getWhiteRaw() >> ( p - 8 + 4 + g ) ) - ( zv[4]>>(p-8) );
+            const int32_t x1 = zv[0] + zv[1] + zv[2] + zv[3] + zv[4];
+            const int32_t x2 = zv[5];
             // dc cut
-            s[5] += ( x0 - x1 ) - ( s[5]>>(p+2) );
+            zv[5] += ( x0 - x1 ) - ( zv[5]>>(p+2) );
             // zero gain at fs/2
-            Tstore::channel[0][i] = s[5] + x2;
+            Tstore::channel[0][i] = zv[5] + x2;
             x0 = x1;
             if( 2 == channelCount ) {
                 Tstore::channel[1][i] = Tstore::channel[0][i];
@@ -397,34 +412,32 @@ public:
         }
     };
 
+    // pole += oversampling factor
     // under 100 Hz pinkish above red
     inline void fillPinkLow(void)
     {
         constexpr int g = -2;
         constexpr int p = 15;
-        int32_t x0 = s[0] + s[1] + s[2] + s[3] + s[4];
+        int32_t x0 = zv[0] + zv[1] + zv[2] + zv[3] + zv[4];
         for( auto i=0u; i<sectionSize; ++i ) {
-            s[0] += ( noise.getWhiteRaw() >> ( p - 0 + 0 + g ) ) - ( s[0]>>(p-0) );
-            s[1] += ( noise.getWhiteRaw() >> ( p - 2 + 1 + g ) ) - ( s[1]>>(p-2) );
-            s[2] += ( noise.getWhiteRaw() >> ( p - 4 + 2 + g ) ) - ( s[2]>>(p-4) );
-            s[3] += ( noise.getWhiteRaw() >> ( p - 6 + 3 + g ) ) - ( s[3]>>(p-6) );
-            s[4] += ( noise.getWhiteRaw() >> ( p - 8 + 4 + g ) ) - ( s[4]>>(p-8) );
-            const int32_t x1 = s[0] + s[1] + s[2] + s[3] + s[4];
-            const int32_t x2 = s[5];
+            zv[0] += ( noise.getWhiteRaw() >> ( p - 0 + 0 + g ) ) - ( zv[0]>>(p-0) );
+            zv[1] += ( noise.getWhiteRaw() >> ( p - 2 + 1 + g ) ) - ( zv[1]>>(p-2) );
+            zv[2] += ( noise.getWhiteRaw() >> ( p - 4 + 2 + g ) ) - ( zv[2]>>(p-4) );
+            zv[3] += ( noise.getWhiteRaw() >> ( p - 6 + 3 + g ) ) - ( zv[3]>>(p-6) );
+            zv[4] += ( noise.getWhiteRaw() >> ( p - 8 + 4 + g ) ) - ( zv[4]>>(p-8) );
+            const int32_t x1 = zv[0] + zv[1] + zv[2] + zv[3] + zv[4];
+            const int32_t x2 = zv[5];
             // dc cut
-            s[5] += ( x0 - x1 ) - ( s[5]>>(p+2) );
+            zv[5] += ( x0 - x1 ) - ( zv[5]>>(p+2) );
             // zero gain at fs/2
-            Tstore::channel[0][i] = s[5] + x2;
+            Tstore::channel[0][i] = zv[5] + x2;
             x0 = x1;
             if( 2 == channelCount ) {
                 Tstore::channel[1][i] = Tstore::channel[0][i];
             }
         }
     };
-// #define VELVET_TEST
-    // velvet noise mono
-    // TODO : test alternate sign -- bad high freq sine -- low freq cut
-    // TODO : test avg 1/2, 1, 1/2 -- aliasing
+    
     
     template< uint8_t pulseCountExp > 
     inline void fillVelvet()    
@@ -525,51 +538,173 @@ public:
             Tstore::channel[ 1 ][ pi + position1 ] = sign1 << normExp;
             Tstore::channel[ 1 ][ pi + position1 + 1 ] = Tstore::channel[ 1 ][ pi + position1 ] * 2;
             Tstore::channel[ 1 ][ pi + position1 + 2 ] = Tstore::channel[ 1 ][ pi + position1 ];
-#if 0
-           
-            s[0] += sign0;
-            s[1] += sign1;
-#endif            
         }
     }
     
-    // run after fill.... 
+    // adapt
+//    inline void fillVelvetDoubleTriangle2CH(uint8_t pulseCountExp )
+//    {
+//        static_assert( 2 == channelCount, "must be 2 channel");
+//        static_assert( 11 >= sectionSizeExp, "section size too big (random 24 bit)");
+//        static_assert( 6 <= sectionSizeExp, "section size too small");
+//        const uint16_t slotSizeExp  = sectionSizeExp - pulseCountExp;
+//        const uint16_t slotSize     = 1<<slotSizeExp;
+//        const int32_t slotSizeMask  = (slotSize - 1) & 0xFFFCU; // 4 dot/wavelet
+//        constexpr uint8_t normExp0  = 21; // 24 bit signed
+//        constexpr uint8_t normExp1  = 19; // 24 bit signed
+//        Tstore::clear();
+//        // primary pulse train
+//        for( auto pi=0u; pi < sectionSize; pi += slotSize ) {
+//            const int32_t rand0 = noise.getWhiteRaw();
+//            const int32_t rand1 = noise.getWhiteRaw();
+//            const int32_t sign0 = ((rand0>>31) | 1)<< normExp0; // +1,-1
+//            const int32_t sign1 = ((rand1>>31) | 1)<< normExp0; // +1,-1
+//            const int32_t position0 = rand0 & slotSizeMask;
+//            const int32_t position1 = rand1 & slotSizeMask;
+//            Tstore::channel[ 0 ][ pi + position0 + 0 ] = sign0;
+//            Tstore::channel[ 0 ][ pi + position0 + 1 ] = sign0 * 2;
+//            Tstore::channel[ 0 ][ pi + position0 + 2 ] = sign0;
+//
+//            Tstore::channel[ 1 ][ pi + position1 + 0 ] = sign1;
+//            Tstore::channel[ 1 ][ pi + position1 + 1 ] = sign1 * 2;
+//            Tstore::channel[ 1 ][ pi + position1 + 2 ] = sign1;
+//        }
+//        // secondary pulse train
+//        for( auto pi=0u; pi < sectionSize; pi += slotSize ) {
+//            const int32_t rand0 = noise.getWhiteRaw();
+//            const int32_t rand1 = noise.getWhiteRaw();
+//            const int32_t sign0 = ((rand0>>31) | 1)<< normExp1; // +1,-1
+//            const int32_t sign1 = ((rand1>>31) | 1)<< normExp1; // +1,-1
+//            const int32_t position0 = rand0 & slotSizeMask;
+//            const int32_t position1 = rand1 & slotSizeMask;
+//            Tstore::channel[ 0 ][ pi + position0 + 1 ] += sign0;
+//            Tstore::channel[ 0 ][ pi + position0 + 2 ] += sign0 * 2;
+//            Tstore::channel[ 0 ][ pi + position0 + 3 ] += sign0;
+//
+//            Tstore::channel[ 1 ][ pi + position1 + 1 ] += sign1;
+//            Tstore::channel[ 1 ][ pi + position1 + 2 ] += sign1 * 2;
+//            Tstore::channel[ 1 ][ pi + position1 + 3 ] += sign1;
+//        }
+//    }
+//
+    
+//    // primary : stereo
+//    // secondary : mono
+//    template< uint8_t pulseCountExp > 
+//    inline void fillVelvetDoubleTriangle2CH_1CH()
+//    {
+//        static_assert( 2 == channelCount, "must be 2 channel");
+//        static_assert( 11 >= sectionSizeExp, "section size too big (random 24 bit)");
+//        static_assert( 6 <= sectionSizeExp, "section size too small");
+//        constexpr uint32_t slotSizeExp  = sectionSizeExp - pulseCountExp;
+//        constexpr uint32_t slotSize     = 1<<slotSizeExp;
+//        constexpr uint32_t slotSizeMask = (slotSize - 1) & 0xFFFDU; // 4 dot/wavelet  odd-even
+//        constexpr uint8_t normExp0  = 20; // 24 bit signed
+//        constexpr uint8_t normExp1  = 20; // 24 bit signed
+//        Tstore::clear();
+//        for( auto pi=0u; pi < sectionSize; pi += slotSize ) {
+//            const int32_t rand0 = noise.getWhiteRaw();
+//            const int32_t rand1 = noise.getWhiteRaw();
+//            const int32_t sign0 = ((rand0>>31) | 1)<< normExp0; // +1,-1
+//            const int32_t sign1 = ((rand1>>31) | 1)<< normExp0; // +1,-1
+//            const uint32_t position0 = rand0 & slotSizeMask;
+//            const uint32_t position1 = rand1 & slotSizeMask;
+//            Tstore::channel[ 0 ][ pi + position0 + 0 ] = sign0;
+//            Tstore::channel[ 0 ][ pi + position0 + 1 ] = sign0 * 2;
+//            Tstore::channel[ 0 ][ pi + position0 + 2 ] = sign0;
+//
+//            Tstore::channel[ 1 ][ pi + position1 + 0 ] = sign1;
+//            Tstore::channel[ 1 ][ pi + position1 + 1 ] = sign1 * 2;
+//            Tstore::channel[ 1 ][ pi + position1 + 2 ] = sign1;
+//        }
+//        // mono
+//        for( auto pi=0u; pi < sectionSize; pi += slotSize ) {
+//            const int32_t rand0 = noise.getWhiteRaw();
+//            const int32_t sign0 = ((rand0>>31) | 1) << normExp1; // +1,-1
+//            const uint32_t position0 = rand0 & slotSizeMask;
+//            Tstore::channel[ 0 ][ pi + position0 + 0 ] += sign0;
+//            Tstore::channel[ 0 ][ pi + position0 + 1 ] += sign0 * 2;
+//            Tstore::channel[ 0 ][ pi + position0 + 2 ] += sign0;
+//
+//            Tstore::channel[ 1 ][ pi + position0 + 0 ] += sign0;
+//            Tstore::channel[ 1 ][ pi + position0 + 1 ] += sign0 * 2;
+//            Tstore::channel[ 1 ][ pi + position0 + 2 ] += sign0;
+//        }
+//    }
+    
+
+    
     // low cut: diff (zero) + 1 pole under 20 Hz @ 192kHz
+    template<uint8_t stateOffs = 12>
     inline void postFilterDCcut( uint8_t poleExp=12 )    
     {        
-        constexpr uint8_t   soffs    = 12; // state offset index - use high
         for( auto pi=0u; pi < sectionSize; ++pi ) {            
-            const int32_t x0 = s[soffs+0];
-            const int32_t x1 = s[soffs+1];
-            s[soffs+0] = Tstore::channel[ 0 ][ pi ];
-            s[soffs+1] += x0 - s[soffs+0] - (s[soffs+1]>>poleExp);
-            Tstore::channel[ 0 ][ pi ] = s[soffs+1];
+            const int32_t x0 = zv[ stateOffs+0 ];
+            const int32_t x1 = zv[ stateOffs+1 ];
+            zv[ stateOffs+0 ] = Tstore::channel[ 0 ][ pi ];
+            zv[ stateOffs+1 ] += x0 - zv[ stateOffs+0 ] - (zv[ stateOffs+1 ]>>poleExp);
+            Tstore::channel[ 0 ][ pi ] = zv[ stateOffs+1 ];
             
-            const int32_t x2 = s[soffs+2];
-            const int32_t x3 = s[soffs+3];            
-            s[soffs+2] = Tstore::channel[ 1 ][ pi ];
-            s[soffs+3] += x2 - s[soffs+2] - (s[soffs+3]>>poleExp);
-            Tstore::channel[ 1 ][ pi ] = s[soffs+3];
+            const int32_t x2 = zv[ stateOffs+2 ];
+            const int32_t x3 = zv[ stateOffs+3 ];            
+            zv[ stateOffs+2 ] = Tstore::channel[ 1 ][ pi ];
+            zv[ stateOffs+3 ] += x2 - zv[ stateOffs+2 ] - (zv[ stateOffs+3 ]>>poleExp);
+            Tstore::channel[ 1 ][ pi ] = zv[ stateOffs+3 ];
         }
     }
     
-    // TBD
-    inline void postFilterLowPass( uint8_t poleExp=12 )    
-    {        
-        constexpr uint8_t   soffs    = 10; // state offset index - use high
-        for( auto pi=0u; pi < sectionSize; ++pi ) {            
-//            const int32_t x0 = s[soffs+0];
-//            s[soffs+0] = Tstore::channel[ 0 ][ pi ];
-//            s[soffs+1] += x0 - s[soffs+0] - (s[soffs+1]>>poleExp);
-//            Tstore::channel[ 0 ][ pi ] = s[soffs+1];
-//            
-//            const int32_t x2 = s[soffs+2];
-//            const int32_t x3 = s[soffs+3];            
-//            s[soffs+2] = Tstore::channel[ 1 ][ pi ];
-//            s[soffs+3] += x2 - s[soffs+2] - (s[soffs+3]>>poleExp);
-//            Tstore::channel[ 1 ][ pi ] = s[soffs+3];
+    template<uint8_t stateOffs = 10>
+    inline void postFilterLowPass1()
+    {
+        constexpr uint8_t poleExp = 7 + upsampleRate; // 9..
+        constexpr uint8_t gainExp = 1 + upsampleRate; // 9..
+        for( auto pi=0u; pi < sectionSize; ++pi ) {
+            zv[ stateOffs+0 ] += (Tstore::channel[ 0 ][ pi ]>>gainExp) - (zv[ stateOffs+0 ]>>poleExp);
+            Tstore::channel[ 0 ][ pi ] = zv[ stateOffs+0 ];
+            zv[ stateOffs+1 ] += (Tstore::channel[ 1 ][ pi ]>>gainExp) - (zv[ stateOffs+1 ]>>poleExp);
+            Tstore::channel[ 1 ][ pi ] = zv[ stateOffs+1 ];
         }
     }
+
+    template<uint8_t stateOffs = 8>
+    inline void postFilterLowPass2()
+    {
+        constexpr uint8_t poleExp = 6 + upsampleRate; // 9..
+        constexpr uint8_t gainExp = 3 + upsampleRate; // 9..
+        for( auto pi=0u; pi < sectionSize; ++pi ) {
+            zv[ stateOffs+0 ] += (Tstore::channel[ 0 ][ pi ]>>gainExp) - (zv[ stateOffs+0 ]>>poleExp);
+            zv[ stateOffs+1 ] += (zv[ stateOffs+0 ]>>gainExp) - (zv[ stateOffs+1 ]>>poleExp);
+            Tstore::channel[ 0 ][ pi ] = zv[ stateOffs+1 ];
+
+            zv[ stateOffs+2 ] += (Tstore::channel[ 1 ][ pi ]>>gainExp) - (zv[ stateOffs+2 ]>>poleExp);
+            zv[ stateOffs+3 ] += (zv[ stateOffs+2 ]>>gainExp) - (zv[ stateOffs+3 ]>>poleExp);
+            Tstore::channel[ 1 ][ pi ] = zv[ stateOffs+3 ];
+        }
+    }
+    
+    
+    inline void fillVelvetPink2CH()
+    {
+        static_assert( 2 == channelCount, "must be 2 channel");
+        static_assert( 11 >= sectionSizeExp, "section size too big (random 24 bit)");
+        static_assert( 6 <= sectionSizeExp, "section size too small");
+        constexpr int poleExpBase = 9;
+        constexpr int amplExpBase = 14;
+        // for 96khz maybe needed poleExpBase = 11; + 1 low filter stage
+        // ch0
+        lowPassVelvet<4,false>(0,0,amplExpBase+0,poleExpBase-0);
+        lowPassVelvet<4,true>(0,2,amplExpBase+1,poleExpBase-2);
+        lowPassVelvet<4,true>(0,4,amplExpBase+2,poleExpBase-4);
+        lowPassVelvet<4,true>(0,6,amplExpBase+3,poleExpBase-6);
+        lowPassVelvet<4,true>(0,8,amplExpBase+4,poleExpBase-8);
+        // ch1
+        lowPassVelvet<4,false>(1,1,amplExpBase+0,poleExpBase-0);
+        lowPassVelvet<4,true>(1,3,amplExpBase+1,poleExpBase-2);
+        lowPassVelvet<4,true>(1,5,amplExpBase+2,poleExpBase-4);
+        lowPassVelvet<4,true>(1,7,amplExpBase+3,poleExpBase-6);
+        lowPassVelvet<4,true>(1,9,amplExpBase+4,poleExpBase-8);
+    }
+
 
     inline const auto& getFrame(void) const
     {
@@ -580,9 +715,66 @@ public:
         return Tstore::vchannel[0];
     }
 
-    int32_t s[sSize];
+    int32_t zv[sSize];
 
 private:
+
+    template<uint8_t slotSizeExp, bool add >
+    inline void lowPassVelvet( uint8_t ch, uint8_t state, uint8_t normExp, uint8_t poleExp )
+    {
+        constexpr uint16_t slotSize     = 1<<slotSizeExp;
+        constexpr int32_t slotSizeMask  = (slotSize - 1) & 0xFFFFFFFDU;
+        uint16_t offs = 0;
+        for( auto pi = 0u; pi < sectionSize; )
+        {
+            const int32_t rand = noise.getWhiteRaw();
+            const int32_t v = (((rand>>31) | 1) << normExp); // calc
+            uint32_t position = offs + (rand & slotSizeMask);
+            if( add ) {
+                // add
+                for( ; pi < position; ++pi ) {
+                    // value 0
+                    zv[ state ] -= ((zv[ state ])>>poleExp);
+                    Tstore::channel[ ch ][ pi ] += zv[ state ];
+                }
+
+                zv[ state ] += v - ((zv[ state ])>>poleExp);
+                Tstore::channel[ ch ][ pi++ ] += zv[ state ];
+                zv[ state ] += v*2 - ((zv[ state ])>>poleExp);
+                Tstore::channel[ ch ][ pi++ ] += zv[ state ];
+                zv[ state ] += v - ((zv[ state ])>>poleExp);
+                Tstore::channel[ ch ][ pi++ ] += zv[ state ];
+
+                for( ; pi < offs + slotSize; ++pi ) {
+                    // value 0
+                    zv[ state ] -= ((zv[ state ])>>poleExp);
+                    Tstore::channel[ ch ][ pi ] += zv[ state ];
+                }
+            } else{
+                // set
+                for( ; pi < position; ++pi ) {
+                    // value 0
+                    zv[ state ] -= ((zv[ state ])>>poleExp);
+                    Tstore::channel[ ch ][ pi ] = zv[ state ];
+                }
+
+                zv[ state ] += v - ((zv[ state ])>>poleExp);
+                Tstore::channel[ ch ][ pi++ ] = zv[ state ];
+                zv[ state ] += v*2 - ((zv[ state ])>>poleExp);
+                Tstore::channel[ ch ][ pi++ ] = zv[ state ];
+                zv[ state ] += v - ((zv[ state ])>>poleExp);
+                Tstore::channel[ ch ][ pi++ ] = zv[ state ];
+
+                for( ; pi < offs + slotSize; ++pi ) {
+                    // value 0
+                    zv[ state ] -= ((zv[ state ])>>poleExp);
+                    Tstore::channel[ ch ][ pi ] = zv[ state ];
+                }
+            }
+            offs += slotSize;
+        }
+    }
+    
     GaloisShifter&  noise;
 };
 

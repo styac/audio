@@ -54,7 +54,7 @@ public:
 
     virtual ~Server() = default;
 
-    static Server::Type create( Sysman& sysmanP, const Setting& setting );
+    static Server::Type create( Sysman& sysmanP, const Setting& setting, bool& failed );
 
     bool run( void );
     void stop( void );
@@ -83,7 +83,7 @@ protected:
     bool fillRandom( uint8_t * randBuff );
     bool checkAuth( const uint8_t * randBuff, const uint8_t * respBuff, size_t respLng );
 
-    Server( Sysman& sysmanP, const std::string& authKeyFile );
+    Server( Sysman& sysmanP, const std::string& authKeyFile, bool& failed );
 
     bool setAuthSeed( const std::string& seedFileName );
 
@@ -114,7 +114,7 @@ class RemoteServer : public Server {
 public:
     NON_COPYABLE_NOR_MOVABLE(RemoteServer);
     RemoteServer() = delete;
-    RemoteServer( Sysman& sysmanP, const uint16_t port, const std::string& authKeyFile );
+    RemoteServer( Sysman& sysmanP, const uint16_t port, const std::string& authKeyFile, bool& failed );
     ~RemoteServer();
 
     bool sendStatus( const yacynth::yaxp::Message& message ) override;
@@ -134,7 +134,7 @@ class LocalServer : public Server {
 public:
     NON_COPYABLE_NOR_MOVABLE(LocalServer);
     LocalServer() = delete;
-    LocalServer( Sysman& sysmanP, const char *port, const std::string& authKeyFile );
+    LocalServer( Sysman& sysmanP, const char *port, const std::string& authKeyFile, bool& failed );
     ~LocalServer();
 
     bool sendStatus( const yacynth::yaxp::Message& message ) override;

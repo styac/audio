@@ -174,6 +174,28 @@ struct StereoDelayTapArray {
     static constexpr char const * const delayChannelName        = "delayCH_";
     static constexpr char const * const coeffChannelName        = "coeffCH_";
 
+    inline void setDelay(uint16_t index, uint16_t chn, uint32_t chv )
+    {
+        delayIndex[ index ][ chn ] = chv;
+    }  
+    
+    inline auto getDelay(uint16_t index, uint16_t chn ) const
+    {
+        return delayIndex[ index ][ chn ];
+    }
+    
+    // chn = 0,1
+    inline void setCoeff(uint16_t index, uint16_t channel, float chv_own, float chv_x )
+    {
+        coeff[ index ].v2[ channel ][ channel^0 ] = chv_own;
+        coeff[ index ].v2[ channel ][ channel^1 ] = chv_x;
+    }
+
+    inline auto getCoeff( uint16_t index ) const
+    {
+        return coeff[index];
+    }
+       
     V4vf        coeff[N];
     uint32_t    delayIndex[N][2];
 };
@@ -196,6 +218,39 @@ struct StereoDelayLowPassTapArray {
     static constexpr char const * const delayChannelName        = "delayCH_";
     static constexpr char const * const coeffChannelName        = "coeffCH_";
 
+    inline void setDelay(uint16_t index, uint16_t chn, uint32_t chv )
+    {
+        delayIndex[ index ][ chn ] = chv;
+    }
+    
+    inline auto getDelay(uint16_t index, uint16_t chn ) const
+    {
+        return delayIndex[ index ][ chn ];
+    }
+
+    inline auto getCoeff( uint16_t index ) const
+    {
+        return coeff[index];
+    }
+    
+    inline auto getCoeffLowPass( uint16_t index ) const
+    {
+        return coeffLowPass[index];
+    }
+
+    // chn = 0,1
+    inline void setCoeff(uint16_t index, uint16_t channel, float chv_own, float chv_x )
+    {
+        coeff[ index ].v2[ channel ][ channel^0 ] = chv_own;
+        coeff[ index ].v2[ channel ][ channel^1 ] = chv_x;
+    }
+        
+    void setCoeffLowPass(uint16_t index, uint16_t channel, float chv_own, float chv_x )
+    {
+        coeffLowPass[ index ].v2[ channel ][ channel^0 ] = chv_own;
+        coeffLowPass[ index ].v2[ channel ][ channel^1 ] = chv_x;
+    }
+        
     V4vf        coeff[N];
     V4vf        coeffLowPass[N];
     uint32_t    delayIndex[N][2];
@@ -205,6 +260,21 @@ template< std::size_t N >
 struct StereoFractionalDelayTapArray {
     typedef std::array<uint32_t, N> DelayIndex;
     static constexpr std::size_t size = N;
+    
+    void setDelay(uint16_t index, uint64_t ch0, uint64_t ch1 )
+    {
+        delayIndex[index][0] = ch0;
+        delayIndex[index][1] = ch1;
+    }
+    
+    void setCoeff(uint16_t index, 
+            float ch0_0, float ch1_1, float ch0_1, float ch1_0 )
+    {
+        coeff[index].v[0] = ch0_0;
+        coeff[index].v[1] = ch0_1;
+        coeff[index].v[2] = ch1_0;
+        coeff[index].v[3] = ch1_1;
+    }
     V4vf        coeff[N];
     uint64_t    delayIndex[N][2];
 };

@@ -317,113 +317,113 @@ public:
     
     inline void clear(void)
     {
-        for( auto& sv : sv1 ) sv = 0;
+        for( auto& sv : zv ) sv = 0;
     }
     
     // zero gain at fs/2
     // -24 dB
     inline void getAvg( int32_t& out0, int32_t& out1 )
     {
-        const int32_t x00 = s[0][0];
-        const int32_t x01 = s[0][1];
-        s[0][0] = galoisShifter.getWhite24();            
-        s[0][1] = galoisShifter.getWhite24();            
-        out0 = s[0][0] + x00;         
-        out1 = s[0][1] + x01;         
+        const int32_t x00 = zm2[0][0];
+        const int32_t x01 = zm2[0][1];
+        zm2[0][0] = galoisShifter.getWhite24();            
+        zm2[0][1] = galoisShifter.getWhite24();            
+        out0 = zm2[0][0] + x00;         
+        out1 = zm2[0][1] + x01;         
     }
 
     inline void getWhite( int32_t& out0, int32_t& out1 )
     {
         constexpr uint8_t   poleExp  = 8;
-        const int32_t x0 = s[0][0];
-        const int32_t x1 = s[1][0];
-        s[0][0] = galoisShifter.getWhite24();            
-        s[1][0] += x0 - s[0][0] - ( s[1][0] >> poleExp );
-        out0 = s[1][0] + x1;         
+        const int32_t x0 = zm2[0][0];
+        const int32_t x1 = zm2[1][0];
+        zm2[0][0] = galoisShifter.getWhite24();            
+        zm2[1][0] += x0 - zm2[0][0] - ( zm2[1][0] >> poleExp );
+        out0 = zm2[1][0] + x1;         
     };
     
     inline void getBlue( int32_t& out0, int32_t& out1 )
     {
-        const int32_t x0 = s[0][0];
-        const int32_t x1 = s[1][0];
-        s[0][0] = galoisShifter.getWhite24();            
-        s[1][0] = x0 - s[0][0];
-        out0 = s[1][0] + x1;            
+        const int32_t x0 = zm2[0][0];
+        const int32_t x1 = zm2[1][0];
+        zm2[0][0] = galoisShifter.getWhite24();            
+        zm2[1][0] = x0 - zm2[0][0];
+        out0 = zm2[1][0] + x1;            
     };
     
     inline void getBlue2( int32_t& out0, int32_t& out1 )
     {
-        const int32_t x0 = s[0][0];
-        const int32_t x1 = s[1][0];
-        const int32_t x2 = s[2][0];
-        s[0][0] = galoisShifter.getWhite24();            
-        s[1][0] = x0 - s[0][0];
-        s[2][0] = x1 - s[1][0];         
-        out0 = s[2][0] + x2;            
+        const int32_t x0 = zm2[0][0];
+        const int32_t x1 = zm2[1][0];
+        const int32_t x2 = zm2[2][0];
+        zm2[0][0] = galoisShifter.getWhite24();            
+        zm2[1][0] = x0 - zm2[0][0];
+        zm2[2][0] = x1 - zm2[1][0];         
+        out0 = zm2[2][0] + x2;            
     };
     
     inline void getBlue3( int32_t& out0, int32_t& out1 )
     {
-        const int32_t x0 = s[0][0];
-        const int32_t x1 = s[1][0];
-        const int32_t x2 = s[2][0];
-        const int32_t x3 = s[3][0];
-        s[0][0] = galoisShifter.getWhite24();            
-        s[1][0] = x0 - s[0][0];
-        s[2][0] = x1 - s[1][0];         
-        s[3][0] = (x2 - s[2][0])>>1;         
-        out0 = s[3][0] + x3;            
+        const int32_t x0 = zm2[0][0];
+        const int32_t x1 = zm2[1][0];
+        const int32_t x2 = zm2[2][0];
+        const int32_t x3 = zm2[3][0];
+        zm2[0][0] = galoisShifter.getWhite24();            
+        zm2[1][0] = x0 - zm2[0][0];
+        zm2[2][0] = x1 - zm2[1][0];         
+        zm2[3][0] = (x2 - zm2[2][0])>>1;         
+        out0 = zm2[3][0] + x3;            
     };
     
     inline void getBlue4( int32_t& out0, int32_t& out1 )
     {
-        const int32_t x0 = s[0][0];
-        const int32_t x1 = s[1][0];
-        const int32_t x2 = s[2][0];
-        const int32_t x3 = s[3][0];
-        const int32_t x4 = s[4][0];
-        s[0][0] = galoisShifter.getWhite24();            
-        s[1][0] = x0 - s[0][0];
-        s[2][0] = x1 - s[1][0];         
-        s[3][0] = (x2 - s[2][0])>>1;         
-        s[4][0] = (x3 - s[3][0])>>1;                          
-        out0 = s[4][0] + x4;            
+        const int32_t x0 = zm2[0][0];
+        const int32_t x1 = zm2[1][0];
+        const int32_t x2 = zm2[2][0];
+        const int32_t x3 = zm2[3][0];
+        const int32_t x4 = zm2[4][0];
+        zm2[0][0] = galoisShifter.getWhite24();            
+        zm2[1][0] = x0 - zm2[0][0];
+        zm2[2][0] = x1 - zm2[1][0];         
+        zm2[3][0] = (x2 - zm2[2][0])>>1;         
+        zm2[4][0] = (x3 - zm2[3][0])>>1;                          
+        out0 = zm2[4][0] + x4;            
     };
 
     inline void getBlue5( int32_t& out0, int32_t& out1 )
     {
-        const int32_t x0 = s[0][0];
-        const int32_t x1 = s[1][0];
-        const int32_t x2 = s[2][0];
-        const int32_t x3 = s[3][0];
-        const int32_t x4 = s[4][0];
-        const int32_t x5 = s[5][0];
-        s[0][0] = galoisShifter.getWhite24();            
-        s[1][0] = x0 - s[0][0];
-        s[2][0] = x1 - s[1][0];         
-        s[3][0] = (x2 - s[2][0])>>1;         
-        s[4][0] = (x3 - s[3][0])>>1;                          
-        s[5][0] = (x4 - s[4][0])>>1;                          
-        out0 = s[5][0] + x5;            
+        const int32_t x0 = zm2[0][0];
+        const int32_t x1 = zm2[1][0];
+        const int32_t x2 = zm2[2][0];
+        const int32_t x3 = zm2[3][0];
+        const int32_t x4 = zm2[4][0];
+        const int32_t x5 = zm2[5][0];
+        zm2[0][0] = galoisShifter.getWhite24();            
+        zm2[1][0] = x0 - zm2[0][0];
+        zm2[2][0] = x1 - zm2[1][0];         
+        zm2[3][0] = (x2 - zm2[2][0])>>1;         
+        zm2[4][0] = (x3 - zm2[3][0])>>1;                          
+        zm2[5][0] = (x4 - zm2[4][0])>>1;                          
+        out0 = zm2[5][0] + x5;            
     };
     
     inline void getBlue6( int32_t& out0, int32_t& out1 )
     {
-        const int32_t x0 = s[0][0];
-        const int32_t x1 = s[1][0];
-        const int32_t x2 = s[2][0];
-        const int32_t x3 = s[3][0];
-        const int32_t x4 = s[4][0];
-        const int32_t x5 = s[5][0];
-        const int32_t x6 = s[6][0];
-        s[0][0] = galoisShifter.getWhite24();            
-        s[1][0] = x0 - s[0][0];
-        s[2][0] = x1 - s[1][0];         
-        s[3][0] = (x2 - s[2][0])>>1;         
-        s[4][0] = (x3 - s[3][0])>>1;                          
-        s[5][0] = (x4 - s[4][0])>>1;                          
-        s[6][0] = (x5 - s[5][0])>>1;                          
-        out0 = s[6][0] + x6;            
+        const int32_t x0 = zm2[0][0];
+        const int32_t x1 = zm2[1][0];
+        const int32_t x2 = zm2[2][0];
+        const int32_t x3 = zm2[3][0];
+        const int32_t x4 = zm2[4][0];
+        const int32_t x5 = zm2[5][0];
+        const int32_t x6 = zm2[6][0];
+        zm2[0][0] = galoisShifter.getWhite24();            
+        zm2[1][0] = x0 - zm2[0][0];
+        zm2[2][0] = x1 - zm2[1][0];         
+        zm2[3][0] = (x2 - zm2[2][0])>>1;         
+        zm2[4][0] = (x3 - zm2[3][0])>>1;                          
+        zm2[5][0] = (x4 - zm2[4][0])>>1;                          
+        zm2[6][0] = (x5 - zm2[5][0])>>1;                          
+        out0 = zm2[6][0] + x6;            
     };   
     
     inline void getBlueBlue( int32_t& out0, int32_t& out1, const uint8_t mx = 7 )
@@ -431,49 +431,49 @@ public:
         const  uint8_t m = mx&3;
         int32_t x[8][0];
         for( auto i=0u; i<=m; ++i ) {
-            x[i][0] = s[i][0];
+            x[i][0] = zm2[i][0];
         }            
-        s[0][0] = galoisShifter.getWhite24();            
+        zm2[0][0] = galoisShifter.getWhite24();            
         for( auto i=1u; i<=m; ++i ) {
-            s[i][0] = ( x[i-1][0] - s[i-1][0] ) >> 1;
+            zm2[i][0] = ( x[i-1][0] - zm2[i-1][0] ) >> 1;
         }                    
-        out0 = s[m][0] + x[m][0];            
+        out0 = zm2[m][0] + x[m][0];            
     };   
     
     inline void getRed( int32_t& out0, int32_t& out1 )
     {
         constexpr uint8_t   poleExp     = 9;
-        const int32_t x00 = s[0][0];
-        const int32_t x20 = s[2][0];
-        const int32_t x01 = s[0][1];
-        const int32_t x21 = s[2][1];
-        s[0][0] = galoisShifter.getWhite24();            
-        s[1][0] += x00 - s[0][0] - ( s[1][0] >> poleExp );
-        s[2][0] += ( s[1][0] >> 6 ) - ( s[2][0] >> poleExp );
-        s[0][1] = galoisShifter.getWhite24();            
-        s[1][1] += x01 - s[0][1] - ( s[1][1] >> poleExp );
-        s[2][1] += ( s[1][1] >> 6 ) - ( s[2][1] >> poleExp );
-        out0 = s[2][0] + x20;         
-        out1 = s[2][1] + x21;         
+        const int32_t x00 = zm2[0][0];
+        const int32_t x20 = zm2[2][0];
+        const int32_t x01 = zm2[0][1];
+        const int32_t x21 = zm2[2][1];
+        zm2[0][0] = galoisShifter.getWhite24();            
+        zm2[1][0] += x00 - zm2[0][0] - ( zm2[1][0] >> poleExp );
+        zm2[2][0] += ( zm2[1][0] >> 6 ) - ( zm2[2][0] >> poleExp );
+        zm2[0][1] = galoisShifter.getWhite24();            
+        zm2[1][1] += x01 - zm2[0][1] - ( zm2[1][1] >> poleExp );
+        zm2[2][1] += ( zm2[1][1] >> 6 ) - ( zm2[2][1] >> poleExp );
+        out0 = zm2[2][0] + x20;         
+        out1 = zm2[2][1] + x21;         
     }; 
             
     
     inline void getPurple( int32_t& out0, int32_t& out1 )
     {
         constexpr uint8_t   poleExp     = 9;
-        const int32_t x0 = s[0][0];
-        const int32_t x3 = s[3][0];
-        s[0][0] = galoisShifter.getWhite24();            
-        s[1][0] += x0 - s[0][0] - ( s[1][0] >> poleExp );
-        s[2][0] += ( s[1][0] >> 6 ) - ( s[2][0] >> poleExp );
-        s[3][0] += ( s[2][0] >> 8 ) - ( s[3][0] >> poleExp );
-        out0 = s[3][0] + x3;         
+        const int32_t x0 = zm2[0][0];
+        const int32_t x3 = zm2[3][0];
+        zm2[0][0] = galoisShifter.getWhite24();            
+        zm2[1][0] += x0 - zm2[0][0] - ( zm2[1][0] >> poleExp );
+        zm2[2][0] += ( zm2[1][0] >> 6 ) - ( zm2[2][0] >> poleExp );
+        zm2[3][0] += ( zm2[2][0] >> 8 ) - ( zm2[3][0] >> poleExp );
+        out0 = zm2[3][0] + x3;         
     }; 
 
     // 0..15
     inline void setPoleExp( const uint8_t poleExp )
     {
-        s[7][0] = ( poleExp & 0x0F ) + 1; ;
+        zm2[7][0] = ( poleExp & 0x0F ) + 1; ;
     }
 
     // to test
@@ -481,30 +481,30 @@ public:
     inline void getRedVar( int32_t& out0, int32_t& out1 )
     {
         // gain compensation factors
-        const int32_t cf1 = (s[7][0]>>1) + 1;
-        const int32_t cf2 = cf1 + (s[7][0]&1);        
-        const int32_t x0 = s[0][0];
-        const int32_t x2 = s[2][0];
-        s[0][0] = galoisShifter.getWhite24();            
-        s[1][0] += x0 - s[0][0] - ( s[1][0] >> s[7][0] );
-        s[2][0] += ( s[1][0] >> cf1 ) + ( s[1][0] >> cf2 ) - ( s[2][0] >> s[7][0] );
-        out0 = s[2][0] + x2;         
+        const int32_t cf1 = (zm2[7][0]>>1) + 1;
+        const int32_t cf2 = cf1 + (zm2[7][0]&1);        
+        const int32_t x0 = zm2[0][0];
+        const int32_t x2 = zm2[2][0];
+        zm2[0][0] = galoisShifter.getWhite24();            
+        zm2[1][0] += x0 - zm2[0][0] - ( zm2[1][0] >> zm2[7][0] );
+        zm2[2][0] += ( zm2[1][0] >> cf1 ) + ( zm2[1][0] >> cf2 ) - ( zm2[2][0] >> zm2[7][0] );
+        out0 = zm2[2][0] + x2;         
     }; 
     
     // to test
     // s[7][0] - pole param
     inline void getPurpleVar( int32_t& out0, int32_t& out1 )
     {
-        const int32_t cf1 = (s[7][0]>>1) + 1;
-        const int32_t cf2 = cf1 + (s[7][0]&1);
-        const int32_t cf3 = s[7][0]-2;
-        const int32_t x0 = s[0][0];
-        const int32_t x3 = s[3][0];
-        s[0][0] = galoisShifter.getWhite24();            
-        s[1][0] += x0 - s[0][0] - ( s[1][0] >> s[7][0] );
-        s[2][0] += ( s[1][0] >> cf1 ) + ( s[1][0] >> cf2 ) - ( s[2][0] >> s[7][0] );
-        s[3][0] += ( s[2][0] >> cf3 ) - ( s[3][0] >> s[7][0] );
-        out0 = s[3][0] + x3;         
+        const int32_t cf1 = (zm2[7][0]>>1) + 1;
+        const int32_t cf2 = cf1 + (zm2[7][0]&1);
+        const int32_t cf3 = zm2[7][0]-2;
+        const int32_t x0 = zm2[0][0];
+        const int32_t x3 = zm2[3][0];
+        zm2[0][0] = galoisShifter.getWhite24();            
+        zm2[1][0] += x0 - zm2[0][0] - ( zm2[1][0] >> zm2[7][0] );
+        zm2[2][0] += ( zm2[1][0] >> cf1 ) + ( zm2[1][0] >> cf2 ) - ( zm2[2][0] >> zm2[7][0] );
+        zm2[3][0] += ( zm2[2][0] >> cf3 ) - ( zm2[3][0] >> zm2[7][0] );
+        out0 = zm2[3][0] + x3;         
     }; 
     
 // The pinking filter consists of several one-pole low-pass filters, 
@@ -518,23 +518,23 @@ public:
     {        
         constexpr int g = 2;
         constexpr int p = 9;
-        const int32_t x0 = s[0][0] + s[1][0] + s[2][0] + s[3][0] + s[4][0];
+        const int32_t x0 = zm2[0][0] + zm2[1][0] + zm2[2][0] + zm2[3][0] + zm2[4][0];
         // 14.9358 Hz
-        s[0][0] += ( galoisShifter.getWhite24() >> ( p - 0 + 0 + g ) ) - ( s[0][0]>>(p-0) );
+        zm2[0][0] += ( galoisShifter.getWhite24() >> ( p - 0 + 0 + g ) ) - ( zm2[0][0]>>(p-0) );
         // 59.9192 Hz        
-        s[1][0] += ( galoisShifter.getWhite24() >> ( p - 2 + 1 + g ) ) - ( s[1][0]>>(p-2) );
+        zm2[1][0] += ( galoisShifter.getWhite24() >> ( p - 2 + 1 + g ) ) - ( zm2[1][0]>>(p-2) );
         // 242.549 Hz
-        s[2][0] += ( galoisShifter.getWhite24() >> ( p - 4 + 2 + g ) ) - ( s[2][0]>>(p-4) );
+        zm2[2][0] += ( galoisShifter.getWhite24() >> ( p - 4 + 2 + g ) ) - ( zm2[2][0]>>(p-4) );
         // 1020.13 Hz
-        s[3][0] += ( galoisShifter.getWhite24() >> ( p - 6 + 3 + g ) ) - ( s[3][0]>>(p-6) );
+        zm2[3][0] += ( galoisShifter.getWhite24() >> ( p - 6 + 3 + g ) ) - ( zm2[3][0]>>(p-6) );
         // 5295.41 Hz
-        s[4][0] += ( galoisShifter.getWhite24() >> ( p - 8 + 4 + g ) ) - ( s[4][0]>>(p-8) );
-        const int32_t x1 = s[0][0] + s[1][0] + s[2][0] + s[3][0] + s[4][0];
-        const int32_t x2 = s[5][0];
+        zm2[4][0] += ( galoisShifter.getWhite24() >> ( p - 8 + 4 + g ) ) - ( zm2[4][0]>>(p-8) );
+        const int32_t x1 = zm2[0][0] + zm2[1][0] + zm2[2][0] + zm2[3][0] + zm2[4][0];
+        const int32_t x2 = zm2[5][0];
         // dc cut
-        s[5][0] += ( x0 - x1 ) - ( s[5][0]>>(p+2) );
+        zm2[5][0] += ( x0 - x1 ) - ( zm2[5][0]>>(p+2) );
         // zero gain at fs/2
-        out0 = s[5][0] + x2;
+        out0 = zm2[5][0] + x2;
     };
     
     // under 100 Hz pinkish above red
@@ -542,24 +542,24 @@ public:
     {        
         constexpr int g = -2;
         constexpr int p = 15;
-        int32_t x0 = s[0][0] + s[1][0] + s[2][0] + s[3][0] + s[4][0];
-        s[0][0] += ( galoisShifter.getWhite24() >> ( p - 0 + 0 + g ) ) - ( s[0][0]>>(p-0) );
-        s[1][0] += ( galoisShifter.getWhite24() >> ( p - 2 + 1 + g ) ) - ( s[1][0]>>(p-2) );
-        s[2][0] += ( galoisShifter.getWhite24() >> ( p - 4 + 2 + g ) ) - ( s[2][0]>>(p-4) );
-        s[3][0] += ( galoisShifter.getWhite24() >> ( p - 6 + 3 + g ) ) - ( s[3][0]>>(p-6) );
-        s[4][0] += ( galoisShifter.getWhite24() >> ( p - 8 + 4 + g ) ) - ( s[4][0]>>(p-8) );
-        const int32_t x1 = s[0][0] + s[1][0] + s[2][0] + s[3][0] + s[4][0];
-        const int32_t x2 = s[5][0];
+        int32_t x0 = zm2[0][0] + zm2[1][0] + zm2[2][0] + zm2[3][0] + zm2[4][0];
+        zm2[0][0] += ( galoisShifter.getWhite24() >> ( p - 0 + 0 + g ) ) - ( zm2[0][0]>>(p-0) );
+        zm2[1][0] += ( galoisShifter.getWhite24() >> ( p - 2 + 1 + g ) ) - ( zm2[1][0]>>(p-2) );
+        zm2[2][0] += ( galoisShifter.getWhite24() >> ( p - 4 + 2 + g ) ) - ( zm2[2][0]>>(p-4) );
+        zm2[3][0] += ( galoisShifter.getWhite24() >> ( p - 6 + 3 + g ) ) - ( zm2[3][0]>>(p-6) );
+        zm2[4][0] += ( galoisShifter.getWhite24() >> ( p - 8 + 4 + g ) ) - ( zm2[4][0]>>(p-8) );
+        const int32_t x1 = zm2[0][0] + zm2[1][0] + zm2[2][0] + zm2[3][0] + zm2[4][0];
+        const int32_t x2 = zm2[5][0];
         // dc cut
-        s[5][0] += ( x0 - x1 ) - ( s[5][0]>>(p+2) );
+        zm2[5][0] += ( x0 - x1 ) - ( zm2[5][0]>>(p+2) );
         // zero gain at fs/2
-        out0 = s[5][0] + x2;
+        out0 = zm2[5][0] + x2;
     };    
 
 private:
     union {
-        int32_t sv1[16];        
-        int32_t s[8][2];        
+        int32_t zv[16];        
+        int32_t zm2[8][2];        
     };
     GaloisShifter&  galoisShifter;
 };

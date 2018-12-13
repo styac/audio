@@ -25,6 +25,7 @@
  * Created on May 10, 2017, 8:49 PM
  */
 
+#include "yacynth_config.h"
 #include "Tags.h"
 #include "protocol.h"
 #include "yacynth_globals.h"

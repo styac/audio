@@ -24,6 +24,8 @@
  *
  * Created on February 16, 2016, 10:27 AM
  */
+
+#include "yacynth_config.h"
 #include "yacynth_globals.h"
 #include "v4.h"
 #include "utils/Fastsincos.h"

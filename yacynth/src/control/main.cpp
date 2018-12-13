@@ -234,10 +234,15 @@ int main( int argc, char** argv )
         // net::Server::Type uiServer = net::Server::create( *sysman, settings );
         // TODO : make server singleton
         if( uiServer ) {
-            std::cout << "\n\n============END ERROR ==============\n\n" << std::endl;
+            std::cout << "\n\n============END ERROR> server failed \n\n" << std::endl;
             exit(-1);
         }
-        uiServer = net::Server::create( *sysman, settings );
+        bool failed;
+        uiServer = net::Server::create( *sysman, settings, failed );
+        if( failed) {
+            std::cout << "\n\n============END ERROR> server failed \n\n" << std::endl;
+            exit(-1);
+        }
         uiServer->run();
 
         std::cout << "\n\n============END==============\n\n" << std::endl;

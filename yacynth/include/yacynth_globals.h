@@ -29,7 +29,8 @@
 #include <cmath>
 #include <algorithm>
 
-typedef __uint128_t     uint128_t;
+typedef __uint128_t uint128_t;
+typedef __int128_t  int128_t;
 
 #ifndef NON_COPYABLE_NOR_MOVABLE
 #define NON_COPYABLE_NOR_MOVABLE(T) \

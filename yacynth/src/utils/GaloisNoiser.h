@@ -101,9 +101,11 @@ using namespace limiter;
 using namespace tables;
 using namespace filter;
 
-typedef int     v4si __attribute__((mode(SI)))  __attribute__ ((vector_size(16),aligned(16)));
-typedef int     v4hi __attribute__((mode(HI)))  __attribute__ ((vector_size(8),aligned(16)));
-typedef float   v4sf __attribute__((mode(SF)))  __attribute__ ((vector_size(16),aligned(16)));
+typedef int         v4hi __attribute__((mode(HI)))  __attribute__ ((vector_size(8),aligned(16)));
+typedef int         v4si __attribute__((mode(SI)))  __attribute__ ((vector_size(16),aligned(16)));
+typedef float       v4sf __attribute__((mode(SF)))  __attribute__ ((vector_size(16),aligned(16)));
+typedef long long   v2di __attribute__((mode(DI)))  __attribute__ ((vector_size(16),aligned(16)));
+
 
 namespace noiser {
 // --------------------------------------------------------------------
@@ -126,8 +128,13 @@ i 4000000000 vv 4d63d50ccdff3eb
  *
 i 5000000000 vv f239f3cac7d02c4e
 
-
+ *
  */
+
+union V2d {
+    v2di        v2;
+    int64_t     v[2];
+};
 // 0
 constexpr uint64_t seedThreadEffect_noise       = 0x868485654FE84945ULL;
 // i c000000000 vv 65cb8e6b9323242d
@@ -141,14 +148,15 @@ constexpr uint64_t seedThreadOscillator_random  = 0x2da068af77c909abULL;
 // i 8000000000 vv e4858c0e6cbc01b--
 
 // --------------------------------------------------------------------
-class GaloisShifterCascade {
+// make sse and shift the cycle by 2^32
+class GaloisShifterTwin {
 public:
     //                                      7766554433221100
 //  static constexpr uint64_t feedback  = 0xd19850abe0000001ULL;
     static constexpr uint64_t feedback  = 0xd198000000000001ULL;
     static constexpr int shdownWhite    = 24; // spectrum looks white noise in this slice
 
-    GaloisShifterCascade( const uint64_t seed )
+    GaloisShifterTwin( const uint64_t seed )
     { state2.lfsr = state1.lfsr = seed; };
 
     inline void reset( const uint64_t seed )
@@ -237,12 +245,18 @@ protected:
 };
 
 // --------------------------------------------------------------------
+// https://users.ece.cmu.edu/~koopman/lfsr/
+//In the above data files, the feedback term is the hexadecimal number that represents the feedback polynomial for a right-shifted LFSR per the following C code LFSR inner loop implementation:
+//
+//  if (i & 1)  { i = (i >> 1) ^ feed; }
+//  else        { i = (i >> 1); 
+  
 class GaloisShifter {
 public:
     //                                      7766554433221100
 //  static constexpr uint64_t feedback  = 0xd19850abe0000001ULL;
-    static constexpr uint64_t feedback  = 0xd198000000000001ULL; // original max length
-
+    static constexpr uint64_t feedback  = 0xd198000000000001ULL; // original max length - left shift
+//       originalq                           800000000000198B    right shift
     static constexpr int shdownWhite    = 24; // spectrum looks white noise in this slice
 
     GaloisShifter( const uint64_t seed = seedThreadEffect_noise ) // default should be deleted
