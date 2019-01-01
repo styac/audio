@@ -28,7 +28,6 @@
 #include "protocol.h"
 #include "control/Sysman.h"
 #include "control/Setting.h"
-#include "spdlog/spdlog.h"
 #include <iostream>
 #include <memory>
 #include <netinet/in.h>
@@ -88,7 +87,6 @@ protected:
     bool setAuthSeed( const std::string& seedFileName );
 
     Sysman&                 sysman;
-    std::shared_ptr<spdlog::logger> logger;
     int                     socketListen;
     int                     socketAccept;
     int                     socketSendStatus;

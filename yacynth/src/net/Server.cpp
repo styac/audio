@@ -22,16 +22,22 @@
  *
  * Created on February 20, 2016, 7:25 AM
  */
-#include "yacynth_config.h"
 
+#include "yacynth_config.h"
 #include "Server.h"
+
 #include "nsleep.h"
+#include "blake2.h"
+#include "NanoLog.hpp"
+
 #include <unistd.h>
 #include <errno.h>
 #include <fstream>
 #include <linux/random.h>
 #include <sys/syscall.h>
-#include "sha3.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 namespace yacynth {
 namespace net {
@@ -67,7 +73,6 @@ Server::Type Server::create( Sysman& sysman, const Setting& setting, bool& faile
 
 Server::Server( Sysman& sysmanP, const std::string& authKeyFile, bool& failed )
 :   sysman(sysmanP)
-,   logger(spdlog::stdout_color_mt("console"))
 ,   socketListen(-1)
 ,   socketAccept(-1)
 ,   socketSendStatus(-1)
@@ -79,6 +84,7 @@ Server::Server( Sysman& sysmanP, const std::string& authKeyFile, bool& failed )
     failed = false;
     if( ! setAuthSeed( authKeyFile ) ) {
         failed = true;
+        LOG_CRIT << " ***** Server setAuthSeed failed";
     }
 }
 
@@ -95,25 +101,26 @@ void Server::stop( void )
 bool Server::run()
 {
     if( errnoNet ) {
-        logger->warn("ctor failed {:d}", errnoNet);
+        LOG_INFO << " ***** Server ctor failed:" << errnoNet;
         return false;
     }
-    logger->warn(" ***** Server::doListen" );
+    LOG_INFO << " ***** Server::doListen";
+
     if( ! doListen() ) {
-        logger->warn(" ***** Server::doListen failed" );
+        LOG_INFO << " ***** Server::doListen failed";
         return false;
     }
     while( ! stopServer ) {
-        logger->warn(" ***** Server::doAccept" );
+        LOG_INFO << " ***** Server::doAccept";
         if( ! doAccept() ) {
-            logger->warn(" ***** Server::doAccept failed" );
+            LOG_INFO << " ***** Server::doAccept failed";
         }
         if( ! authenticate() ) {
-            logger->warn(" ***** Server::authenticate failed" );
+            LOG_INFO << " ***** Server::authenticate failed";
             shut();
         }
         execute();
-        logger->warn(" ***** Server::connection broken" );
+        LOG_INFO << " ***** Server::connection broken";
     }
     shut();
     return true;
@@ -122,7 +129,8 @@ bool Server::run()
 void Server::shut()
 {
     if( socketAccept > 0 ) {
-        logger->warn(" ***** Server::shut" );
+        LOG_INFO << " ***** Server::shut";
+
         shutdown( socketAccept, SHUT_RDWR );
         close( socketAccept );
         socketAccept = -1;
@@ -136,7 +144,7 @@ void Server::execute()
     lastSequenceNumber = 0;
     while( doRecv() ) {
         if( ++lastSequenceNumber != message.sequenceNr ) {
-            logger->warn( "** seq nr diff {0} {1}", lastSequenceNumber, message.sequenceNr );
+            LOG_INFO << " *****  seq nr diff:" << lastSequenceNumber << " " << message.sequenceNr ;
         }
         lastMessageType = message.messageType;
         switch( message.messageType ) {
@@ -151,11 +159,11 @@ void Server::execute()
 
         case yaxp::MessageT::stopServer:
             stopServer = true;
-            logger->warn("** stop server" );
+            LOG_INFO << " ***** Server stop";
             return;
 
         case yaxp::MessageT::heartbeatRequest:
-            logger->warn("** heartbeatRequest" );
+            LOG_INFO << " ***** heartbeatRequest";
             message.messageType = yaxp::MessageT::heartbeatResponse;
             message.length = 0;
             break;
@@ -163,7 +171,7 @@ void Server::execute()
         default:
             message.messageType = yaxp::MessageT::illegalContext;
             message.length = 0;
-            logger->warn("** illegalContext" );
+            LOG_INFO << " ***** illegalContext";
         }
         // send response
         if( ! doSend() ) {
@@ -178,7 +186,7 @@ bool Server::doListen()
     int res = listen(socketListen, 1);
     if( res < 0 ) {
         errnoNet = errno;
-        logger->warn("doListen failed {:d}", errnoNet);
+        LOG_INFO << " ***** doListen failed:" << errnoNet;
         return false;
     }
     return true;
@@ -189,12 +197,12 @@ bool Server::authenticate()
     uint8_t randBlock[ randLength ];
     std::string str;
     fillRandom( randBlock );
-    logger->warn(" ***** Server::authenticate" );
+    LOG_INFO << " ***** Server::authenticate";
     message.getTargetData( randBlock );
     message.messageType = yaxp::MessageT::authRequest;
     message.sequenceNr = 0;
     if( ! doSend() ) {
-        logger->warn(" ***** Server::authenticate doSend false" );
+        LOG_CRIT << " ***** Server::authenticate doSend false";
         return false;
     }
 
@@ -202,33 +210,33 @@ bool Server::authenticate()
         timespec req;
         req.tv_nsec = 1000*1000*10;
         req.tv_sec = 0;
-        logger->warn(" ***** Server::authenticate doPeek false" );
+        LOG_INFO << " ***** Server::authenticate doPeek false";
         nanosleep(&req,nullptr); // 10 millisec
         if( ! doPeek() ) { // no response
-            logger->warn(" ***** Server::authenticate no response" );
+            LOG_INFO << " ***** Server::authenticate no response";
             return false;
         }
     }
 
     if( ! doRecv() ) {
-        logger->warn(" ***** Server::authenticate doRecv false" );
+        LOG_INFO << " ***** Server::authenticate doRecv false";
         return false;
     }
     if( message.messageType != yaxp::MessageT::authResponse ) {
-        logger->warn(" ***** Server::authenticate mst type error" );
+        LOG_INFO << " ***** Server::authenticate mst type error";
         return false;
     }
 
     message.print(str);
-    logger->warn( "authenticate received {0}", str.data() );
+    LOG_INFO << " ***** Server::authenticate received: " << str;
 
     if( checkAuth( randBlock, message.data, message.length ) ) {
-        logger->warn( "authenticate ok" );
+        LOG_INFO << " ***** Server::authenticate ok";
         authenticated = true;
         return true;
     }
 
-    logger->warn( "authenticate error" );
+    LOG_INFO << " ***** Server::authenticate error";
     return false;
 }
 
@@ -237,18 +245,18 @@ bool Server::doRecv()
     std::string str;
     //logger->warn(" ***** Server::doRecv" );
     if( ! recvAll( (char *)&message, sizeof(yaxp::Header) ) ) {
-        logger->warn( "header received error" );
+        LOG_INFO << " ***** Server::doRecv header received error";
         return false;
     }
     // TODO
     // if( ( message.length == 0 ) || ( message.messageType < yacynth::yaxp::MessageT::validLength ) ) {
     if( message.messageType < yaxp::MessageT::validLength ) {
         message.print(str);
-        logger->warn( "received {0}", str.data() );
+        LOG_INFO << " ***** Server::doRecv " << str;
         return true;
     }
     if( ! recvAll( (char *)message.data, message.length ) ) {
-        logger->warn( "body received error" );
+        LOG_INFO << " ***** Server::doRecv body received error";
         return false;
     }
     message.print(str);
@@ -266,7 +274,7 @@ bool Server::recvAll( char *p, uint32_t size )
         if( res == s )
             return true;
         if( res == 0 ) {
-            logger->warn("recvAll disconnect");
+            LOG_INFO << " ***** Server::recvAll disconnect";
             errnoNet = ENOTCONN;
             connected = false;
             shut();
@@ -274,11 +282,11 @@ bool Server::recvAll( char *p, uint32_t size )
         }
         if( res < 0 ) {
             if( EAGAIN == errno ) {
-                logger->warn("recvAll EAGAIN");
+                LOG_INFO << " ***** Server::recvAll EAGAIN";
                 continue;
             }
             errnoNet = errno;
-            logger->warn("recvAll failed {:d}", errnoNet);
+            LOG_INFO << " ***** Server::recvAll failed " << errnoNet;
             return false;
         }
         p += res;
@@ -288,6 +296,7 @@ bool Server::recvAll( char *p, uint32_t size )
 
 bool Server::doSend()
 {
+
     std::size_t length = message.length + sizeof(yaxp::Header);
     if( message.messageType < yaxp::MessageT::validLength ) {
         length = sizeof(yaxp::Header);
@@ -297,11 +306,11 @@ bool Server::doSend()
         return true;
     if( res < 0 ) {
         errnoNet = errno;
-        logger->warn("doSend failed {:d}", errnoNet);
+        LOG_INFO << " ***** Server::doSend failed " << errnoNet;
         return false;
     }
      // this should never happen
-    logger->warn("doSend sent more then requested {:d}",res);
+    LOG_INFO << " ***** Server::doSend sent more then requested " << res;
     return false;
 }
 
@@ -323,26 +332,27 @@ bool Server::fillRandom( uint8_t * dst )
             close( rf );
             return true;
         }
-        logger->warn("urandom read error {:d}", errno );
+        LOG_CRIT << " ***** Server::urandom read failed " << errno;
         close( rf );
         return false;
     }
-    logger->warn("urandom open error {:d}", errno );
+    LOG_CRIT << " ***** Server::urandom open failed " << errno;
     return false;
 }
 
+// if error then init error of filesystem error - practically never happens
 bool Server::setAuthSeed( const std::string& seedFileName )
 {
     // TODO for local - there is a default key
     // const char * defaultAuth = localNet ? "LOCAL-AUTH-DEFAULT-KEY";
     std::ifstream seedFile( seedFileName );
     if( ! seedFile.is_open() ) {
-        logger->warn("setAuthSeed open err {:d}", errno );
+        LOG_CRIT << " ***** Server::setAuthSeed open failed " << errnoNet;
         return false;
     }
     seedFile.read( seedAuth, sizeof(seedAuth));
     if( seedFile.fail() ) {
-        logger->warn("setAuthSeed read err {:d}", errno );
+        LOG_INFO << " ***** Server::doAccept read failed " << errnoNet;
         return false;
     }
     seedFile.close();
@@ -351,15 +361,13 @@ bool Server::setAuthSeed( const std::string& seedFileName )
 
 bool Server::checkAuth( const uint8_t * randBuff, const uint8_t * respBuff, size_t respLng )
 {
-    sha3_ctx_t  context;
     uint8_t resBlock[ authLength ];
     if( authLength > respLng ) {
         return false;
     }
-    sha3_init( &context, authLength);
-    sha3_update( &context, seedAuth, sizeof(seedAuth));
-    sha3_update( &context, randBuff, randLength);
-    sha3_final( resBlock, &context );
+    blake2b( resBlock, sizeof(resBlock),
+             randBuff, sizeof(resBlock),
+             seedAuth, sizeof(seedAuth));
     return 0 == memcmp( resBlock, respBuff, authLength);
 }
 
@@ -382,17 +390,23 @@ RemoteServer::RemoteServer( Sysman& sysman, const uint16_t port, const std::stri
 
     if( setsockopt(socketListen, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse, sizeof(reuse)) < 0) {
         errnoNet = errno;
+        failed = true;
+        LOG_CRIT << " ***** setsockopt failed " << errnoNet;
     }
 
     // TODO check return status
     auto bres = bind( socketListen, (sockaddr*)&serv_addr, sizeof(serv_addr) );
     if( bres < 0 ) {
         errnoNet = errno;
+        failed = true;
+        LOG_CRIT << " ***** bind failed " << errnoNet;
     }
     //create a UDP socket
     socketSendStatus = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
     if( socketSendStatus < 1 ) {
         errnoNet = errno;
+        failed = true;
+        LOG_CRIT << " ***** socket failed " << errnoNet;
     }
 } // end Server::Server
 
@@ -427,7 +441,7 @@ bool RemoteServer::sendStatus( const yacynth::yaxp::Message& message )
     }
     if( 0 != sendto( socketSendStatus, (void *)&message, size, 0, (const sockaddr *)&statusSockAddr4, sizeof(statusSockAddr4)) ){
         errnoNet = errno;
-        logger->warn("doAccept failed {:d}", errnoNet);
+        LOG_CRIT << " ***** Server::doAccept failed " << errnoNet;
         return false;
     }
     return true;
@@ -441,7 +455,7 @@ bool RemoteServer::doAccept()
     socketAccept = accept( socketListen, (struct sockaddr*)&remoteSock, &addrlen );
     if( socketAccept < 1 ) {
         errnoNet = errno;
-        logger->warn("doAccept failed {:d}", errnoNet);
+        LOG_CRIT << " ***** Server::doAccept failed " << errnoNet;
         return false;
     }
 
@@ -487,10 +501,14 @@ LocalServer::LocalServer( Sysman&  sysman, const char *port, const std::string& 
     auto bres = bind( socketListen, (sockaddr*)&serv_addr, sizeof(serv_addr) );
     if( bres < 0 ) {
         errnoNet = errno;
+        failed = true;
+        LOG_CRIT << " ***** bind failed " << errnoNet;
     }
     socketSendStatus = socket( PF_LOCAL, SOCK_DGRAM, 0 );
     if( socketSendStatus < 1 ) {
         errnoNet = errno;
+        failed = true;
+        LOG_CRIT << " ***** socket failed " << errnoNet;
     }
 } // end Server::Server
 
@@ -513,7 +531,6 @@ LocalServer::~LocalServer()
         close( socketSendStatus );
         socketSendStatus = -1;
     }
-
     shut();
 }
 
@@ -526,7 +543,7 @@ bool LocalServer::sendStatus( const yacynth::yaxp::Message& message )
 
     if( 0 != sendto( socketSendStatus, (void *)&message, size, 0, (const sockaddr *)&statusSockAddr, sizeof(statusSockAddr)) ){
         errnoNet = errno;
-        logger->warn("doAccept failed {:d}", errnoNet);
+        LOG_INFO << " ***** Server::doAccept failed " << errnoNet;
         return false;
     }
     return true;
@@ -537,7 +554,7 @@ bool LocalServer::doAccept()
     socketAccept = accept( socketListen, (sockaddr*)NULL, NULL );
     if( socketAccept < 1 ) {
         errnoNet = errno;
-        logger->warn("doAccept failed {:d}", errnoNet);
+        LOG_INFO << " ***** Server::doAccept failed " << errnoNet;
         return false;
     }
     return true;

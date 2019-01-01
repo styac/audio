@@ -38,6 +38,8 @@
 #include "v4.h"
 #include "Setting.h"
 
+#include "NanoLog.hpp"
+
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
@@ -174,6 +176,8 @@ int main( int argc, char** argv )
 	sigaction( SIGTERM, &sigact, NULL );
     sigaction( SIGINT, &sigact, NULL );
     // uint16_t   port( yaxp::defaultPort ); // from param
+
+    nanolog::initialize(nanolog::NonGuaranteedLogger(3), "/tmp/", "", 1);
 
     Setting settings;
     if( ! settings.initialize( argc, argv ) ) {
