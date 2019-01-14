@@ -46,7 +46,7 @@ public:
 
     inline void dump( float * channel0,  float * channel1 )
     {
-        out().dump( channel0, channel1 );
+        out().dumpFloat( channel0, channel1 );
     }
 
     virtual bool connect( const FxBase * v, uint16_t ind ) override;

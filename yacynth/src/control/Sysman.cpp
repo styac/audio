@@ -27,6 +27,13 @@
 #include "control/global.h"
 
 namespace yacynth {
+
+//namespace {
+//constexpr auto LogCategoryMask              = LOGCAT_net;
+//constexpr auto LogCategoryMaskAlways        = LogCategoryMask | nanolog::category_mask_t::log_always;
+//constexpr const char * const LogCategory    = "NETS";
+//}
+
 using namespace TagMainLevel_00;
 using namespace TagToneShaperLevel_01;
 

@@ -43,9 +43,10 @@ YaIo::YaIo()
 ,   errorString("err: ")
 ,   mutedOutput(true)
 ,   mutedInput(true)
+,   serverShut(false)
 {}
-    
-void YaIo::registerAudioProcessor( void* userData, 
+
+void YaIo::registerAudioProcessor( void* userData,
     AudioOutProcessorType audioOutCB, AudioInOutProcessorType audioInOutCB )
 {
     audioProcessorData  = userData;
@@ -53,7 +54,7 @@ void YaIo::registerAudioProcessor( void* userData,
     audioInOutProcesing = audioInOutCB;
 }
 
-void YaIo::registerMidiProcessor( void* userData, 
+void YaIo::registerMidiProcessor( void* userData,
     MidiProcessorType midiInCB )
 {
     midiProcessorData = userData;
@@ -62,11 +63,11 @@ void YaIo::registerMidiProcessor( void* userData,
 
 void YaIo::clearProcessCB()
 {
-    audioProcessorData  = nullptr;
-    midiProcessorData   = nullptr;
     midiOutProcessing   = noMidiProcessing;
     audioOutProcesing   = noAudioOutProcesing;
     audioInOutProcesing = noAudioInOutProcesing;
+    audioProcessorData  = nullptr;
+    midiProcessorData   = nullptr;
 }
 
 // empty functions to fill unused callbacks
@@ -76,6 +77,5 @@ void YaIo::noAudioOutProcesing( void *data, uint32_t nframes, float *outp1, floa
 {}
 void YaIo::noAudioInOutProcesing( void *data, uint32_t nframes, float *outp1, float *outp2, float *inp1, float *inp2 )
 {}
-    
 
 } // end namespace yacynth

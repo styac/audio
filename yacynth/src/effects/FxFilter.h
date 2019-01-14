@@ -102,7 +102,7 @@ private:
 
     // 2nd order allpass 2x channel 4x filter -- phaser
     // TODO retest with stage 0 - BW stage 1 freq
-    void process_01_ap4x(void)
+    void process_01_ap4x()
     {
         for( auto si=0u; si < sectionSize; ++si ) {
             filterAllpass.allpass2x8(
@@ -158,7 +158,7 @@ private:
     }
 
     // ------------------------------------------------------------
-    void process_02_svf_1x(void)
+    void process_02_svf_1x()
     {
         for( auto si=0u; si < sectionSize; ++si ) {
             filterStateVariable.set1x1<0>( inp<0>().channel[0][si] );
@@ -179,7 +179,7 @@ private:
     }
     // ------------------------------------------------------------
 
-    void process_03_pole4_1x(void)
+    void process_03_pole4_1x()
     {
         for( auto si=0u; si < sectionSize; ++si ) {
             filter4Pole.set1x1<0>( inp<0>().channel[0][si] );

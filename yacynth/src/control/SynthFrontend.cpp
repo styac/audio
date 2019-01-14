@@ -22,17 +22,24 @@
  *
  * Created on February 17, 2016, 7:45 AM
  */
+
 #include "yacynth_config.h"
-#include "SynthFrontend.h"
+#include "control/SynthFrontend.h"
 #include "control/global.h"
+#include "control/Nsleep.h"
+#include "logDefs.h"
 
 #include <unistd.h>
 #include <atomic>
 #include <thread>
 
-
 namespace yacynth {
 
+namespace {
+constexpr auto LogCategoryMask              = LOGCAT_synthfe;
+constexpr auto LogCategoryMaskAlways        = LogCategoryMask | nanolog::category_mask_t::log_always;
+constexpr const char * const LogCategory    = "SYFE";
+}
 
 SynthFrontend::SynthFrontend (
         ControlQueueVector&      queueinP,
@@ -57,11 +64,9 @@ bool SynthFrontend::initialize( void )
 
 bool SynthFrontend::evalMEssage( void )
 {
-    const int hwconc = std::thread::hardware_concurrency();
-    Yamsgrt     msg;
-//    uint16_t    velocityLin;
+    Yamsgrt msg;
     while( (msg.store = queuein.queueOscillator.get()) ) {
-        std::cout << std::hex << " msg:" << msg.store << " cpu:"<< sched_getcpu()  << " hwconc " << hwconc << std::endl;
+        std::cout << std::hex << " msg:" << msg.store << " cpu:" << sched_getcpu()   << std::endl;
         if( int64_t(msg.store) > 0 ) {
             oscArray->voiceRun( msg.voiceSet.oscNr, msg.voiceSet.pitch, msg.voiceSet.velocity, msg.voiceSet.toneBank );
             if( 0 == ++cycleNoise ) { // reset after 2^32 cycles
@@ -86,60 +91,52 @@ bool SynthFrontend::evalMEssage( void )
 } // end SynthFrontend::evalMEssage
 
 // --------------------------------------------------------------------
-// TODO: rework with spinlock if 1 is full
-bool SynthFrontend::generate( void )
-{
-    // there should be 0,1 full buffer not more 
-    // if( outVector.getFullCount() < 2 ) { // min buffer count == 2
-    if( ! outVector.isFull() ) {
-        const int wi = outVector.getWriteIndex();
-        oscArray->generate( outVector.out[ wi ], statistics );
-        outVector.writeOk();
-        return true;
-    }
-    return false;
-} // end SynthFrontend::generate
-// --------------------------------------------------------------------
 
 // main oscillator loop
 bool SynthFrontend::run( void )
 {
-//    GaloisShifterSingle& gs1         = GaloisShifterSingle::getInstance();
-//    GaloisShifterSingle& gs2         = GaloisShifterSingle::getInstance();
-//    std::cout
-//        << "gs1 " << static_cast< void *>( &(gs1 ) )
- //       << " gs2 " << static_cast< void *>( &(gs2 ) )
- //       << std::endl;
-
     statistics.startTimer();
     statistics.stopTimer();
-    std::cout << "SynthFrontend::run " << std::endl;
+    LOG_TRACE_CAT(LogCategoryMask,LogCategory) << "SynthFrontend::run";
 
+#ifdef IO_DEBUG    
+    NanosecTimer timer;
+#endif
+    
     while( runFe ) {
-        statistics.startTimer();
         if( ! evalMEssage() ) {
             return false;
         }
-        const bool genRes  = generate();
-        statistics.stopTimer();
-
-        if( 10000 <= statistics.countDisplay ) {
-           std::cout << std::dec
-               << "--- osc " << statistics.cycleDeltaSumm
-               << " over " << statistics.countOverSumm
-               << " max " << statistics.cycleDeltaMax
-               << " cpu:"<< sched_getcpu()
-               << std::endl;
-           statistics.countDisplay  = 0;
-           statistics.cycleDeltaSumm = 0;
+        
+        if( ! outVector.isFull() ) {
+            statistics.startTimer();        
+            
+#ifdef IO_DEBUG    
+            timer.begin();    
+#endif
+            const int wi = outVector.getWriteIndex();
+            oscArray->generate( outVector.out[ wi ], statistics );
+            outVector.writeFinished();        
+            statistics.stopTimer();
+            
+#ifdef IO_DEBUG    
+            constexpr int countExp = 12;
+            timer.end();
+            nanosecCollector.addEnd(timer);
+            if( ! nanosecCollector.checkCount(1<<countExp) ) {
+                LOG_DEBUG_CAT(LogCategoryMask,LogCategory)
+                    << ( nanosecCollector.getClear() >> countExp ) 
+                    << " nanosec; cpu:" << sched_getcpu()
+                    << " over " << statistics.countOverSumm
+                    << " max " << statistics.cycleDeltaMax
+                    ;            
+                statistics.countDisplay  = 0;
+                statistics.cycleDeltaSumm = 0;
+            }
+#endif
+        } else {
+            nsleep(1000); // wait a bit nothing to do          
         }
-        // it should wait if the loop is too fast
-        // countCycles[0] + countCycles[1] < limit
-        if( ! genRes  ) {
-            usleep(100);    // wait a bit nothing to do
-        }
-// this should be delayed by 1 complete cycle
-//        outVector->writeOk();
     }
     return true;
 } // end SynthFrontend::run
@@ -148,12 +145,10 @@ bool SynthFrontend::run( void )
 void SynthFrontend::exec( void * data )
 {
     SynthFrontend * thp = static_cast<SynthFrontend *> (data);
-    std::cout << "SynthFrontend::exec " << std::endl;
+    LOG_TRACE_CAT(LogCategoryMask,LogCategory) << "SynthFrontend::exec";
     thp->run();
 
 } // end  SynthFrontend::exec
 // --------------------------------------------------------------------
 
 } // end namespace yacynth
-
-

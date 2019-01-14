@@ -29,7 +29,7 @@ namespace yacynth {
 
 class CycleCount {
 public:
-    static inline CycleCount&   getInstance(void)
+    static inline CycleCount&   getInstance()
     {
         static CycleCount inst;
         return inst;

@@ -38,47 +38,49 @@ class   OscillatorArray  {
 public:
     OscillatorArray();
     bool initialize(  void );
-        
-    void clear(void) {};
-    static ToneShaperMatrix& getToneShaperMatrix(void) 
+
+    void clear() {};
+    static ToneShaperMatrix& getToneShaperMatrix()
         { return Oscillator::getToneShaperMatrix(); };
-        
+
     void    generate( OscillatorOut& out, Statistics& stat );
     void    voiceRun( uint16_t oscNr,  uint32_t pitch,  uint8_t velocity, uint16_t toneBank );
-    
+
     void    voiceRelease( uint16_t oscNr );
     void    voiceChange(  uint16_t oscNr );
 
-    inline void getPitch() 
+    inline void getPitch()
     {
         if( pitchBendCache.update( pitchBendIndex ) ) {
             oscillatorParamGenerate.pitchDelta = pitchBendRange.getPitchYcent( pitchBendCache.getValueI32() );
         }
     }
-    
+
 private:
-    
+
     // TODO modulateFm
     void modulateFm()
     {
-        
+
     }
-    
+
     OscillatorInGenerate    oscillatorParamGenerate;
     OscillatorInChange      oscillatorParamChange;
     int32_t                 commonFMPitch;
     int16_t                 fastReleaseTick;
     uint8_t                 minVoice;
     uint8_t                 maxVoice;
-    bool                    monoPhone;
-    bool                    enableFM;
-        
+    struct {
+        int16_t             monoPhone   : 1;
+        int16_t             enableFM    : 1;
+    };
+
     // new
 //    ControllerIndex         modulateFmFrequencyIndex;
 //    ControllerIndex         modulateFmDepthIndex;
 //    ControllerIndex         phaseFmIndex;
 //    ControllerIndex         phaseDeltaFmIndex;
-    
+
     ControllerIndex         pitchBendIndex;
     ControllerCache         pitchBendCache;
     ControllerPitchBend     pitchBendRange;

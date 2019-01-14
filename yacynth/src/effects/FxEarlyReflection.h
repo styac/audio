@@ -50,7 +50,7 @@ public:
     virtual bool connect( const FxBase * v, uint16_t ind ) override;
 
 private:
-    virtual void clearState(void) override;
+    virtual void clearState() override;
     // do slaves also
     static void sprocessClear2Nop( void * );
     static void sprocessFadeOut( void * );
@@ -63,7 +63,7 @@ private:
     static void sprocess_04( void * thp );
 
     // TODO > make function for slave and put to sprocess
-    inline void processSlave(void)
+    inline void processSlave()
     {
         delayLine.fillTDLSection(
                 param.mode01.lateReverb.delayIndex.v[ chA ],
@@ -72,7 +72,7 @@ private:
                 slaves[ 0 ].out().channel[ chB ] );
     }
 
-    inline void processNonModulated(void)
+    inline void processNonModulated()
     {
         static_assert(FxEarlyReflectionParam::tapCount>1,"tap count must be greater then 1");
         static_assert(FxEarlyReflectionParam::channelCount>1,"channel count must be greater then 1");
@@ -103,7 +103,7 @@ private:
     // simple: no coeff modulation
     // TODO > make function for slave and put to sprocess
 
-    inline void processNonModulatedWithSlave(void)
+    inline void processNonModulatedWithSlave()
     {
         static_assert(FxEarlyReflectionParam::tapCount>1,"tap count must be greater then 1");
         static_assert(FxEarlyReflectionParam::channelCount>1,"channel count must be greater then 1");
@@ -137,7 +137,7 @@ private:
     }
 
     // coeff modulation
-    inline void processModulatedWithSlave(void)
+    inline void processModulatedWithSlave()
     {
         static_assert(FxEarlyReflectionParam::tapCount>1,"tap count must be greater then 1");
         static_assert(FxEarlyReflectionParam::channelCount>1,"channel count must be greater then 1");
@@ -172,7 +172,7 @@ private:
     }
 
     // same as 02 but slave is not supplíed
-    inline void processModulated(void)
+    inline void processModulated()
     {
         static_assert(FxEarlyReflectionParam::tapCount>1,"tap count must be greater then 1");
         static_assert(FxEarlyReflectionParam::channelCount>1,"channel count must be greater then 1");

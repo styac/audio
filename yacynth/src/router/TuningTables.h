@@ -113,7 +113,7 @@ private:
 
 class TuningManager {
 public:
-    inline static TuningManager& getInstance(void)
+    inline static TuningManager& getInstance()
     {
         static TuningManager instance;
         return instance;

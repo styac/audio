@@ -55,7 +55,7 @@ public:
     virtual bool connect( const FxBase * v, uint16_t ind ) override;
 
 private:
-    virtual void clearState(void) override;
+    virtual void clearState() override;
 
     static void sprocess_01( void * thp );
     static void sprocess_02( void * thp );
@@ -64,7 +64,7 @@ private:
     static void sprocess_05( void * thp );
     static void sprocess_06( void * thp );
 
-    inline void processForward(void)
+    inline void processForward()
     {
         out().mult( inp(), param.mode01.gain );
         delay.pushSection( inp() );
@@ -79,7 +79,7 @@ private:
     }
 
     // TODO check middle point -- 
-    inline void processFeedback(void)
+    inline void processFeedback()
     {
         out().mult( inp(), param.mode01.gain );
         delay.pushSection( inp() );
@@ -95,7 +95,7 @@ private:
     }
     
 #if 0
-    inline void processFeedbackX(void)
+    inline void processFeedbackX()
     {
         const uint32_t startIndex = delay.getSectionIndex();
         out().mult( inp(), param.mode01.gain );
@@ -114,7 +114,7 @@ private:
     }
 #endif
     
-    inline void processVibrato(void)
+    inline void processVibrato()
     {
         delay.pushSection( inp() );        
         for( auto si = 0u; si < EbufferPar::sectionSize; ++si ) {
@@ -126,7 +126,7 @@ private:
         }
     }
         
-    inline void modulateSine(void)
+    inline void modulateSine()
     {
         constexpr uint8_t maxAmplExp = 16+31-32; // sine 16 bit, multiplier 31 bit signed fractional part 32
         constexpr uint8_t corrAmplExp = maxAmplExp - param.delayLngExp;
@@ -136,7 +136,7 @@ private:
         modulatorValue[ chB ].set((( param.mode01.oscSlaveIndex.getLfoSinI16()  + 0x7FFFU ) * depth ) >> corrAmplExp );
     }
     
-    inline void modulateTriangle(void)
+    inline void modulateTriangle()
     {
         constexpr uint8_t maxAmplExp = 30+31-32; // triangle 30 bit, multiplier 31 bit signed fractional part 32
         constexpr uint8_t corrAmplExp = maxAmplExp - param.delayLngExp;

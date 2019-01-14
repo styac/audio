@@ -25,9 +25,6 @@
  * Created on January 31, 2016, 12:26 PM
  */
 
-#ifndef     YAIO_JACK
-#define     YAIO_JACK
-
 #include "YaIo.h"
 #include "YaIoJackPort.h"
 #include "message/Midi.h"
@@ -45,22 +42,11 @@ public:
     void shutdown(      void );
     bool run(           void );
 
-    // process
-    // static JackProcessCallback             processCB;
-    // void *arg == this
     static int  processAudioMidiCB( jack_nframes_t nframes, void * arg );
     static int  processAudioCB( jack_nframes_t nframes, void * arg );
     static void shutdownCB( void * arg );
 
-//    // not really needed yet
-//    static JackThreadInitCallback           threadInitCB;
-//    // jackd was shut down
-//    // change buffer size - not allowed
-//    static JackBufferSizeCallback           bufsizeCB;
-//    // change sample rate  - not allowed
-//    static JackSampleRateCallback           samplerateCB;
-
-    static inline YaIoJack&   getInstance(void)
+    static inline YaIoJack&   getInstance()
     {
         static YaIoJack inst;
         return inst;
@@ -71,6 +57,8 @@ public:
     {
         return cycleCount;
     }
+
+    int getRealTimePriority() const;
 
 protected:
     inline void processJackMidiIn()
@@ -124,5 +112,3 @@ private:
 };
 
 } // end namespace yacynth
-#endif /* YAIO_JACK */
-

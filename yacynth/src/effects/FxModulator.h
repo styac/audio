@@ -53,7 +53,7 @@ private:
     static void sprocess_05( void * thp );
     static void sprocess_06( void * thp );
 
-    inline void processModulationMix(void)
+    inline void processModulationMix()
     {
         inMultIn.updateDelta(param.inMultIndex);
         mixMultIn.updateDelta(param.mixMultIndex);
@@ -65,7 +65,7 @@ private:
         }
     }
 
-    inline void processModulation(void)
+    inline void processModulation()
     {
         mixMultIn.updateDelta( param.mixMultIndex );
         const float mixMult = mixMultIn.getExpValueFloat();
@@ -75,7 +75,7 @@ private:
         }
     }
 
-    inline void processRingVolColtrol(void)
+    inline void processRingVolColtrol()
     {
         inMultIn.updateDelta(param.inMultIndex);
         const float inMult = inMultIn.getExpValueFloat();
@@ -85,7 +85,7 @@ private:
         }
     }
 
-    inline void processRing(void)
+    inline void processRing()
     {
         for( auto si=0u; si < vsectionSize; ++si ) {
             out().vchannel[0][si] = inp<0>().vchannel[0][si] * inp<1>().vchannel[0][si];
@@ -94,7 +94,7 @@ private:
     }
 
 
-    inline void processModulationMono(void)
+    inline void processModulationMono()
     {
         mixMultIn.updateDelta( param.mixMultIndex );
         const float mixMult = mixMultIn.getExpValueFloat();
@@ -103,7 +103,7 @@ private:
         }
     }
 
-    inline void processRingMono(void)
+    inline void processRingMono()
     {
         for( auto si=0u; si < vsectionSize; ++si ) {
             out().vchannel[0][si] = inp<0>().vchannel[0][si] * inp<1>().vchannel[0][si];
@@ -112,7 +112,7 @@ private:
 #if 0
     // 2x oversampling
     // https://christianfloisand.wordpress.com/tag/resampling/
-    inline void processRingMono2xOvS(void)
+    inline void processRingMono2xOvS()
     {
         for( auto si=0u; si < vsectionSize; ++si ) {
             out().vchannel[0][si] = inp<0>().vchannel[0][si] * inp<1>().vchannel[0][si];

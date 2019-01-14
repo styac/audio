@@ -41,11 +41,11 @@ bool YaIoJackPort::reg( jack_client_t *client )
         return false;
     }
     return true;
-} // end YaIoJackPort::reg(void)
+} // end YaIoJackPort::reg()
 
 bool YaIoJackPort::unreg( jack_client_t *client )
 {
     return 0 == jack_port_unregister( client, jackPort );
-} // end YaIoJackPort::unreg(void)
+} // end YaIoJackPort::unreg()
 
 } // end namespace yacynth

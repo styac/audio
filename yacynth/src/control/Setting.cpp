@@ -34,6 +34,12 @@
 
 namespace yacynth {
 
+//namespace {
+//constexpr auto LogCategoryMask              = LOGCAT_net;
+//constexpr auto LogCategoryMaskAlways        = LogCategoryMask | nanolog::category_mask_t::log_always;
+//constexpr const char * const LogCategory    = "NETS";
+//}
+
 static bool isRegularFile( const char *path )
 {
     struct stat path_stat;

@@ -37,8 +37,10 @@
 #include "yacynth_globals.h"
 #include "v4.h"
 #include "Setting.h"
+#include "ThreadControl.h"
 
-#include "NanoLog.hpp"
+#include "logDefs.h"
+#include "Nsleep.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -48,31 +50,24 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <csignal>
-#include <sys/time.h>
-#include <chrono>
 
 using namespace yacynth;
 using namespace filter;
 using namespace tables;
 using namespace noiser;
 
-void preset0( Sysman  * sysman );
-void createStaticEfects();
 
-// --------------------------------------------------------------------
-
-void nsleep( uint64_t nsec, uint64_t sec )
-{
-    timespec req;
-    req.tv_nsec = nsec;
-    req.tv_sec = sec;
-    nanosleep(&req,nullptr);
+namespace {
+constexpr auto LogCategoryMask              = LOGCAT_main;
+constexpr auto LogCategoryMaskAlways        = LogCategoryMask | nanolog::category_mask_t::log_always;
+constexpr const char * const LogCategory    = "MAIN";
 }
 
+void preset0( Sysman  * sysman, uint8_t mode );
+void createStaticEfects();
 
-// TODO : temp solution -- make server singleton
-
-net::Server::Type uiServer;
+// to catch 
+// std::exception_ptr globalException = nullptr;
 
 // --------------------------------------------------------------------
 //
@@ -85,15 +80,15 @@ static void signal_handler( int sig )
     case SIGTERM:
     case SIGINT:
         YaIoJack::getInstance().shutdown();
-// doesn't help on TIME_WAIT
-//        if( uiServer ) {
-//            uiServer->stop();
-//        }
         exit(-1);
     }
 }
 
-static void teststuff(void)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-function"
+
+static void teststuff()
 {
     std::cout << std::dec
         << "\nOscillatorArray size:     "   << sizeof(OscillatorArray)
@@ -148,11 +143,17 @@ static void teststuff(void)
 
 int main( int argc, char** argv )
 {
+    nanolog::initialize(nanolog::NonGuaranteedLogger(10), "/tmp/", "", 1);
+    nanolog::set_log_format(nanolog::LogFormat::LF_NONE);
+
+    // init thread id
+    // nanolog::this_thread_id_str();
+    
     // init singletons
-    GaloisShifterSingle<seedThreadEffect_noise>& gs0        = GaloisShifterSingle<seedThreadEffect_noise>::getInstance();
-    GaloisShifterSingle<seedThreadOscillator_noise>& gs1    = GaloisShifterSingle<seedThreadOscillator_noise>::getInstance();
-    GaloisShifterSingle<seedThreadEffect_random>& gs2       = GaloisShifterSingle<seedThreadEffect_random>::getInstance();
-    GaloisShifterSingle<seedThreadOscillator_random>& gs3   = GaloisShifterSingle<seedThreadOscillator_random>::getInstance();
+    GaloisShifterSingle<seedThreadEffect_noise>::getInstance();
+    GaloisShifterSingle<seedThreadOscillator_noise>::getInstance();
+    GaloisShifterSingle<seedThreadEffect_random>::getInstance();
+    GaloisShifterSingle<seedThreadOscillator_random>::getInstance();
 
     ExpTable::getInstance();
     FilterTableExp2Pi::getInstance();
@@ -164,7 +165,7 @@ int main( int argc, char** argv )
     YaIoJack::getInstance();
     TuningManager::getInstance();
 
-    ControlQueueVector&     queuein    = ControlQueueVector::getInstance();
+    ControlQueueVector&     queuein     = ControlQueueVector::getInstance();
     OscillatorOutVector&    oscOutVec   = OscillatorOutVector::getInstance();
     InnerController&        controller  = InnerController::getInstance();
     FxCollector::getInstance();
@@ -177,8 +178,7 @@ int main( int argc, char** argv )
     sigaction( SIGINT, &sigact, NULL );
     // uint16_t   port( yaxp::defaultPort ); // from param
 
-    nanolog::initialize(nanolog::NonGuaranteedLogger(3), "/tmp/", "", 1);
-
+    
     Setting settings;
     if( ! settings.initialize( argc, argv ) ) {
         exit(-1);
@@ -190,7 +190,7 @@ int main( int argc, char** argv )
         << "\n auth     : "  << settings.getAuthKeyFile()
         << std::endl;
 
-    teststuff();
+    // teststuff();
 
     // inter thread communication
     OscillatorArray * oscArray   = new OscillatorArray();
@@ -204,11 +204,10 @@ int main( int argc, char** argv )
     Sysman          * sysman     = new Sysman( *midiRouter, *oscArray, *iOThread ); // + oscOutVec to control
     // auto& fxRunner  = iOThread->getFxRunner();
 
-    createStaticEfects();
-
+    createStaticEfects(); // default sound
 
     try {
-        preset0( sysman );
+        preset0( sysman, 1 );
         //-------------------------
         // start jack thread
         YaIoJack::getInstance().registerAudioProcessor( iOThread, IOThread::audioOutCB, IOThread::audioInOutCB );
@@ -220,36 +219,54 @@ int main( int argc, char** argv )
             exit(-1);
 
         iOThread->setBufferSizeRate( YaIoJack::getInstance().getBufferSizeRate() );
-
-        if( ! YaIoJack::getInstance().run() )
-            exit(-1);
-
         //-------------------------
         // start synth fe thread
         std::thread  synthFrontendThread( SynthFrontend::exec, synthFe );
-        timespec req;
-        req.tv_nsec = 1000*1000*10;
-        req.tv_sec = 0;
-        nanosleep(&req,nullptr); // wait to relax
-        std::cout << "\n\n============LETS GO==============\n\n" << std::endl;
+        nsleep(1000*1000*10,0);
+                
+        if( ! YaIoJack::getInstance().run() )
+            exit(-1);
+        
+        nsleep(1000*1000*10,0);
+        
+        ThreadControl threadControl;        
+        int res = threadControl.getThreadParam( synthFrontendThread );
+        if( res != 0 ) {
+            std::cout << "\n\n============ synthFrontendThread getThreadParam error " << res << std::endl;            
+        } else {            
+            threadControl.policy = SCHED_FIFO;
+            threadControl.sch.sched_priority = YaIoJack::getInstance().getRealTimePriority();
+            res = threadControl.setThreadParam( synthFrontendThread );
+            if( res != 0 ) {
+                std::cout << "\n\n============ synthFrontendThread setThreadParam error " << res << std::endl;            
+            } else {
+                std::cout << "\n\n============ synthFrontendThread setThreadParam prio: " << threadControl.sch.sched_priority << std::endl;                                        
+            }            
+        }
+        
+        LOG_DEBUG_CAT(LogCategoryMask,LogCategory) << "============LETS GO==============";
+        
+        std::cout << " main thread id " << std::this_thread::get_id() << std::endl;
+
+        if( ! net::Server::create( *sysman, settings ) ) {
+            std::cout << "\n\n============END ERROR> server failed \n\n" << std::endl;
+            exit(-1);
+        }
+        
         YaIoJack::getInstance().unmute(); // in - out running
-
-        //-------------------------
-        // net::Server::Type uiServer = net::Server::create( *sysman, settings );
-        // TODO : make server singleton
-        if( uiServer ) {
-            std::cout << "\n\n============END ERROR> server failed \n\n" << std::endl;
-            exit(-1);
+        nsleep(1000*1000*50,0);
+        
+        int8_t ioThreadCoreNr = iOThread->getCoreNr();
+        if( ioThreadCoreNr < 0 ) {
+            nsleep(1000*1000*50,0);
+            ioThreadCoreNr = iOThread->getCoreNr();            
         }
-        bool failed;
-        uiServer = net::Server::create( *sysman, settings, failed );
-        if( failed) {
-            std::cout << "\n\n============END ERROR> server failed \n\n" << std::endl;
-            exit(-1);
-        }
-        uiServer->run();
-
-        std::cout << "\n\n============END==============\n\n" << std::endl;
+        
+        std::cout << "\n\n============ ioThreadCoreNr: " << int16_t(ioThreadCoreNr)  << std::endl;                                        
+        threadControl.assignDiffCore(synthFrontendThread, ioThreadCoreNr);
+        
+        net::Server::getInstance()->run(); // will block
+        LOG_DEBUG_CAT(LogCategoryMask,LogCategory) << "\n\n============END==============\n\n";
         YaIoJack::getInstance().mute();
         synthFe->stop();
         synthFrontendThread.join();

@@ -1,5 +1,7 @@
+#pragma once
+
 /*
- * Copyright (C) 2016 Istvan Simon -- stevens37 at gmail dot com
+ * Copyright (C) 2019 Istvan Simon
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -16,11 +18,6 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-/* 
- * File:   OscillatorOutput.cpp
- * Author: Istvan Simon -- stevens37 at gmail dot com
- *
- * Created on February 1, 2016, 5:25 PM
- */
+#include <cstdint>
 
-
+uint64_t nsleep( uint64_t nsec, uint64_t sec = 0 );

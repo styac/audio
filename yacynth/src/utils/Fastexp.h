@@ -58,7 +58,7 @@ public:
     static constexpr int32_t    ref19900ycent   = 0x1ebacfd9;
     static constexpr int32_t    ref0_01ycent    = 0x9ce2e7f;
 
-    static inline const ExpTable& getInstance(void)
+    static inline const ExpTable& getInstance()
     {
         static ExpTable instance;
         return instance;
@@ -83,11 +83,11 @@ public:
         return expMinus2PI[uint32_t(index)+1];
     }
     // probably not needed
-    static inline const auto& expMinus2PIRef(void)
+    static inline const auto& expMinus2PIRef()
     {
         return expMinus2PI;
     }
-    static inline const auto& exp2Ref(void)
+    static inline const auto& exp2Ref()
     {
         return exp2Table;
     }
@@ -215,7 +215,7 @@ protected:
 class VelocityBoostTable {
 public:
     
-    static inline const VelocityBoostTable& getInstance(void)
+    static inline const VelocityBoostTable& getInstance()
     {
         static VelocityBoostTable instance;
         return instance;
@@ -231,7 +231,7 @@ private:
     VelocityBoostTable() {
         for( uint32_t i = 0u; i < velocityBoostTableSize; ++i ) {
             const double di = i;
-            const double diexp = std::exp2(di/32.0 ) - 1.0;
+            const double diexp = std::exp2( di/32.0 ) - 1.0;
             velocityBoostTable[ i ] = std::round( di - diexp );
 #if 0
             std::cout << std::dec

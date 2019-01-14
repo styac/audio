@@ -49,15 +49,15 @@ public:
     BurningWood()
     :   lfsr(seed)
     {};    
-    inline void reset(void)
+    inline void reset()
     {
         lfsr = seed;
     };    
-    inline uint64_t get(void)
+    inline uint64_t get()
     {
         return lfsr = (lfsr << 1) ^ (uint64_t(( int64_t(lfsr & 0x8000000000000000ULL)>>63) & 0xd198000000000001ULL));
     };
-    inline int32_t getWhite(void)
+    inline int32_t getWhite()
     {
         return get() >> shdownWhite;
     };    

@@ -24,6 +24,9 @@
  *
  * Created on February 17, 2016, 1:33 PM
  */
+
+#include "control/Timer.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <vector>
@@ -38,35 +41,7 @@
 #include <chrono>
 #include <ctime>
 
-/*
-     std::chrono::time_point<std::chrono::system_clock> start, end;
-    start = std::chrono::system_clock::now();
-    std::cout << "f(42) = " << fibonacci(42) << '\n';
-    end = std::chrono::system_clock::now();
-
-    std::chrono::duration<double> elapsed_seconds = end-start;
-    std::time_t end_time = std::chrono::system_clock::to_time_t(end);
-
- */
-
-
 namespace yacynth {
-
-struct Chronos {
-    uint64_t dt(void)
-    {
-        const std::chrono::duration<uint64_t, std::nano> dtime = endTime - startTime;
-        return dtime.count();
-    }
-    void start(void) {
-        startTime = std::chrono::high_resolution_clock::now();
-    }
-    void end(void) {
-        endTime = std::chrono::high_resolution_clock::now();
-    }
-    std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
-    std::chrono::time_point<std::chrono::high_resolution_clock> endTime;
-};
 
 class Statistics {
 public:
@@ -97,17 +72,23 @@ public:
     void    startTimer( void );
     void    stopTimer( void );
 
-    uint64_t         cycleBegin;
-    uint64_t         cycleEnd;
-    uint64_t         cycleDelta;        //  cycleEnd - cycleBegin
-    uint64_t         cycleDeltaLimit;   //  under limit is acceptable
+    int64_t dt() const
+    {
+        return timeInfo.dt();
+    }
 
-    uint64_t         cycleDeltaMax;     // max of cycleDelta
-    uint64_t         cycleDeltaSumm;    // sum of all cycleDelta
+    NanosecTimer     timeInfo;
+    uint64_t    cycleBegin;
+    uint64_t    cycleEnd;
+    uint64_t    cycleDelta;        //  cycleEnd - cycleBegin
+    uint64_t    cycleDeltaLimit;   //  under limit is acceptable
 
-    uint64_t         countSumm;         // summ of cycles
-    uint64_t         countOverSumm;     // summ of cycles that were higher than limit
-    uint64_t         countDisplay;      // display after count
+    uint64_t    cycleDeltaMax;     // max of cycleDelta
+    uint64_t    cycleDeltaSumm;    // sum of all cycleDelta
+
+    uint64_t    countSumm;         // summ of cycles
+    uint64_t    countOverSumm;     // summ of cycles that were higher than limit
+    uint64_t    countDisplay;      // display after count
     std::array<uint64_t, counterCount>    cycleCounter;
 };
 

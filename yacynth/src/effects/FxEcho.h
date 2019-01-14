@@ -69,22 +69,22 @@ public:
     static void sprocess_01( void * thp );
     static void sprocess_02( void * thp );
 
-    // void clear(void) {  delay.clear(); };
+    // void clear() {  delay.clear(); };
     virtual void clearState() override ;
 
     virtual bool setSprocessNext( uint16_t mode ) override;
 
-    inline void process_add_dry(void)
+    inline void process_add_dry()
     {
         out().mult( inp<0>(), param.dry[ chA ], param.dry[ chB ] );
     }
 
-    inline void process_clear_dry(void)
+    inline void process_clear_dry()
     {
         out().clear();
     }
 
-    inline void process_echo_wet(void)
+    inline void process_echo_wet()
     {
         const uint32_t ind = delay.getSectionIndex(); // current
         delay.pushSection( inp<0>() );

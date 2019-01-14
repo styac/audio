@@ -98,14 +98,14 @@ struct EIObuffer : public EbufferPar {
     EIObuffer( const FadeBufferTag )
     { makeFadeBuffer(); };
 
-    void clear(void)
+    void clear()
     {
         for( auto& ichn : channel ) memset( ichn, 0, sectionSize*sizeof(float) );
     }
 
     // chA fadeIn
     // chB fadeOut
-    void makeFadeBuffer(void)
+    void makeFadeBuffer()
     {
         for( auto i=0u; i<sectionSize; ++i ) {
             const float x = float(i) / float(sectionSize);
@@ -400,30 +400,37 @@ struct EIObuffer : public EbufferPar {
         }
     }
 
-    inline void dump( float * chnA, float * chnB ) const
+    // TODO : use 128 bit transfer int128_t
+    inline void dumpFloat( void * chnA, void * chnB ) const
     {
-        const float * cA = channel[chA];
-        for( auto i = 0u; i < sectionSize; ++i ) {
-            *chnA++ = *cA++;
+        using T = __int128_t;
+        const T * cA = (T*)(&channel[chA][0]);
+        T * chnA4 = (T*)chnA;
+        for( auto i = 0u; i < vsectionSize; ++i ) {
+            *chnA4++ = *cA++;
         }
-        const float * cB = channel[chB];
-        for( auto i = 0u; i < sectionSize; ++i ) {
-            *chnB++ = *cB++;
+        const T * cB = (T*)(&channel[chB][0]);
+        T * chnB4 = (T*)chnB;
+        for( auto i = 0u; i < vsectionSize; ++i ) {
+            *chnB4++ = *cB++;
         }
     }
 
-    inline void dump( float * chnA, float * chnB, float kA, float kB ) const
-    {
-        const float * cA = channel[chA];
-        for( auto i = 0u; i < sectionSize; ++i ) {
-            *chnA++ = *cA++ * kA;
-        }
-        const float * cB = channel[chB];
-        for( auto i = 0u; i < sectionSize; ++i ) {
-            *chnB++ = *cB++ * kB;
-        }
-    }
+    // TODO : use 128 bit transfer
+//    inline void dumpFloat( float * chnA, float * chnB, float kA, float kB ) const
+//    {
+////        using T = __int128_t;
+//        const float * cA = channel[chA];
+//        for( auto i = 0u; i < sectionSize; ++i ) {
+//            *chnA++ = *cA++ * kA;
+//        }
+//        const float * cB = channel[chB];
+//        for( auto i = 0u; i < sectionSize; ++i ) {
+//            *chnB++ = *cB++ * kB;
+//        }
+//    }
 
+    // TODO : use 128 bit transfer
     inline void load( float * chnA, float * chnB )
     {
         float * cA = channel[chA];
@@ -460,7 +467,7 @@ inline void EIObuffer::fadeIn( const EIObuffer& inp )
     }
 }
 
-inline void EIObuffer::fadeIn(void)
+inline void EIObuffer::fadeIn()
 {
     for( auto i=0u; i < vsectionSize; ++i ) {
         vchannel[chA][i] *= fadeEBuffer.vchannel[chA][i];
@@ -477,7 +484,7 @@ inline void EIObuffer::fadeOut( const EIObuffer& inp )
                 + vchannel[chB][i] * fadeEBuffer.vchannel[chA][i];
     }
 }
-inline void EIObuffer::fadeOut(void)
+inline void EIObuffer::fadeOut()
 {
     for( auto i=0u; i < vsectionSize; ++i ) {
         vchannel[chA][i] *= fadeEBuffer.vchannel[chB][i];
@@ -519,7 +526,7 @@ struct EDelayLine : public EbufferPar {
         for( auto& ichn : channel ) delete  ichn;
     };
 
-    void clear(void)
+    void clear()
     {
         for( auto& ichn : channel ) memset( ichn, 0, bufferSize*sizeof(float) );
         index = 0;
@@ -754,7 +761,7 @@ struct EDelayLine : public EbufferPar {
     inline uint32_t getIndex( const uint32_t delay )  const
         { return ( index - delay ) & bufferSizeMask; };
 
-    inline void incIndex(void)
+    inline void incIndex()
         { index = ( index + 1 ) & bufferSizeMask; };
 
     inline std::size_t getSectionIndex( const uint32_t sectionOffset ) const
@@ -809,7 +816,7 @@ struct EDelayLineArray : public EbufferPar {
 
     EDelayLineArray() = delete;
 
-    void clear(void)
+    void clear()
     {
         for( auto i=0u; i<channelCount; ++i ) {
             memset( channel[ i ], 0, bufferSize*sizeof(float) );
@@ -890,7 +897,7 @@ struct EDelayLineArray : public EbufferPar {
     inline uint32_t getIndex( const uint32_t delay )  const
         { return ( index - delay ) & bufferSizeMask; };
 
-    inline void incIndex(void)
+    inline void incIndex()
         { index = (index+1) & bufferSizeMask; }; // seq point
 
     inline std::size_t getSectionIndex( const uint32_t sectionOffset ) const

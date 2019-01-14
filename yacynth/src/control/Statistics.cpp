@@ -27,7 +27,7 @@
 
 namespace yacynth {
 
-void Statistics::clear(void)
+void Statistics::clear()
 {
     cycleBegin      = 0;
     cycleEnd        = 0;
@@ -37,8 +37,8 @@ void Statistics::clear(void)
     countSumm       = 0;
     countOverSumm   = 0;
     countDisplay    = 0;
-    cycleDeltaLimit = 1300;
-    
+    cycleDeltaLimit = 64000.0/48.0;
+
     for( std::size_t i=0; i < cycleCounter.size(); ++i) {
         cycleCounter.at( i ) = 0;
     }
@@ -46,6 +46,7 @@ void Statistics::clear(void)
 
 // --------------------------------------------------------------------
 
+// TODO refactor use timespec
 void Statistics::startTimer( void )
 {
     timeval tv;

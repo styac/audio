@@ -43,6 +43,12 @@ REF_TM_TABLE(TM_21_Pelog1);
 
 namespace yacynth {
 
+//namespace {
+//constexpr auto LogCategoryMask              = LOGCAT_net;
+//constexpr auto LogCategoryMaskAlways        = LogCategoryMask | nanolog::category_mask_t::log_always;
+//constexpr const char * const LogCategory    = "NETS";
+//}
+
 // TODO implement layer
 void TuningTable::fill( const TuningGenerator& etg, uint8_t layer )
 {

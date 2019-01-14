@@ -25,13 +25,14 @@
 #include "yacynth_config.h"
 #include "FxBase.h"
 #include "yaio/CycleCount.h"
+#include "control/Nsleep.h"
 
 #include <chrono>
 #include <sys/time.h>
 #include <ctime>
 #include <time.h>
 
-// TODO split the file to 
+// TODO split the file to
 //  FxBase.cpp
 //  FxBaseRunner.cpp
 //  FxBaseCollector.cpp
@@ -132,6 +133,8 @@ bool FxBase::setProcessingMode( uint16_t mode )
     // set cycleCount
     auto currCycle = CycleCount::getInstance().get();
     if( currCycle < nextSetPocModeCycle ) {
+        // TODO: use nsleep
+
         timespec req{0,1000LL*1000*10};
         timespec rem;
         // sleep(10sec)
@@ -178,7 +181,7 @@ bool FxBase::setSprocessNext( uint16_t mode )
 {
     sprocessp = sprocesspNext = FxBase::sprocessClear2Nop;
     return true;
-}; 
+};
 
 // --------------------------------------------------------------------
 } // end namespace yacynth

@@ -28,11 +28,18 @@
 #include "memory.h"
 
 namespace yacynth {
+
+//namespace {
+//constexpr auto LogCategoryMask              = LOGCAT_net;
+//constexpr auto LogCategoryMaskAlways        = LogCategoryMask | nanolog::category_mask_t::log_always;
+//constexpr const char * const LogCategory    = "NETS";
+//}
+
 using namespace TagToneShaperLevel_01;
 
 // --------------------------------------------------------------------
 
-void ToneShaperMatrix::clear(void)
+void ToneShaperMatrix::clear()
 {
     memset((void*)this,0,sizeof(ToneShaperMatrix)); // check
 }

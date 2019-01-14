@@ -41,7 +41,7 @@ public:
     OscillatorNoise()
     { clear(); };
 
-    inline void clear(void)
+    inline void clear()
     {
         for( auto& x : zv ) x = 0;
     }

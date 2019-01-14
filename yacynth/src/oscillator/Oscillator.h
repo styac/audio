@@ -148,8 +148,8 @@ public:
     };
 
     Oscillator();
-    void clear(void) {};
-    static ToneShaperMatrix& getToneShaperMatrix(void)
+    void clear() {};
+    static ToneShaperMatrix& getToneShaperMatrix()
         { return const_cast<ToneShaperMatrix&>(toneShaperMatrix); };
     void        initialize( void );
     bool        generate(           const OscillatorInGenerate& in,  OscillatorOut& out, Statistics& stat );
@@ -157,9 +157,9 @@ public:
     void        voiceRelease(       const OscillatorInChange& in );
     void        voiceChange(        const OscillatorInChange& in );
     void        voiceDelay(         const OscillatorInChange& in );
-    std::size_t sizeVector(void)    const { return overtoneCountOscDef; };
+    std::size_t sizeVector()    const { return overtoneCountOscDef; };
 
-    inline static void fillWhiteNoise(void)
+    inline static void fillWhiteNoise()
     {
         whiteNoiseFrame.fillWhiteLowCut();
     }
@@ -187,7 +187,7 @@ public:
 #endif
     
 private:
-    inline void setPitchDependency(void)
+    inline void setPitchDependency()
     {
         // pitch:
         // bit 0..23 - in octave (24 bits)

@@ -95,13 +95,13 @@ public:
 
     ~Router() = default;
 
-    void clear(void);
+    void clear();
 
     static void midiInCB( void *, RouteIn in ); // callback
 
-    inline MidiController&  getMidiController(void) { return midiController; }
+    inline MidiController&  getMidiController() { return midiController; }
 
-    inline MidiTuning&  getTuner(void) { return midiTuningTables; }
+    inline MidiTuning&  getTuner() { return midiTuningTables; }
 
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
@@ -226,10 +226,10 @@ protected:
         return;
     }
 
-    ControlQueueVector&     queueIn;
-    MidiController          midiController;
-    MidiTuning        midiTuningTables;
-    NotePlayMode            notePlayMode[ midiChannelCount ];
+    ControlQueueVector& queueIn;
+    MidiController      midiController;
+    MidiTuning          midiTuningTables;
+    NotePlayMode        notePlayMode[ midiChannelCount ];
 };
 
 

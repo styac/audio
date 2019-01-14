@@ -22,24 +22,16 @@
  * Created on January 31, 2016, 9:17 AM
  */
 #include "yacynth_config.h"
-
 #include "YaIoJack.h"
+
+#include "net/Server.h"
+#include "control/Nsleep.h"
 #include "CycleCount.h"
 #include "control/global.h"
+#include <jack/thread.h>
 #include <thread>
 
 namespace yacynth {
-
-// TODO : handle jack error - close
-// void jack_on_shutdown 	( 	jack_client_t *  	client,
-//		JackShutdownCallback  	function,
-//		void *  	arg
-//	)
-//void jack_on_info_shutdown 	( 	jack_client_t *  	client,
-//		JackInfoShutdownCallback  	function,
-//		void *  	arg
-//	)
-// jack_on_shutdown (client, jack_shutdown, 0);
 
 // --------------------------------------------------------------------
 YaIoJack::YaIoJack()
@@ -64,9 +56,6 @@ YaIoJack::~YaIoJack()
 void YaIoJack::shutdown( void )
 {
     std::chrono::milliseconds const duration(100);
-    // audioOutPort1.unreg( client );
-    // audioOutPort2.unreg( client );
-    // midiInPort.unreg(    client );
     if( client ) {
         jack_client_close(   client );
     }
@@ -110,7 +99,9 @@ bool YaIoJack::initialize( void )
     if( jackStatus & JackNameNotUnique ) {
         nameClientReal = jack_get_client_name( client );
     }
-    jack_set_process_callback( client, processAudioMidiCB, this );
+    jack_set_process_callback(  client, processAudioMidiCB, this );
+    jack_on_shutdown(           client, shutdownCB,         this );
+
     if( !audioOutPort1.reg( client ) ) {
         return false;
     }
@@ -203,13 +194,27 @@ int YaIoJack::processAudioCB( jack_nframes_t nframes, void *arg )
 
 // --------------------------------------------------------------------
 
-// do exit
-// stop uiServer -- need singleton
-// arg> uiServer
-//
 void YaIoJack::shutdownCB( void *arg )
 {
+    auto& thp = *static_cast<YaIoJack *>(arg);
+    thp.serverShut = true; // is restartable? or save state
+    thp.clearProcessCB();
 
+    // check if initialized already
+    if( net::Server::getInstance() != nullptr ) {
+        net::Server::getInstance()->stop();
+        // if there is no connection then server is listening
+        nsleep(0,2);
+    }
+    // exception should be propagated to main
+    throw std::runtime_error("jack shutting down");
+}
+
+// --------------------------------------------------------------------
+
+int YaIoJack::getRealTimePriority() const
+{
+    return jack_client_real_time_priority( client ); 	
 }
 
 // --------------------------------------------------------------------

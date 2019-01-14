@@ -63,7 +63,7 @@ public:
 
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
-    static FxCollector& getInstance(void)
+    static FxCollector& getInstance()
     {
         static FxCollector instance;
         return instance;
@@ -74,7 +74,7 @@ public:
         nodes.push_back( &node );
     }
 
-    inline std::size_t count(void) const
+    inline std::size_t count() const
     {
         return nodes.size();
     }
@@ -143,24 +143,24 @@ public:
         FxCollector::getInstance().put(*this);
     };
 
-    inline const FxBase& get(void) const { return *this; };
-    inline const std::string& name(void) const { return myName; };
-    inline uint16_t id(void) const { return myId; };
-    inline uint16_t myInstanceIndex(void) const { return myInstance; };
-    inline uint16_t getInputCount(void) const { return inCount; };
-    inline uint16_t getrefId(void) const { return refId; };
-    inline uint16_t getMaxMode(void) const { return maxMode; };
-    inline TagEffectType getType(void) const { return myType; };
-    inline bool isSlave(void) const { return refId != 0; };
+    inline const FxBase& get() const { return *this; };
+    inline const std::string& name() const { return myName; };
+    inline uint16_t id() const { return myId; };
+    inline uint16_t myInstanceIndex() const { return myInstance; };
+    inline uint16_t getInputCount() const { return inCount; };
+    inline uint16_t getrefId() const { return refId; };
+    inline uint16_t getMaxMode() const { return maxMode; };
+    inline TagEffectType getType() const { return myType; };
+    inline bool isSlave() const { return refId != 0; };
     inline uint8_t isDynamic() { return dynamic; }
-    inline EIObuffer& out(void) { return *static_cast<EIObuffer *>(this); }
-    static inline uint16_t getMaxId(void) { return count; };
+    inline EIObuffer& out() { return *static_cast<EIObuffer *>(this); }
+    static inline uint16_t getMaxId() { return count; };
 
     bool setProcessingMode( uint16_t ind );                                     // control thread
     virtual bool connect( const FxBase * v, uint16_t ind );                     // control thread
     virtual bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex ); // control thread
 
-    inline  void exec(void) { sprocessp(this); }                                // RT thread
+    inline  void exec() { sprocessp(this); }                                // RT thread
 
 protected:
     virtual void clearState();                                                  // RT thread
@@ -325,7 +325,7 @@ public:
         nodes[2].set( input );
     };
 
-    void clear(void)
+    void clear()
     {
         clearConnections();
         usedCount = runFrom;
@@ -401,14 +401,14 @@ public:
         return FxRunner::RET::OK;
     };
 
-    inline void run(void)
+    inline void run()
     {
         for( auto i=runFrom; i < usedCount; ++i ) {
             nodes[i].exec();
         }
     };
 
-    inline void clearConnections(void)
+    inline void clearConnections()
     {
         for( auto i=0u; i < usedCount; ++i ) {
             nodes[i].thp->connect( &fxNil,0 );
@@ -416,7 +416,7 @@ public:
     };
 
     // test
-    inline void list(void) const
+    inline void list() const
     {
         for( auto i=0u; i < usedCount; ++i ) {
             auto& node = nodes[i];
@@ -501,7 +501,7 @@ protected:
 
     // usage: inp<0>, inp<1> ...
     template< std::size_t n=0 >
-    inline const EIObuffer& inp(void) const
+    inline const EIObuffer& inp() const
     {
         static_assert( 0<Tparam::inputCount, "inp: non existent input" );
         static_assert( n<Tparam::inputCount, "inp: non existent input" );
@@ -519,7 +519,7 @@ protected:
         static_cast< Fx * >(thp)->processCopy0();
     }
 
-    inline void processCopy0(void)
+    inline void processCopy0()
     {
         static_assert( 0<Tparam::inputCount, "sprocessCopy0: non existent input" );
         out().copy( inp() );

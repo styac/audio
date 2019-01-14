@@ -74,7 +74,7 @@ private:
     
     // for testing > dirac / 2^18
 #if 0
-    inline void processTestDirac(void)
+    inline void processTestDirac()
     {
         for( auto si=0u; si < sectionSize; ++si ) {
             constexpr   uint32_t mask = (1<<17) - 1;
@@ -89,7 +89,7 @@ private:
     //  sinTable[(phase[0][0])>>16] -> sinTable[ uint16_t( phase[0][0] >> scalePhaseIndexExp )  ]
     //  freq2deltaPhase(20000.0);
     //
-    inline void processTestSine20000(void)
+    inline void processTestSine20000()
     {
         constexpr uint32_t dphase = freq2deltaPhase(20000.0);
         for( auto si=0u; si < sectionSize; ++si ) {
@@ -100,7 +100,7 @@ private:
         }
     }
 
-    inline void processTestSine440m16(void)
+    inline void processTestSine440m16()
     {
         constexpr uint32_t dphase = freq2deltaPhase(440.0*16.0);
         for( auto si=0u; si < sectionSize; ++si ) {
@@ -111,7 +111,7 @@ private:
         }
     }
 
-    inline void processTestSine440m4(void)
+    inline void processTestSine440m4()
     {
         constexpr uint32_t dphase = freq2deltaPhase(440.0*4.0);
         for( auto si=0u; si < sectionSize; ++si ) {
@@ -123,7 +123,7 @@ private:
     }
 
 
-    inline void processTestSine440(void)
+    inline void processTestSine440()
     {
         constexpr uint32_t dphase = freq2deltaPhase(440.0);
         for( auto si=0u; si < sectionSize; ++si ) {
@@ -134,7 +134,7 @@ private:
         }
     }
 
-    inline void processTestSine440d4(void)
+    inline void processTestSine440d4()
     {
         constexpr uint32_t dphase = freq2deltaPhase(440.0/4.0);
         for( auto si=0u; si < sectionSize; ++si ) {
@@ -145,7 +145,7 @@ private:
         }
     }
 
-    inline void processTestSine440d16(void)
+    inline void processTestSine440d16()
     {
         constexpr uint32_t dphase = freq2deltaPhase(440.0/16.0);
         for( auto si=0u; si < sectionSize; ++si ) {
@@ -156,7 +156,7 @@ private:
         }
     }
 
-    inline void processTestSinImpulse(void)
+    inline void processTestSinImpulse()
     {
         constexpr   uint32_t mask = (1<<12) - 1;
         if( (++dirac & mask) == mask ) {
@@ -179,7 +179,7 @@ private:
         }
     }
 
-    inline void processTestDirac(void)
+    inline void processTestDirac()
     {
         constexpr   uint32_t mask = (1<<12) - 1;
         if( (++dirac & mask) == mask ) {
@@ -203,7 +203,7 @@ private:
 // TODO : MONO version
 // TODO : slaves
 
-    inline void processSine(void)
+    inline void processSine()
     {
         for( auto si=0u; si < sectionSize; ++si ) {
             inc0();
@@ -212,7 +212,7 @@ private:
         }
     }
 
-    inline void processSinePd0(void)
+    inline void processSinePd0()
     {
         for( auto si=0u; si < sectionSize; ++si ) {
             inc0();
@@ -223,7 +223,7 @@ private:
         }
     }
 
-    inline void processSinePd1(void)
+    inline void processSinePd1()
     {
         for( auto si=0u; si < sectionSize; ++si ) {
             inc0();
@@ -234,7 +234,7 @@ private:
         }
     }
 
-    inline void processSinePd2(void)
+    inline void processSinePd2()
     {
         for( auto si=0u; si < sectionSize; ++si ) {
             inc0();
@@ -245,7 +245,7 @@ private:
         }
     }
 
-    inline void processSinePd3(void)
+    inline void processSinePd3()
     {
         for( auto si=0u; si < sectionSize; ++si ) {
             inc0();
@@ -258,7 +258,7 @@ private:
 
     // index 0 - master 1..n slave
     // the channel 1 phase differs
-    inline void updateParamPhaseDiff(void)
+    inline void updateParamPhaseDiff()
     {
         if( phasePhaseFreqDiffValue[0].update( param.mode01.indexPhaseFreqDiff[0] ) ) {
             phase[0][1] -= phaseDiff[0];
@@ -275,7 +275,7 @@ private:
     }
 
     // the channel 1 freq differs
-    inline void updateParamFreqDiff(void)
+    inline void updateParamFreqDiff()
     {
         if( phasePhaseFreqDiffValue[0].update( param.mode01.indexPhaseFreqDiff[0] ) ) {
             // smooth transition
@@ -297,7 +297,7 @@ private:
 
     // TODO : MONO
 
-    inline void inc0(void)
+    inline void inc0()
     {
         phase[0][0] += phaseDelta[0][0];
         phase[0][1] += phaseDelta[0][1];
@@ -305,7 +305,7 @@ private:
 
     // master + 1 slave
     // TODO v4
-    inline void inc1(void)
+    inline void inc1()
     {
         phase[0][0] += phaseDelta[0][0];
         phase[0][1] += phaseDelta[0][1];
@@ -315,7 +315,7 @@ private:
 
     // master + 3 slave
     // TODO v4
-    inline void inc2(void)
+    inline void inc2()
     {
         phase[0][0] += phaseDelta[0][0];
         phase[0][1] += phaseDelta[0][1];
@@ -327,7 +327,7 @@ private:
         phase[4][1] += phaseDelta[3][1];
     }
 
-    virtual void clearState(void) override;
+    virtual void clearState() override;
 
     uint32_t                        phaseDiff[  FxOutOscillatorParam::slaveCount + 1 ];     // needed to store the current value
     union {

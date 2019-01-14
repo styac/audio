@@ -28,6 +28,12 @@
 
 namespace yacynth {
 
+//namespace {
+//constexpr auto LogCategoryMask              = LOGCAT_net;
+//constexpr auto LogCategoryMaskAlways        = LogCategoryMask | nanolog::category_mask_t::log_always;
+//constexpr const char * const LogCategory    = "NETS";
+//}
+
 using namespace TagInnerControllerLevel_01;
 using namespace TagMidiControllerLevel_01;
 

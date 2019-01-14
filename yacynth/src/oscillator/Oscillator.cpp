@@ -23,11 +23,16 @@
  */
 
 #include "yacynth_config.h"
-
-#include "Oscillator.h"
-#include "ToneShaper.h"
+#include "oscillator/Oscillator.h"
+#include "oscillator/ToneShaper.h"
 
 namespace yacynth {
+
+//namespace {
+//constexpr auto LogCategoryMask              = LOGCAT_net;
+//constexpr auto LogCategoryMaskAlways        = LogCategoryMask | nanolog::category_mask_t::log_always;
+//constexpr const char * const LogCategory    = "NETS";
+//}
 
 NoiseFrame< FrameInt< oscillatorFrameSizeExp > >
                         Oscillator::whiteNoiseFrame( GaloisShifterSingle<seedThreadOscillator_noise>::getInstance() );
@@ -67,7 +72,8 @@ void Oscillator::initialize( void )
 bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, Statistics& stat )
 {
     // under this amplitude value the signal will not be generated
-    constexpr int64_t  hearingThreshold = 1L<<8;
+    // TODO test
+    constexpr int64_t  hearingThreshold = 1L<<7;
     
     // magic numbers for stereo diff frequency sound
     constexpr int32_t frDetune0Magic = 1237;   // min value
@@ -208,9 +214,13 @@ bool Oscillator::generate( const OscillatorInGenerate& in,  OscillatorOut& out, 
                 }
                 if( changeEnvPhase ) {
                     const auto& currentEnvelopeKnot  = toneshaper.transient[stateOsc.envelopePhase];
-
+#ifdef TV_16bit
+                    // envelope 30 bit -- reduce to int32 - always positive
+                    stateOsc.envelopeTargetValueVelocity = ( int64_t(currentEnvelopeKnot.targetValue) * stateOsc.velocityBoosted ) >> 2; // 16+16-2 = 30
+#else
                     // envelope 30 bit -- reduce to int32 - always positive
                     stateOsc.envelopeTargetValueVelocity = ( int64_t(currentEnvelopeKnot.targetValue) * stateOsc.velocityBoosted ) >> 18; // 32+16-18 = 30
+#endif    
                     stateOsc.envelopDeltaDividerExp = oscillatorFrameSizeExp - currentEnvelopeKnot.tickFrame.curveSpeed;
                 }
             } // end if( envelopeKnotRelease == stateOsc.envelopePhase )
@@ -973,21 +983,19 @@ void Oscillator::voiceRun( const OscillatorInChange& in )
     glissandoTick = 0;
     setPitchDependency();
 
-    const double dph = ExpTable::ycent2deltafi( basePitch, 0 );
-    const double freq   = 48000.0 * dph / (1LL<<32) ;
-    std::cout
-        << "\n  ***  freq " << freq
-        << " dph "     << dph
-        << std::endl;
-
-    // monitoring
-    std::cout
+    // ------------ monitoring
+    const double dph  = ExpTable::ycent2deltafi( basePitch, 0 );
+    const double freq = samplingFrequency * dph / (1LL<<32) ;
+    std::cout << std::dec
         << "\n  ***  depdx " << pitchDepDx
         << " tick "     << toneShaperVecCurr->toneShaper[0].tickFrameRelease.get(pitchDepDx)
         << " decay "    << toneShaperVecCurr->toneShaper[0].sustain.decayCoeff.get(pitchDepDx)
         << " depth "    << toneShaperVecCurr->toneShaper[0].sustain.modDepth
         << " delta "    << toneShaperVecCurr->toneShaper[0].sustain.modDeltaPhase
+        << " freq "     << freq
+        << " dph "      << dph
         << std::endl;
+    // ------------
 
     const uint16_t velo = uint16_t(in.velocity) << 8;
     velocity = velo; // probably not needed
@@ -1012,9 +1020,11 @@ void Oscillator::voiceRun( const OscillatorInChange& in )
         stateOsc.tickFrame          = 0;                // feature: must be set to 0
         stateOsc.envelopePhase      = transientKnotCount-1;   // down count
 //        stateOsc.releaseEnd         = false;
+        // TODO check characeristic
         const uint16_t bv =  ts.veloBoost ? velo - tables::VelocityBoostTable::getBoost( in.velocity, ts.veloBoost ) : velo;
 //        const uint16_t bv =  booster ? velo - getVelocityBoostXX( in.velocity, booster ) : velo;
-        stateOsc.velocityBoosted = bv; //-- changed the oscillator !!!!          =
+        stateOsc.velocityBoosted = bv; //-- changed the oscillator !!!! 
+//        std::cout << std::dec << " --- bv: " << bv << std::endl;
     }
     voiceState          = VOICE_RUN;
 }

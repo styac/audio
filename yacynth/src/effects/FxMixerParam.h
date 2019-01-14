@@ -80,8 +80,8 @@ public:
         for( auto &p : gainZero ) {
             p = 0;
         }
-        gainRange[ 0 ][ 0 ] = gainRange[ 0 ][ 1 ] = 0.5f;
-        gainRange[ 1 ][ 0 ] = gainRange[ 1 ][ 1 ] = 0.5f;
+        gainRange[ 0 ][ 0 ] = gainRange[ 0 ][ 1 ] = 0.9f;
+        gainRange[ 1 ][ 0 ] = gainRange[ 1 ][ 1 ] = 0.9f;
     }
 
     bool setRange( uint8_t ch, float ch0, float ch1 ) 

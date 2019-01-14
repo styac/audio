@@ -27,17 +27,23 @@
 
 #include <cstdint>
 
-typedef float       v4sf __attribute__((mode(SF)))  __attribute__ ((vector_size(16),aligned(16)));
-typedef int32_t     v4si __attribute__((mode(SI)))  __attribute__ ((vector_size(16),aligned(16)));
-typedef uint32_t    v4su __attribute__((mode(SI)))  __attribute__ ((vector_size(16),aligned(16)));
-typedef long long   v2di __attribute__((mode(DI)))  __attribute__ ((vector_size(16),aligned(16)));
+typedef float       v4sf  __attribute__((mode(SF))) __attribute__((vector_size(16),aligned(16)));
+typedef double      v2sd  __attribute__((mode(DF))) __attribute__((vector_size(16),aligned(16)));
+typedef int32_t     v4si  __attribute__((mode(SI))) __attribute__((vector_size(16),aligned(16)));
+typedef uint32_t    v4su  __attribute__((mode(SI))) __attribute__((vector_size(16),aligned(16)));
+typedef int16_t     v8si  __attribute__((mode(HI))) __attribute__((vector_size(16),aligned(16)));
+typedef uint16_t    v8su  __attribute__((mode(HI))) __attribute__((vector_size(16),aligned(16)));
+typedef long long   v2di  __attribute__((mode(DI))) __attribute__((vector_size(16),aligned(16)));
+typedef char        v16qi __attribute__((mode(QI))) __attribute__((vector_size(16)));
+typedef char        v8qi  __attribute__((mode(QI))) __attribute__((vector_size(8)));
+typedef char        v4qi  __attribute__((mode(QI))) __attribute__((vector_size(4)));
 
 template< std::size_t N, std::size_t CH >
 struct V4fMvec {
     static constexpr std::size_t sizeV2 = N;
     static constexpr std::size_t size   = N * CH;
     static constexpr std::size_t sizeV4 = (size)/4;
-    inline void clear(void)
+    inline void clear()
     {
         static_assert( size % 4 == 0,"illegal size");
         for( auto& vi : v ) vi = 0;
@@ -54,7 +60,7 @@ struct V4u32Mvec {
     static constexpr std::size_t sizeV2 = N;
     static constexpr std::size_t size   = N * CH;
     static constexpr std::size_t sizeV4 = (size)/4;
-    inline void clear(void)
+    inline void clear()
     {
         static_assert( size % 4 == 0,"illegal size");
         for( auto& vi : v ) vi = 0;
@@ -71,7 +77,7 @@ struct V4i32Mvec {
     static constexpr std::size_t sizeV2 = N;
     static constexpr std::size_t size   = N * CH;
     static constexpr std::size_t sizeV4 = (size)/4;
-    inline void clear(void)
+    inline void clear()
     {
         static_assert( size % 4 == 0,"illegal size");
         for( auto& vi : v ) vi = 0;
@@ -89,7 +95,7 @@ struct alignas(16) V4vf {
     static constexpr const char * const v2Name = "v4sf_v[2]";
     static constexpr const char * const v3Name = "v4sf_v[3]";
 
-    inline void clear(void)
+    inline void clear()
     {
         v[0] = v[1] = v[2] = v[3] = 0.0f;
     }
@@ -133,7 +139,7 @@ struct alignas(16) V4array : public V4size<v4Exp> {};
 // used in controllers not very general
 template<std::size_t v4Exp>
 struct alignas(16) V4array<int32_t, v4Exp> : public V4size<v4Exp> {
-    inline void clear(void)
+    inline void clear()
     {
         for( auto& vi : v ) vi = 0;
     }

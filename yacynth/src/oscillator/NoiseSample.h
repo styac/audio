@@ -38,14 +38,14 @@ public:
     :   galoisShifter(gs)
     {};
     
-    inline void clear(void)
+    inline void clear()
     {
         for( auto& sv : s ) sv = 0;
     }
     
     // zero gain at fs/2
     // -24 dB
-    inline int32_t getAvg(void)
+    inline int32_t getAvg()
     {
         const int32_t x0 = s[0];
         s[0] = galoisShifter.getWhite24();            
@@ -64,13 +64,13 @@ public:
     
     // raw white
     // -24 dB
-    inline int32_t getRaw(void)
+    inline int32_t getRaw()
     {
         return galoisShifter.getWhite24();            
     }
 
 
-    inline int32_t getBlue(void)
+    inline int32_t getBlue()
     {
         const int32_t x0 = s[0];
         const int32_t x1 = s[1];
@@ -79,7 +79,7 @@ public:
         return s[1] + x1;            
     };
     
-    inline int32_t getBlue2(void)
+    inline int32_t getBlue2()
     {
         const int32_t x0 = s[0];
         const int32_t x1 = s[1];
@@ -90,7 +90,7 @@ public:
         return s[2] + x2;            
     };
     
-    inline int32_t getBlue3(void)
+    inline int32_t getBlue3()
     {
         const int32_t x0 = s[0];
         const int32_t x1 = s[1];
@@ -103,7 +103,7 @@ public:
         return s[3] + x3;            
     };
     
-    inline int32_t getBlue4(void)
+    inline int32_t getBlue4()
     {
         const int32_t x0 = s[0];
         const int32_t x1 = s[1];
@@ -118,7 +118,7 @@ public:
         return s[4] + x4;            
     };
 
-    inline int32_t getBlue5(void)
+    inline int32_t getBlue5()
     {
         const int32_t x0 = s[0];
         const int32_t x1 = s[1];
@@ -135,7 +135,7 @@ public:
         return s[5] + x5;            
     };
     
-    inline int32_t getBlue6(void)
+    inline int32_t getBlue6()
     {
         const int32_t x0 = s[0];
         const int32_t x1 = s[1];
@@ -236,7 +236,7 @@ public:
 // frequency response when the low-pass filters are summed. 
 // http://www.firstpr.com.au/dsp/pink-noise/
     
-    inline int32_t getPink(void)
+    inline int32_t getPink()
     {        
         constexpr int g = 2;
         constexpr int p = 9;
@@ -260,7 +260,7 @@ public:
     };
     
     // under 100 Hz pinkish above red
-    inline int32_t getPinkLow(void)
+    inline int32_t getPinkLow()
     {        
         constexpr int g = -2;
         constexpr int p = 15;
@@ -278,23 +278,23 @@ public:
         return s[5] + x2;
     };    
 
-    inline float getWhiteFloat(void)
+    inline float getWhiteFloat()
     {
         return static_cast<float> ( getWhite());
     }    
-    inline float getAvgFloat(void)
+    inline float getAvgFloat()
     {
         return static_cast<float> ( getAvg() );
     }    
-    inline float getRedFloat(void)
+    inline float getRedFloat()
     {
         return static_cast<float> (getRed() );
     }
-    inline float getRedVarFloat(void)
+    inline float getRedVarFloat()
     {
         return static_cast<float> ( getRedVar());
     }
-    inline float getPinkLowFloat(void)
+    inline float getPinkLowFloat()
     {
         return static_cast<float> ( getPinkLow());
     }
@@ -315,7 +315,7 @@ public:
     :   galoisShifter(gs)
     {};
     
-    inline void clear(void)
+    inline void clear()
     {
         for( auto& sv : zv ) sv = 0;
     }

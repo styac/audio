@@ -35,19 +35,6 @@
 #include "control/Controllers.h"
 #include "oscillator/ToneShaperMatrix.h"
 
-
-/*
-     std::chrono::time_point<std::chrono::system_clock> start, end;
-    start = std::chrono::system_clock::now();
-    std::cout << "f(42) = " << fibonacci(42) << '\n';
-    end = std::chrono::system_clock::now();
-
-    std::chrono::duration<double> elapsed_seconds = end-start;
-    std::time_t end_time = std::chrono::system_clock::to_time_t(end);
-
-
- */
-
 namespace yacynth {
 
 class SynthFrontend {
@@ -70,13 +57,18 @@ private:
     bool        cycleBegin( void );
     bool        cycleEnd( void );
     bool        evalMEssage( void );
-    bool        generate( void );
+//    bool        generate( void );
 
     ControlQueueVector&     queuein;
     OscillatorOutVector&    outVector;
     OscillatorArray       * oscArray;
     uint64_t                waitLimit;          // if the cycle was too fast wait a bit to ceck
     Statistics              statistics;
+
+#ifdef IO_DEBUG
+    NanosecCollector        nanosecCollector;
+#endif
+    
     uint32_t                cycleNoise;
     bool                    runFe;
 

@@ -53,7 +53,7 @@ public:
     static constexpr float PI   = PIld;
     static constexpr float PI2  = PIld*2.0;
     static constexpr float offs = std::sin( PIld / 2.0 / sinTableSize);
-    static inline const SinTable& table(void)
+    static inline const SinTable& table()
     {
         static SinTable instance;
         return instance;
@@ -75,11 +75,11 @@ public:
     {
         return sinTable[uint32_t(index)+1];
     }
-    inline const auto& sin2PIRef(void) const
+    inline const auto& sin2PIRef() const
     {
         return sinTable;
     }
-    inline const int16_t *sinWave(void) const
+    inline const int16_t *sinWave() const
     {
         return waveSinTable;
     }

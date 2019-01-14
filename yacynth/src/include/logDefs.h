@@ -1,5 +1,6 @@
+#pragma once
 /*
- * Copyright (C) 2016 Istvan Simon -- stevens37 at gmail dot com
+ * Copyright (C) 2019 ist
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -17,10 +18,37 @@
  */
 
 /* 
- * File:   OscillatorOutput.cpp
+ * File:   logDefs.h
  * Author: Istvan Simon -- stevens37 at gmail dot com
  *
- * Created on February 1, 2016, 5:25 PM
+ * Created on January 12, 2019, 4:38 PM
  */
+
+#include "NanoLog.hpp"
+
+namespace yacynth {
+
+enum LOG_CATEGORY_ID : nanolog::category_mask_t::value_type {
+    LOGCAT_main         = 1LL << 0,
+    LOGCAT_net          = 1LL << 1,
+    LOGCAT_synthfe      = 1LL << 2,
+    LOGCAT_iothread     = 1LL << 3,
+    LOGCAT_midi         = 1LL << 4,
+    LOGCAT_osc          = 1LL << 5,
+};
+
+/*
+#define TAG_DEBUG( tagname, tagi, pari, comment )\
+std::cout \
+    << "tag: " << #tagname \
+    << " " << int16_t(tagname) \
+    << " t-ind: " << int16_t(tagi)\
+    << " p-ind: " << int16_t(pari) \
+    << "  " << comment \
+    << std::endl;
+ 
+ */
+
+} // end namespace yacynth 
 
 

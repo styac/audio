@@ -35,7 +35,7 @@ public:
     void shutdown(      void );
     bool run(           void );
     
-    static inline YaIoAlsa&   getInstance(void)
+    static inline YaIoAlsa&   getInstance()
     {
         static YaIoAlsa inst;
         return inst;

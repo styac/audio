@@ -26,7 +26,7 @@
 
 namespace yacynth {
 
-ControlQueueVector& ControlQueueVector::getInstance(void)
+ControlQueueVector& ControlQueueVector::getInstance()
 {
     static ControlQueueVector instance;
     return instance;

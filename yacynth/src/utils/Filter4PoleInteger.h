@@ -62,7 +62,7 @@ public:
     static constexpr int32_t  qcontrolMax       = 3.995 * (1L<<24);
 
     struct alignas(16) Channel {
-        void clear(void)
+        void clear()
         {
             for( auto i=0; i < stateCount; ++i )
                 for( auto j=0; j < channelCount; ++j )
@@ -85,7 +85,7 @@ public:
         clear();
     };
 
-    void clear(void)
+    void clear()
     {
         channel.clear();
     };
@@ -114,7 +114,7 @@ public:
     // safer
     // all bandpass
     template< std::size_t S1, std::size_t S2, std::size_t N0, std::size_t L >
-    inline int32_t getBP(void) const
+    inline int32_t getBP() const
     {
         static_assert((N0+L) <= channelCount, "channel count too small" );
         int32_t s = (( channel.s[S1][N0] - channel.s[S2][N0] ) * channel.gmul[N0]) >> 32;
@@ -127,7 +127,7 @@ public:
     // N0 - lowpass
     // N0+1,... bandpass
     template< std::size_t S1, std::size_t S2, std::size_t N0, std::size_t L >
-    inline int32_t getLBP(void) const
+    inline int32_t getLBP() const
     {
         static_assert((N0+L) <= channelCount, "channel count too small" );
         int32_t s = ( channel.s[S1][N0] * channel.gmul[N0] ) >> 32;

@@ -43,7 +43,7 @@ struct FrameFloat {
     static constexpr std::size_t vsectionSize       = 1<<vsectionSizeExp;
     static constexpr std::size_t vsectionSizeMask   = vsectionSize-1;
     static constexpr std::size_t channelCount       = chcount;
-    inline void clear(void)
+    inline void clear()
     {
         memset( channel, 0, sizeof(channel) );
     }
@@ -64,7 +64,7 @@ struct FrameInt {
     static constexpr std::size_t vsectionSize       = 1<<vsectionSizeExp;
     static constexpr std::size_t vsectionSizeMask   = vsectionSize-1;
     static constexpr std::size_t channelCount       = chcount;
-    inline void clear(void)
+    inline void clear()
     {
         memset( channel, 0, sizeof(channel) );
     }
@@ -81,7 +81,7 @@ struct FrameInterleave {
     static constexpr std::size_t sectionSizeMask    = sectionSize-1;
     static constexpr std::size_t channelCount       = chcount;
     static constexpr std::size_t interleavedSize    = sectionSize*channelCount;
-    inline void clear(void)
+    inline void clear()
     {
         memset( channel, 0, sizeof(channel) );
     }
@@ -132,7 +132,7 @@ public:
         clear();
     }
 
-    inline void clear(void)
+    inline void clear()
     {
         Tstore::clear();
         for( auto& sref : zv ) sref = 0;
@@ -140,7 +140,7 @@ public:
 
     // zero gain at fs/2
     // -24 dB
-    inline void fillAvg(void)
+    inline void fillAvg()
     {
         for( auto i=0u; i<sectionSize; ++i ) {
             const int32_t x0 = zv[0];
@@ -227,7 +227,7 @@ public:
     // pole += oversampling factor
     // raw white
     // -24 dB
-    inline void fillRaw(void)
+    inline void fillRaw()
     {
         for( auto i=0u; i<sectionSize; ++i ) {
             Tstore::channel[0][i] = noise.getWhite24()<<1;
@@ -235,7 +235,7 @@ public:
     }
 
     // pole += oversampling factor
-    inline void fillBlue(void)
+    inline void fillBlue()
     {
         for( auto i=0u; i<sectionSize; ++i ) {
             const int32_t x0 = zv[0];
@@ -383,7 +383,7 @@ public:
 // frequency response when the low-pass filters are summed.
 // http://www.firstpr.com.au/dsp/pink-noise/
 
-    inline void fillPink(void)
+    inline void fillPink()
     {
         constexpr int g = 2;
         constexpr int p = 9;
@@ -414,7 +414,7 @@ public:
 
     // pole += oversampling factor
     // under 100 Hz pinkish above red
-    inline void fillPinkLow(void)
+    inline void fillPinkLow()
     {
         constexpr int g = -2;
         constexpr int p = 15;
@@ -706,11 +706,11 @@ public:
     }
 
 
-    inline const auto& getFrame(void) const
+    inline const auto& getFrame() const
     {
         return Tstore::channel[0];
     }
-    inline const auto& getVFrame(void) const
+    inline const auto& getVFrame() const
     {
         return Tstore::vchannel[0];
     }

@@ -57,7 +57,15 @@ using namespace TagEffectFxChorusModeLevel_03;
 using namespace TagEffectFxFlangerModeLevel_03;
 using namespace Tuning;
 
-void preset0( Sysman  * sysman )
+namespace {
+
+#ifdef TV_16bit
+constexpr int tv_mult = 1;
+#else
+constexpr int tv_mult = (1<<16)-1;
+#endif    
+
+void preset_test( Sysman  * sysman )
 {
     yaxp::Message msgBuffer;
 
@@ -128,9 +136,9 @@ void preset0( Sysman  * sysman )
     ts.sustain.modDeltaPhase = 0; //300;
     ts.tickFrameRelease.setPar( 100, 0, 2 );
     ts.transient[ 2 ].tickFrame.setPar( 5, 0, 2 );
-    ts.transient[ 2 ].targetValue = uint32_t( 32000.0 * 65535.0 );
+    ts.transient[ 2 ].targetValue = uint32_t( 32000.0 * tv_mult );
     ts.transient[ 1 ].tickFrame.setPar( 100, 0, 1 );
-    ts.transient[ 1 ].targetValue = uint32_t( 7000.0 * 65535.0 );
+    ts.transient[ 1 ].targetValue = uint32_t( 7000.0 * tv_mult );
 
     ts.oscillatorType = ToneShaper::OSC_SIN; // OSC_SIN;
     ts.detune2CH = 10<<12;
@@ -164,9 +172,9 @@ void preset0( Sysman  * sysman )
         ts.sustain.modDeltaPhase = 0; // 300;
         ts.tickFrameRelease.setPar( 100, 0, 2 );
         ts.transient[ 2 ].tickFrame.setPar( 2, 0, 2 );
-        ts.transient[ 2 ].targetValue = uint32_t( 52000.0 * 65535.0 * onevi );
+        ts.transient[ 2 ].targetValue = uint32_t( 52000.0 * tv_mult * onevi );
         ts.transient[ 1 ].tickFrame.setPar( 100, 0, 1 );
-        ts.transient[ 1 ].targetValue = uint32_t( 6000.0 * 65535.0 * onevi );
+        ts.transient[ 1 ].targetValue = uint32_t( 6000.0 * tv_mult * onevi );
 
         ts.oscillatorType = ToneShaper::OSC_SIN;
         if( vi & 1) {
@@ -318,5 +326,325 @@ void preset0( Sysman  * sysman )
         std::cout << "---- Input connect error " << uint16_t(msgBuffer.messageType) << std::endl;
     }
 #endif    
-    
+
 }
+
+void make_sin( Sysman  * sysman )
+{
+    yaxp::Message msgBuffer;
+
+    ToneShaper ts;
+    ts.clear();
+    auto vi=0u;
+    constexpr   int overToneCount = 1;
+//    for( auto vi=0u; vi < overToneCount; ++vi ) {
+//        ts.pitch = relFreq2pitch( vi+1 );
+        const double onevi = 1.0/double( vi + 1 );
+        ts.pitch = interval2ycent( vi + 1 );
+        ts.sustain.decayCoeff.setPar( 0, 0 );
+        ts.sustain.modDepth  = 0;     // 100 / 256
+        ts.sustain.modDeltaPhase = 0; // 300;
+        ts.tickFrameRelease.setPar( 100, 0, 2 );
+        ts.transient[ 2 ].tickFrame.setPar( 20, 0, 2 );
+        ts.transient[ 2 ].targetValue = uint32_t( 32000.0 * tv_mult * onevi );
+        ts.transient[ 1 ].tickFrame.setPar( 300, 0, 1 );
+        ts.transient[ 1 ].targetValue = uint32_t( 20000.0 * tv_mult * onevi );
+        ts.veloBoost = 0; //255;
+        ts.outChannel = 0;            
+        ts.oscillatorType = ToneShaper::OSC_SIN;
+
+        msgBuffer.clear();
+        msgBuffer.setPar( 0, vi );
+        msgBuffer.setTags( uint8_t(TagMain::ToneShaper), uint8_t(TagToneShaper::SetOvertone) );
+        msgBuffer.getTargetData( ts );
+        sysman->evalMessage(msgBuffer);
+        if( msgBuffer.messageType != yaxp::MessageT::responseSetOK ) {
+            std::cout << "---- send TS error " << uint16_t(msgBuffer.messageType) << std::endl;
+            exit(-1);
+        }
+//    }
+    
+    msgBuffer.clear();
+    msgBuffer.setPar( 0, overToneCount );
+    msgBuffer.setTags( uint8_t(TagMain::ToneShaper), uint8_t(TagToneShaper::SetOvertoneCount) );
+    sysman->evalMessage(msgBuffer);
+    if( msgBuffer.messageType != yaxp::MessageT::responseSetOK ) {
+        std::cout << "---- send TS count ok error " << uint16_t(msgBuffer.messageType) << std::endl;
+        exit(-1);
+    }     
+}
+
+void make_saw( Sysman  * sysman )
+{
+    yaxp::Message msgBuffer;
+
+    ToneShaper ts;
+    ts.clear();
+    constexpr   int overToneCount = 20;
+    for( auto vi=0u; vi < overToneCount; ++vi ) {
+//        ts.pitch = relFreq2pitch( vi+1 );
+        const double onevi = 1.0/double( vi + 1 );
+        ts.pitch = interval2ycent( vi + 1 );
+        ts.sustain.decayCoeff.setPar( 0, 0 );
+        ts.sustain.modDepth  = 0;     // 100 / 256
+        ts.sustain.modDeltaPhase = 0; // 300;
+        ts.tickFrameRelease.setPar( 100, 0, 2 );
+        ts.transient[ 2 ].tickFrame.setPar( 20, 0, 2 );
+        ts.transient[ 2 ].targetValue = uint32_t( 32000.0 * tv_mult * onevi );
+        ts.transient[ 1 ].tickFrame.setPar( 300, 0, 1 );
+        ts.transient[ 1 ].targetValue = uint32_t( 20000.0 * tv_mult * onevi );
+        ts.veloBoost = 0; //255;
+        ts.outChannel = 0;
+        ts.oscillatorType = ToneShaper::OSC_SIN;
+
+        msgBuffer.clear();
+        msgBuffer.setPar( 0, vi );
+        msgBuffer.setTags( uint8_t(TagMain::ToneShaper), uint8_t(TagToneShaper::SetOvertone) );
+        msgBuffer.getTargetData( ts );
+        sysman->evalMessage(msgBuffer);
+        if( msgBuffer.messageType != yaxp::MessageT::responseSetOK ) {
+            std::cout << "---- send TS error " << uint16_t(msgBuffer.messageType) << std::endl;
+            exit(-1);
+        }
+    }
+    
+    msgBuffer.clear();
+    msgBuffer.setPar( 0, overToneCount );
+    msgBuffer.setTags( uint8_t(TagMain::ToneShaper), uint8_t(TagToneShaper::SetOvertoneCount) );
+    sysman->evalMessage(msgBuffer);
+    if( msgBuffer.messageType != yaxp::MessageT::responseSetOK ) {
+        std::cout << "---- send TS count ok error " << uint16_t(msgBuffer.messageType) << std::endl;
+        exit(-1);
+    }    
+}
+
+void make_effects( Sysman  * sysman, bool addEcho = false )
+{
+    yaxp::Message msgBuffer;
+    // get
+    msgBuffer.clear();
+    msgBuffer.setTags( uint8_t( TagMain::EffectCollector )
+            ,uint8_t(TagEffectCollector::GetEffectList )
+            );
+
+    EffectMap   effectMap;
+    sysman->evalMessage(msgBuffer);
+    if( msgBuffer.messageType == yaxp::MessageT::responseGetOK  ) {
+        EffectListEntry *data = static_cast<yacynth::EffectListEntry *>((void *)(msgBuffer.data));
+        for( uint16_t ind = 0; ind < msgBuffer.params[0]; ++ind ) {
+            effectMap.emplace( data->fullName, data->id );
+            std::cout
+                << "++ ind  "           << uint16_t(data->fxIndex)
+                << " id "               << uint16_t(data->id)
+                << " type "             << uint16_t(data->fxType)
+                << " dynamic "          << uint16_t(data->dynamic)
+                << " maxMode "          << uint16_t(data->fxMaxMode)
+                << " inputCount "       << uint16_t(data->inputCount )
+                << " refId "            << uint16_t(data->refId)
+                << " instanceIndex "    << uint16_t(data->instanceIndex)
+                << "  "                 << data->name
+                << "  "                 << data->fullName
+                << std::endl;
+            ++data;
+        }
+        for( auto& fxid : effectMap ) {
+            std::cout
+                << " id "               << uint16_t( fxid.second )
+                << "  "                 << fxid.first
+                << std::endl;
+        }
+
+    } else {
+        std::cout << "---- error " <<uint16_t(msgBuffer.messageType) << std::endl;
+        exit(-1);
+    }
+    
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
+    const uint8_t EffectInstance_EndMixer           = effectMap["EndMixer.00:00"];
+    const uint8_t EffectInstance_Input              = effectMap["Input.00:00"];
+    const uint8_t EffectInstance_OscillatorMixer    = effectMap["OscillatorMixer.00:00"];
+    const uint8_t EffectInstance_Echo               = effectMap["Echo.00:00"];    
+    
+#pragma GCC diagnostic pop
+
+    msgBuffer.clear();
+    msgBuffer.setTags(  uint8_t( TagMain::EffectRunner )
+                    ,   uint8_t( TagEffectRunner::Preset )
+                    );
+    sysman->evalMessage(msgBuffer);
+    if( msgBuffer.messageType != yaxp::MessageT::responseSetOK ) {
+        std::cout << "---- Connect error " << uint16_t(msgBuffer.messageType) << std::endl;
+        exit(-1);
+    }
+
+    MidiControllerSetting  midiSetting[] = {
+        {  110, 0, 0x31,  MidiController::CM_RANGE, InnerController::CC_MAINVOLUME  },// volume - start with low
+    };
+
+    msgBuffer.clear();
+    msgBuffer.setTags(  uint8_t( TagMain::MidiController )
+                    ,   uint8_t( TagMidiController::SetController )
+                    );
+
+    msgBuffer.setPar(cArrayElementCount(midiSetting));
+    msgBuffer.getTargetData(midiSetting);
+    sysman->evalMessage(msgBuffer);
+    if( msgBuffer.messageType != yaxp::MessageT::responseSetOK ) {
+        std::cout << "---- MidiSetting error " << uint16_t(msgBuffer.messageType) << std::endl;
+        exit(-1);
+    }
+
+    msgBuffer.clear();
+    msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
+                    ,   uint8_t( TagEffectCollector::EffectInstance )
+                    ,   uint8_t( TagEffectType::FxMixer )
+                    ,   uint8_t( TagEffectFxMixerMode::Preset )
+                    );
+    msgBuffer.setPar( EffectInstance_EndMixer, 0 ); // channel
+    sysman->evalMessage(msgBuffer);
+    if( msgBuffer.messageType != yaxp::MessageT::responseSetOK ) {
+        std::cout << "---- Volume control Preset error " << uint16_t(msgBuffer.messageType) << std::endl;
+    }
+
+    msgBuffer.clear();
+    msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
+                    ,   uint8_t( TagEffectCollector::EffectInstance )
+                    ,   uint8_t( TagEffectType::FxMixer )
+                    ,   uint8_t( TagEffectFxMixerMode::SetVolumeControllerIndex )
+                    );
+
+    msgBuffer.setPar( EffectInstance_EndMixer, 0  );// channel
+    uint16_t cindex0 = InnerController::CC_MAINVOLUME;
+    msgBuffer.getTargetData( cindex0 );
+    sysman->evalMessage(msgBuffer);
+    if( msgBuffer.messageType != yaxp::MessageT::responseSetOK ) {
+        std::cout << "---- Volume control index0 error " << uint16_t(msgBuffer.messageType) << std::endl;
+    }
+    
+    if( addEcho ) {
+        EffectRunnerFill effectFill[] = {
+//        EffectInstance_FxOutOscillator,
+//        EffectInstance_FxFlanger
+//        EffectInstance_FxFilter
+//        EffectInstance_FxChorus
+            EffectInstance_Echo,
+//        EffectInstance_FxLateReverb
+        };    // osc + reverb
+
+        msgBuffer.clear();
+        msgBuffer.setTags(  uint8_t( TagMain::EffectRunner )
+                        ,   uint8_t( TagEffectRunner::Fill )
+                        );
+        msgBuffer.setPar(cArrayElementCount(effectFill));
+        msgBuffer.getTargetData(effectFill);
+        sysman->evalMessage(msgBuffer);
+        if( msgBuffer.messageType == yaxp::MessageT::responseSetOK ) {
+            std::cout << "---- fill ok" << std::endl;
+        } else {
+            std::cout << "---- error " <<uint16_t(msgBuffer.messageType) << std::endl;
+            exit(-1);
+        }
+        
+        // EffectInstance_OscillatorMixer -> EndMixer 0
+        // EffectInstance_OscillatorMixer -> Echo
+        // Echo -> EndMixer 1
+        // Echo setup by GUI
+        
+        EffectRunnerSetConnections  effectRunnerSetConnections[] = {
+//        { EffectInstance_FxOutOscillator,     2, 0 },     // audio osc out to reverb 0
+            { EffectInstance_OscillatorMixer,       0, 0 },     // audio osc out to reverb 0
+//        { EffectInstance_FxEarlyReflection,   0, 0 },     // reverb to output mixer 1
+//        { EffectInstance_FxLateReverb,        0, 0 },     // reverb to output mixer 1
+            { EffectInstance_Echo,              0, 0 },          
+//        { EffectInstance_FxFlanger,           0, 0 }           
+        };
+        
+
+        msgBuffer.clear();
+        msgBuffer.setTags(  uint8_t( TagMain::EffectRunner )
+                        ,   uint8_t( TagEffectRunner::SetConnections )
+                        );
+        
+        msgBuffer.setPar(cArrayElementCount(effectRunnerSetConnections));
+        msgBuffer.getTargetData(effectRunnerSetConnections);
+        sysman->evalMessage(msgBuffer);
+        if( msgBuffer.messageType == yaxp::MessageT::responseSetOK ) {
+            std::cout << "---- fill ok" << std::endl;
+        } else {
+            std::cout << "---- error " <<uint16_t(msgBuffer.messageType) << std::endl;
+            exit(-1);
+        }
+        
+        
+        msgBuffer.clear();
+        msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
+                        ,   uint8_t( TagEffectCollector::EffectInstance )
+                        ,   uint8_t( TagEffectType::FxEcho )
+//                        ,   uint8_t( TagEffectFxMixerMode::Preset )
+                        );
+        msgBuffer.setPar( EffectInstance_EndMixer, 1 ); // channel
+        sysman->evalMessage(msgBuffer);
+        if( msgBuffer.messageType != yaxp::MessageT::responseSetOK ) {
+            std::cout << "---- Volume control Preset error " << uint16_t(msgBuffer.messageType) << std::endl;
+        }   
+        
+        // ----------
+        msgBuffer.clear();
+        msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
+                        ,   uint8_t( TagEffectCollector::EffectInstance )
+                        ,   uint8_t( TagEffectType::FxMixer )
+                        ,   uint8_t( TagEffectFxMixerMode::Preset )
+                        );
+        msgBuffer.setPar( EffectInstance_EndMixer, 1 ); // channel
+        sysman->evalMessage(msgBuffer);
+        if( msgBuffer.messageType != yaxp::MessageT::responseSetOK ) {
+            std::cout << "---- Volume control Preset error " << uint16_t(msgBuffer.messageType) << std::endl;
+        }   
+        // ----------
+        msgBuffer.clear();
+        msgBuffer.setTags(  uint8_t( TagMain::EffectCollector )
+                        ,   uint8_t( TagEffectCollector::EffectInstance )
+                        ,   uint8_t( TagEffectType::FxMixer )
+                        ,   uint8_t( TagEffectFxMixerMode::SetVolumeControllerIndex )
+                        );
+
+        msgBuffer.setPar( EffectInstance_EndMixer, 1  );// channel
+        uint16_t cindex0 = InnerController::CC_MAINVOLUME;
+        msgBuffer.getTargetData( cindex0 );
+        sysman->evalMessage(msgBuffer);
+        if( msgBuffer.messageType != yaxp::MessageT::responseSetOK ) {
+            std::cout << "---- Volume control index0 error " << uint16_t(msgBuffer.messageType) << std::endl;
+        }
+            
+    }
+}
+
+} // namespace anon
+
+void preset0( Sysman  * sysman, uint8_t mode )
+{
+    switch(mode)
+    {
+    case 0:
+        make_sin( sysman );
+        make_effects( sysman );
+        return;
+        
+    case 1:
+        make_saw( sysman );
+        make_effects( sysman );
+        return;
+        
+    case 2:
+        make_sin( sysman );
+        make_effects( sysman, true );
+        return;
+        
+    default:
+        preset_test(sysman);
+        return;
+    }
+}
+    

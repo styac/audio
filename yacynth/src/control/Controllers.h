@@ -158,7 +158,7 @@ public:
         CC_END                          = 8*(1<<8)
     };
 
-    inline static InnerController& getInstance(void)
+    inline static InnerController& getInstance()
     {
         static InnerController instance;
         return instance;
@@ -166,11 +166,11 @@ public:
 
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
-    inline uint16_t getCountMasterLfo(void)
+    inline uint16_t getCountMasterLfo()
     {
         return lfoMasterCount;
     }
-    inline uint16_t getCountSlaveLfo(void)
+    inline uint16_t getCountSlaveLfo()
     {
         return lfoSlaveSetCount;
     }
@@ -191,7 +191,7 @@ public:
         return CC_LFO_SLAVE_DELTA_PHASE_BEGIN + ( masterLfoNumber & lfoMasterCountMask ) + lfoSlaveSetCount * (slaveLfoNumber & lfoSlaveSetCountMask );
     }
 
-    inline void clear(void)
+    inline void clear()
     {
         static_assert( CC_END == maxIndex, "controller size mismatch" );
         value.clear();
@@ -209,7 +209,7 @@ k 8 f 29.9009
 k 9 f 14.9358  -- 20.6
      */
     // one pole filter>  kshift+6 --> 9
-    inline void incFilter(void)
+    inline void incFilter()
     {
         for( uint32_t i=CC_BEGIN_FILTER; i<filteredRangeV4; ++i ) {
             value.v4[i+filteredRangeV4] += (value.v4[i] - value.v4[i+filteredRangeV4] + kround ) >> kshift;
@@ -339,7 +339,7 @@ k 9 f 14.9358  -- 20.6
     // V4 processing !!
     // TODO > random phase controller -- add noise to phase ( 0 .. positive )
 
-    inline void incrementFrameLFOscillatorPhases(void)
+    inline void incrementFrameLFOscillatorPhases()
     {
         uint16_t currentPhaseInd = CC_LFO_MASTER_PHASE_BEGIN/4;
         uint16_t deltaPhaseInd = CC_LFO_MASTER_DELTA_PHASE_BEGIN/4;
@@ -460,7 +460,7 @@ public:
         /* 0..128 direct value */
     };
 
-    size_t getChannelCount(void) const
+    size_t getChannelCount() const
     {
         return channelCount;
     }
@@ -480,7 +480,7 @@ public:
 
     bool parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex );
 
-    void clear(void)
+    void clear()
     {
         for(auto i=0u; i<channelCount; ++i )
             for(auto j=0u; j<controllerCount; ++j ) {
@@ -648,22 +648,22 @@ struct ControllerCache {
         return tmp != value;
     }
 
-    inline float getExpValueFloat(void) const
+    inline float getExpValueFloat() const
     {
         return InnerController::getInstance().getExpValueFloat( value );
     }
 
-    inline float getExpValueFloat_127(void) const
+    inline float getExpValueFloat_127() const
     {
         return InnerController::getInstance().getExpValueFloat( 127 - value );
     }
 
-    inline uint32_t getPhaseValueU32(void) const
+    inline uint32_t getPhaseValueU32() const
     {
         return InnerController::getInstance().getPhaseValueU32( value );
     }
 
-    inline int32_t getValueI32(void) const
+    inline int32_t getValueI32() const
     {
         return value;
     }

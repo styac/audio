@@ -74,6 +74,13 @@
 
 namespace yacynth {
 
+//namespace {
+//constexpr auto LogCategoryMask              = LOGCAT_net;
+//constexpr auto LogCategoryMaskAlways        = LogCategoryMask | nanolog::category_mask_t::log_always;
+//constexpr const char * const LogCategory    = "NETS";
+//}
+
+
 using namespace TagTunerLevel_01;
 
 bool TuningTable::parameter( yaxp::Message& message, uint8_t tagIndex, uint8_t paramIndex )

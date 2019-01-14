@@ -164,7 +164,7 @@ public:
         state1.lfsr = state2.lfsr = seed;
     }
 
-    inline void inc(void)
+    inline void inc()
     {
         const uint64_t s1 = int64_t(state1.lfsr)>>63;
         const uint64_t s2 = int64_t(state2.lfsr)>>63;
@@ -174,37 +174,37 @@ public:
         }
 
     };
-    inline uint64_t getState(void)
+    inline uint64_t getState()
     {
         return state2.lfsr;
     };
 
-    inline uint64_t get(void)
+    inline uint64_t get()
     {
         inc();
         return state2.lfsr;
     };
 
-    inline uint16_t get16(void)
+    inline uint16_t get16()
     {
         inc();
         return state2.lfsr16[7];   // most random part
     };
 
-    inline uint32_t getLow(void)
+    inline uint32_t getLow()
     {
         inc();
         return state2.lfsr32[0];
     };
 
-    inline uint32_t getHigh(void)
+    inline uint32_t getHigh()
     {
         inc();
         return state2.lfsr32[1];
     };
 
     // 24 bit significant
-    inline int32_t getWhite24(void)
+    inline int32_t getWhite24()
     {
         union {
             int32_t  res;
@@ -217,7 +217,7 @@ public:
         return res;
     };
 
-    inline int32_t getWhiteRaw(void)
+    inline int32_t getWhiteRaw()
     {
         inc();
         return (state2.lfsr >> shdownWhite);
@@ -269,41 +269,41 @@ public:
         lfsr = seed;
     }
 
-    inline void inc(void)
+    inline void inc()
     {
         lfsr = (lfsr + lfsr) ^ (uint64_t(( int64_t(lfsr)>>63) & feedback ));
     };
-    inline uint64_t getState(void)
+    inline uint64_t getState()
     {
         return lfsr;
     };
 
-    inline uint64_t get(void)
+    inline uint64_t get()
     {
         inc();
         return lfsr;
     };
 
-    inline uint16_t get16(void)
+    inline uint16_t get16()
     {
         inc();
         return lfsr16[7];   // most random part
     };
 
-    inline uint32_t getLow(void)
+    inline uint32_t getLow()
     {
         inc();
         return lfsr32[0];
     };
 
-    inline uint32_t getHigh(void)
+    inline uint32_t getHigh()
     {
         inc();
         return lfsr32[1];
     };
 
     // 24 bit significant
-    inline int32_t getWhite24(void)
+    inline int32_t getWhite24()
     {
         union {
             int32_t  res;
@@ -316,7 +316,7 @@ public:
         return res;
     };
     
-    inline int32_t getWhite24shift(void)
+    inline int32_t getWhite24shift()
     {
         static uint32_t x=123456789, y=362436069, z=521288629;
  
@@ -333,7 +333,7 @@ public:
         return int32_t(z)>>8;
     };
     
-    inline int32_t getWhite24mult(void)
+    inline int32_t getWhite24mult()
     {
         static int64_t g_seed = 0x87232937;
         
@@ -343,7 +343,7 @@ public:
     };
     
     // good red noise -20 db / decade
-    inline int32_t getRed24(void)
+    inline int32_t getRed24()
     {
         static int64_t acc = 0;
         
@@ -352,7 +352,7 @@ public:
         return acc >> 8;
     };
     
-    inline int32_t getWhite24Avg(void)
+    inline int32_t getWhite24Avg()
     {
         union {
             int32_t  res;
@@ -367,7 +367,7 @@ public:
         return r0 + res;
     };
 
-    inline int32_t getWhiteRaw(void)
+    inline int32_t getWhiteRaw()
     {
         inc();
         return (lfsr >> shdownWhite);
@@ -396,13 +396,13 @@ protected:
 template< uint64_t seed >
 class GaloisShifterSingle final : public GaloisShifter {
 public:
-    inline static GaloisShifterSingle& getInstance(void)
+    inline static GaloisShifterSingle& getInstance()
     {
         thread_local static GaloisShifterSingle instance;
         return instance;
     }
 
-    inline static void reset(void)
+    inline static void reset()
     {
         static_cast<GaloisShifter>( GaloisShifterSingle<seed>::getInstance() ).reset(seed);
     }
@@ -458,7 +458,7 @@ public:
     { clear(); };
 
     struct State {
-        inline void clear(void)
+        inline void clear()
         {
             sin = 0;
             vs[0] = vs[1] = vs[2] = vs[3] = v4si{0};
@@ -477,7 +477,7 @@ public:
         uint8_t     g[4];
     };
 
-    inline void clear(void)
+    inline void clear()
     {
         state.clear();
     }
@@ -668,7 +668,7 @@ public:
     { clear(); };
 
     struct State {
-        inline void clear(void)
+        inline void clear()
         {
             sin = 0;
             vs[0] = vs[1] = vs[2] = vs[3] = v4sf{0};
@@ -688,7 +688,7 @@ public:
         };
         int32_t     sin;
     };
-    inline void clear(void)
+    inline void clear()
     {
         state.clear();
     }
@@ -790,7 +790,7 @@ public:
     };
 
     // average of 2 consecutive samples
-    inline int32_t getWhiteBasic(void)
+    inline int32_t getWhiteBasic()
     {
         const int32_t x = state.s[0][0];
         state.s[0][0] = galoisShifter.getWhiteRaw() >> 2;
@@ -827,7 +827,7 @@ public:
         outB = x1B + state.s[0][3];
     };
 
-    inline int32_t getBlue(void)
+    inline int32_t getBlue()
     {
         const int32_t x0 = state.s[0][0];
         const int32_t x1 = state.s[0][1];
@@ -836,7 +836,7 @@ public:
         return state.s[0][1] + x1;
     };
 
-    inline int32_t getRed(void)
+    inline int32_t getRed()
     {
         const int32_t x0 = state.s[0][0];
         const int32_t x2 = state.s[0][2];
@@ -846,7 +846,7 @@ public:
         return x2 + state.s[0][2];
     };
 
-    inline int32_t getCrimson(void)
+    inline int32_t getCrimson()
     {
         const int32_t x0 = state.s[0][0];
         const int32_t x3 = state.s[0][3];
@@ -868,14 +868,14 @@ public:
     {
         v = getCrimson();
     };
-    inline int32_t getRed(void)
+    inline int32_t getRed()
     {
         const int32_t x0 = state.s[0][0];
         state.s[0][0] += (galoisShifter.getWhiteRaw()>>8) - (state.s[0][0]>>10);
         return x0 + state.s[0][0];
     };
 
-    inline int32_t getCrimson(void)
+    inline int32_t getCrimson()
     {
         const int32_t x1 = state.s[0][1];
         state.s[0][0] += ( galoisShifter.getWhiteRaw()>>8) - (state.s[0][0]>>9);
@@ -927,11 +927,11 @@ public:
     };
 
     // shift: 9..16
-    inline int32_t getRedLfo(void)
+    inline int32_t getRedLfo()
     {
         return state.s[0][0] += ( galoisShifter.getWhiteRaw()>>9 ) - (state.s[0][0]>>15);
     };
-    inline int32_t getCrimsonLfo1(void)
+    inline int32_t getCrimsonLfo1()
     {
         const int32_t x1 = state.s[0][1];
         state.s[0][0] += ( galoisShifter.getWhiteRaw()>>9) - (state.s[0][0]>>14);
@@ -948,7 +948,7 @@ public:
 // frequency response when the low-pass filters are summed.
 // http://www.firstpr.com.au/dsp/pink-noise/
 
-    inline int32_t getPink(void)
+    inline int32_t getPink()
     {
         constexpr int g = -1;
         constexpr int p = 9;
@@ -971,7 +971,7 @@ public:
         return state.s[1][1] + yn3;
     };
 
-    inline int32_t getPinkLow(void)
+    inline int32_t getPinkLow()
     {
         constexpr int g = -4;
         constexpr int p = 15;
@@ -1025,20 +1025,20 @@ public:
     };
 
     // shifter forwarding
-    inline void inc(void)
+    inline void inc()
     {
         galoisShifter.inc();
     };
-    inline uint64_t getState(void)
+    inline uint64_t getState()
     {
         return galoisShifter.getState();
     };
-    inline uint64_t get(void)
+    inline uint64_t get()
     {
         return galoisShifter.get();
     };
 
-    inline int32_t getWhiteRaw(void)
+    inline int32_t getWhiteRaw()
     {
         return galoisShifter.getWhiteRaw();
     };

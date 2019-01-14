@@ -30,41 +30,50 @@
 
 namespace yacynth {
 
-constexpr uint32_t inQueueBufSizeExp    = 10;
+// TODO test sync with bufsize 2
+constexpr uint32_t inQueueBufSizeExp    = 10; // less will be enough -- emptied in < 5 msec
 constexpr uint32_t inQueueBufSize       = (1<<inQueueBufSizeExp);
 constexpr uint64_t inQueueBufSizeMask   = (inQueueBufSize - 1LL );
 
 class ControlQueue {
 public:
     ControlQueue()
-    :   head(0)
-    ,   tail(0)
-    { memset(queue,0, sizeof(queue)); };
+    : head(0)
+    , tail(0)
+    { 
+        memset(queue,0, sizeof(queue)); 
+    }
 
-    bool        put( uint64_t data ) {
-        uint64_t expect = 0;
+    bool put( uint64_t data ) 
+    {
         if( 0 == data )
             return true;    // cant put a zero -- no valid data==0
-        if( queue[ head & inQueueBufSizeMask ].compare_exchange_strong( expect, data ) ) {
+        uint64_t expect = 0;
+        if( queue[ head & inQueueBufSizeMask ].compare_exchange_strong( expect, data ) ) { // weak may be enough
             ++head;
             return true;
         }
         return false;
     }
 
-    uint64_t    get(void) {
+    uint64_t get() 
+    {
         const uint64_t ptr = tail & inQueueBufSizeMask;
-        const uint64_t tmp = queue[ ptr ];
+        const uint64_t tmp = queue[ ptr ]; // load acquire
         if( 0 != tmp ) {
-            queue[ ptr ] = 0;
+            queue[ ptr ] = 0; // store
             ++tail;
         }
-        return tmp ;
+        return tmp;
     }
 
-    uint64_t    lng(void) { return head-tail; };
+    uint64_t  lng() 
+    { 
+        return head-tail; 
+    }
 
-    void        clear(void) {
+    void clear() 
+    {
         head = 0;
         tail = 0;
         memset(queue,0, sizeof(queue));
@@ -72,7 +81,9 @@ public:
 
 private:
     std::atomic<uint64_t>   queue[ inQueueBufSize ];
+    // may need padding but the frequency is low
     uint64_t   head;
+    // may need padding but the frequency is low
     uint64_t   tail;
 };
 
@@ -81,15 +92,15 @@ private:
 class ControlQueueVector
 {
 public:
-    static ControlQueueVector& getInstance(void);
-    ControlQueue     queueControl;       // to the control thread -> GUI
-    ControlQueue     queueBackend;       // to the backend> mixer filter effect
+    static ControlQueueVector& getInstance();
+    ControlQueue     queueControl;       // to the control thread -> UDP GUI
+    ControlQueue     queueBackend;       // to the backend mixer filter effect - may be not used
     ControlQueue     queueOscillator;    // to the oscillators
 
     ControlQueueVector(ControlQueueVector&)                   = delete;
     ControlQueueVector(ControlQueueVector const&)             = delete;
     ControlQueueVector(ControlQueueVector&&)                  = delete;
-    void operator=( ControlQueueVector& )                    = delete;
+    void operator=( ControlQueueVector& )                     = delete;
     ControlQueueVector& operator=(ControlQueueVector const&)  = delete;
     ControlQueueVector& operator=(ControlQueueVector &&)      = delete;
 

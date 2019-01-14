@@ -278,7 +278,7 @@ protected:
 
 class FilterTableExp2Pi final : public FilterTable {
 public:
-    inline static FilterTableExp2Pi& getInstance(void)
+    inline static FilterTableExp2Pi& getInstance()
     {
         static FilterTableExp2Pi instance;
         return instance;
@@ -320,7 +320,7 @@ private:
 
 class FilterTableSinCosPi2 final : public FilterTable {
 public:
-    inline static FilterTableSinCosPi2& getInstance(void)
+    inline static FilterTableSinCosPi2& getInstance()
     {
         static FilterTableSinCosPi2 instance;
         return instance;
@@ -361,7 +361,7 @@ private:
 
 class FilterTable2SinPi final : public FilterTable {
 public:
-    inline static FilterTable2SinPi& getInstance(void)
+    inline static FilterTable2SinPi& getInstance()
     {
         static FilterTable2SinPi instance;
         return instance;
@@ -401,7 +401,7 @@ private:
 
 class FilterTableCos2Pi final : public FilterTable {
 public:
-    inline static FilterTableCos2Pi& getInstance(void)
+    inline static FilterTableCos2Pi& getInstance()
     {
         static FilterTableCos2Pi instance;
         return instance;

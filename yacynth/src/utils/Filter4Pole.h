@@ -67,7 +67,7 @@ public:
         clear();
     };
 
-    void clear(void)
+    void clear()
     {
         for( auto &v : zv ) v = 0;
     };

@@ -25,9 +25,6 @@
  * Created on January 31, 2016, 9:17 AM
  */
 
-#ifndef     YAIO
-#define     YAIO
-
 #include "yacynth_globals.h"
 #include "message/yamsg.h"
 #include "message/Midi.h"
@@ -52,6 +49,8 @@ public:
     virtual ~YaIo() = default;
 
     // processor function types
+    typedef void ( * JackShutdownCallback )
+        ( void * data );
     typedef void ( * MidiProcessorType )
         ( void * data, RouteIn msg );
     typedef void ( * AudioOutProcessorType )
@@ -66,6 +65,7 @@ public:
 
     void registerAudioProcessor( void * userData,
         AudioOutProcessorType audioOutCB, AudioInOutProcessorType audioInOutCB );
+
     void registerMidiProcessor( void * userData,
         MidiProcessorType midiInCB );
     void                setMyName( const std::string& name )
@@ -90,12 +90,12 @@ protected:
     static void noAudioOutProcesing( void * data, uint32_t nframes, float *outp1, float *outp2 );
     static void noAudioInOutProcesing( void * data, uint32_t nframes, float *outp1, float *outp2, float *inp1, float *inp2 );
 
-    uint32_t        sampleRateMin;
-    uint32_t        sampleRateMax;
-    uint16_t        bufferSizeMin;
-    uint16_t        bufferSizeMax;
-    uint16_t        bufferSizeJack;
-    uint16_t        bufferSizeMult;     // how many internal buffer(64samples) fill a jack buffer(256)
+    uint32_t    sampleRateMin;
+    uint32_t    sampleRateMax;
+    uint16_t    bufferSizeMin;
+    uint16_t    bufferSizeMax;
+    uint16_t    bufferSizeJack;
+    uint16_t    bufferSizeMult;     // how many internal buffer(64samples) fill a jack buffer(256)
 
     MidiProcessorType       midiOutProcessing;
     AudioOutProcessorType   audioOutProcesing;
@@ -106,10 +106,11 @@ protected:
     std::string     nameClient;
     std::string     nameClientReal;
     std::string     errorString;
-
-    bool            mutedOutput;
-    bool            mutedInput;
+    struct {
+        uint16_t    mutedOutput : 1;
+        uint16_t    mutedInput  : 1;
+        uint16_t    serverShut  : 1;
+    };
 };
 
 } // end namespace yacynth
-#endif /* YAIO */

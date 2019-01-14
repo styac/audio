@@ -118,7 +118,7 @@ public:
     virtual bool connect( const FxBase * v, uint16_t ind ) override;
 
 private:
-    virtual void clearState(void) override;
+    virtual void clearState() override;
 
     static void sprocess_01( void * thp );  // reverb 1 mode
     static void sprocess_02( void * thp );  // reverb 2 mode
@@ -126,7 +126,7 @@ private:
 
     // use internal output tap
     // low pass uses the simple multiplier form : forward multiplier = A * (1-k) !!!
-    inline void process_01(void)
+    inline void process_01()
     {
         static_assert( param.combCount >= 8, "this uses 8 comb filters" );
         CombDelay::PackedChannel    stateOutput;

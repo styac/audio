@@ -34,6 +34,8 @@
 #include <iostream>
 #include <cstring>
 
+#define TV_16bit
+
 namespace yacynth {
 
 // interpolated values for frequency dependent values
@@ -44,7 +46,7 @@ namespace yacynth {
 struct InterpolatedTick {
     static constexpr uint16_t lowBaseLimit      = 5;
     static constexpr int8_t   curveSpeedLimit   = 3;
-    void clear(void)
+    void clear()
     {
         lowBase       = 0u;
         rate          = 0u;
@@ -74,13 +76,13 @@ struct InterpolatedTick {
 
 // Decay always increases by frequency
 struct InterpolatedDecay {
-    void clear(void)
+    void clear()
     {
         lowBase       = 0u;
         rate          = 0u;
     };
 
-    inline uint32_t get(void) const
+    inline uint32_t get() const
     {
         return lowBase;
     }
@@ -111,13 +113,13 @@ struct AmplitudeTransient  {
     static constexpr uint32_t tickLimit             = 10000;    // 13 sec
     static constexpr int8_t   amplEnvFreqDepRange   = 2;    // min max
 
-    void clear(void)
+    void clear()
     {
         targetValue             = 0u;
         tickFrame.clear();
     };
 
-    bool check(void) const
+    bool check() const
     {
         return true;
     };
@@ -128,7 +130,11 @@ struct AmplitudeTransient  {
     };
 
     // target amplitude value at the end of period
+#ifdef TV_16bit
+    uint16_t            targetValue;
+#else
     uint32_t            targetValue;
+#endif    
     // frame count for the given transient part
     InterpolatedTick    tickFrame;
 };
@@ -137,11 +143,11 @@ struct AmplitudeTransient  {
 struct AmplitudeSustain {
     static constexpr const char * const typeName = "AmplitudeSustain";
     // TODO check
-    void clear(void)
+    void clear()
     {
         memset( this, 0, sizeof(*this));;
     }
-    bool check(void) const
+    bool check() const
     {
         return true;
     }
@@ -307,7 +313,7 @@ struct ToneShaper {
 
     };
 
-    void clear(void)
+    void clear()
     {
         memset(this,0,sizeof(ToneShaper));
     };
@@ -322,7 +328,7 @@ struct ToneShaper {
         val = *this;
         return true;
     };
-    bool check(void) const
+    bool check() const
     {
         return true;
     };
@@ -343,16 +349,16 @@ struct ToneShaperVector {
     static constexpr const char * const typeName = "ToneShaperVector";
     static constexpr uint16_t  idlength = 127;
     static constexpr uint32_t  toneShaperVectorSize = overtoneCountOscDef;
-    inline uint16_t maxOscillatorCount(void) const { return overtoneCountOscDef; };
+    inline uint16_t maxOscillatorCount() const { return overtoneCountOscDef; };
     ToneShaperVector()
     :   oscillatorCountUsed( overtoneCountOscDef )
     {};
 
-    void clear(void)
+    void clear()
     {
         for( auto& vi : toneShaper ) vi.clear();
     };
-    bool check(void)
+    bool check()
     {
         return true;
     };

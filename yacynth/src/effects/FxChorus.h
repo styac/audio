@@ -54,7 +54,7 @@ public:
     virtual bool connect( const FxBase * v, uint16_t ind ) override;
 
 private:
-    virtual void clearState(void) override;
+    virtual void clearState() override;
     static void sprocess_01( void * thp );
     static void sprocess_02( void * thp );
     static void sprocess_05( void * thp );
@@ -80,7 +80,7 @@ private:
         out().multAdd( param.mode01.wetGain, inp() ); // mult
     }
 
-    inline void modulateSine(void)
+    inline void modulateSine()
     {
         constexpr uint8_t maxAmplExp = 16+31-32; // sine 16 bit, multiplier 31 bit signed fractional part 32
         constexpr uint8_t corrAmplExp = maxAmplExp - param.delayLngExp + 1;
@@ -94,7 +94,7 @@ private:
         }
     }
 
-    inline void modulateTriangle(void)
+    inline void modulateTriangle()
     {
         constexpr uint8_t maxAmplExp = 30+31-32; // triangle 30 bit, multiplier 31 bit signed fractional part 32
         constexpr uint8_t corrAmplExp = maxAmplExp - param.delayLngExp + 1;

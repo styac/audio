@@ -30,46 +30,47 @@
 #include "control/Setting.h"
 #include <iostream>
 #include <memory>
+#include <mutex>
+
+extern "C" {
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/un.h>
+}
 
 namespace yacynth {
 namespace net {
 
-// TODO : remove virtual -- local,remote in 1 class
-// TODO : make singleton
-// TODO : signal handler shut,close socket
-
 class Server {
 public:
     NON_COPYABLE_NOR_MOVABLE(Server);
-    Server() = delete;
     static constexpr size_t randLength = yaxp::seedLength;
     static constexpr size_t authLength = yaxp::seedLength;
     static constexpr size_t maxStatusSize = 512;
 
-    typedef std::shared_ptr<Server> Type;
+    Server() = delete;
 
-    virtual ~Server() = default;
+    virtual ~Server()
+    {
+        if( instance != nullptr) {
+            delete instance;
+        }
+    }
 
-    static Server::Type create( Sysman& sysmanP, const Setting& setting, bool& failed );
+    static bool create( Sysman& sysmanP, const Setting& setting );
 
-    bool run( void );
-    void stop( void );
+    static auto getInstance()
+    {
+        return instance;
+    }
+
+    bool run();
+
+    void stop();
 
     virtual bool sendStatus( const yacynth::yaxp::Message& message ) = 0;
 
-//    auto& getInstance()
-//    {
-//        Server instance;
-//        return instance;
-//    }
-
 protected:
-    // remove virtual classes like in gui
-    // Server( Sysman& sysmanP, const char *port, const std::string& authKeyFile );
-    // Server( Sysman& sysmanP, const uint16_t port, const std::string& authKeyFile );
     virtual bool doAccept() = 0;
     bool doRecv();
     bool doSend();
@@ -82,66 +83,67 @@ protected:
     bool fillRandom( uint8_t * randBuff );
     bool checkAuth( const uint8_t * randBuff, const uint8_t * respBuff, size_t respLng );
 
-    Server( Sysman& sysmanP, const std::string& authKeyFile, bool& failed );
+    Server( Sysman& sysmanP, const std::string& authKeyFile );
 
     bool setAuthSeed( const std::string& seedFileName );
 
-    Sysman&                 sysman;
-    int                     socketListen;
-    int                     socketAccept;
-    int                     socketSendStatus;
-    int                     errnoNet;
-    char                    seedAuth[ yaxp::seedLength ];
-    yaxp::Message           message;
-    uint16_t                cliendId;
-    uint8_t                 lastSequenceNumber;
-    yaxp::MessageT          lastMessageType;
-    bool                    connected;
-    bool                    authenticated;
-    bool                    stopServer;
+    Sysman&         sysman;
+    std::mutex      stopMutex;
+    int             socketListen;
+    int             socketAccept;
+    int             socketSendStatus;
+    int             errnoNet;
+    char            seedAuth[ yaxp::seedLength ];
+    yaxp::Message   message;
+    uint16_t        cliendId;
+    uint8_t         lastSequenceNumber;
+    yaxp::MessageT  lastMessageType;
 
-// remove virtual classes like in gui
-//    uint16_t        portControl;    // can be removed
-//    uint16_t        portStatus;     // UDP for sending status updates
-//    sockaddr_un     statusSockAddr;
-//    std::string     portControl;
-//    std::string     portStatus;
+    struct {
+        uint16_t    connected       : 1;
+        uint16_t    authenticated   : 1;
+        uint16_t    stopServer      : 1;
+        uint16_t    createFailed    : 1;
+    };
+
+    union {
+        sockaddr_in     statusSockAddr4;    // UDP for sending status updates
+        sockaddr_in6    statusSockAddr6;    // not implemented
+        sockaddr_un     statusSockAddr;     // local
+    };
+
+    std::string     portControlLocal;
+    std::string     portStatusLocal;
+    uint16_t        portControlRemote;
+    uint16_t        portStatusRemote;
+    static Server * instance;
 };
 
-class RemoteServer : public Server {
+class RemoteServer final : public Server {
 public:
     NON_COPYABLE_NOR_MOVABLE(RemoteServer);
     RemoteServer() = delete;
-    RemoteServer( Sysman& sysmanP, const uint16_t port, const std::string& authKeyFile, bool& failed );
+    RemoteServer( Sysman& sysmanP, const uint16_t port, const std::string& authKeyFile );
     ~RemoteServer();
 
     bool sendStatus( const yacynth::yaxp::Message& message ) override;
 
 private:
     bool doAccept()  override;
-    union {
-        sockaddr_in     statusSockAddr4;    // UDP for sending status updates
-        sockaddr_in6    statusSockAddr6;    // not implemented
-    };
-
-    uint16_t        portControl;    // can be removed
-    uint16_t        portStatus;     // UDP for sending status updates
 };
 
-class LocalServer : public Server {
+class LocalServer final : public Server {
 public:
     NON_COPYABLE_NOR_MOVABLE(LocalServer);
     LocalServer() = delete;
-    LocalServer( Sysman& sysmanP, const char *port, const std::string& authKeyFile, bool& failed );
+    LocalServer( Sysman& sysmanP, const char *port, const std::string& authKeyFile );
     ~LocalServer();
 
     bool sendStatus( const yacynth::yaxp::Message& message ) override;
 
 private:
     bool doAccept()  override;
-    sockaddr_un     statusSockAddr;
-    std::string     portControl;
-    std::string     portStatus;
+
 };
 
 } // end namespace yacnet

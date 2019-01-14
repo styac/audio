@@ -44,28 +44,15 @@ typedef __int128_t  int128_t;
 
 namespace yacynth {
 
-//#ifdef YCONF_OVERSAMPLING_RATE
-//#if YCONF_OVERSAMPLING_RATE==2
-//// 96000Hz
-//constexpr uint16_t  oversamplingRate            = 2;
-//#elif YCONF_OVERSAMPLING_RATE==4
-//// 192000Hz
-//constexpr uint16_t  oversamplingRate            = 4;
-//#else
-//constexpr uint16_t  oversamplingRate            = 1;
-//#endif
-//#else
-//constexpr uint16_t  oversamplingRate            = 1;
-//#error "not defd YCONF_OVERSAMPLING_RATE"
-//#endif
-
-
 constexpr double    samplingFrequency           = 48000.0 * oversamplingRate;
 
 constexpr uint16_t  oscillatorFrameSizeExp      = frameSizeExp;        // 64 sample
 constexpr uint16_t  oscillatorFrameSize         = 1<<oscillatorFrameSizeExp;
 constexpr uint16_t  effectFrameSizeExp          = oscillatorFrameSizeExp;        // 64 sample
 constexpr uint16_t  effectFrameSize             = 1<<effectFrameSizeExp;        // 64 sample
+
+constexpr int32_t frameTimeLimitMicrosec        = ((1000*1000) << frameSizeExp) / samplingFrequency - 10;
+constexpr int32_t frameTimeLimitNanosec         = 1000*frameTimeLimitMicrosec;
 
 #define cArrayElementCount(T)    (sizeof(T) / sizeof(T[0]))
 
@@ -95,18 +82,16 @@ constexpr double    samplingDeltaTime           = 1.0/samplingFrequency;
 
 constexpr uint16_t  scalePhaseIndexExp          = 1<<4;
 constexpr uint64_t  scalePhaseIndex             = 1LL << scalePhaseIndexExp;
-//
+
 constexpr int       waveTableSize               = 1 << 16;
 constexpr int       velocityTableSize           = 1 << 8;
 constexpr uint16_t  effectChannelCount          = 16;
-
 
 constexpr uint8_t   oscOutputChannelCountExp    = 5; // 16 x 2
 constexpr uint8_t   oscOutputChannelCount       = 1<<oscOutputChannelCountExp;
 constexpr uint8_t   oscOutputChannelCountMsk    = oscOutputChannelCount-1;
 constexpr uint8_t   layerCount                  = oscOutputChannelCount / 2; // 2 ch
 
-//
 // ------------------------------------------------------------
 //  lowest 8 bit: linear interpolation
 //  next 16 bit: index into the exp2 table
@@ -190,25 +175,6 @@ inline Tdata saturate ( const Tdata x )
 //#define     OSCILLATOR_AMPLITUDE_RANDOMIZER  1
 
 //====================================================
-
-#if 0
-template<typename T>
-T saturate(T val, T min, T max) {
-    return std::min(std::max(val, min), max);
-}
-
-template<typename T>
-T saturate(T val, T lim) {
-    return std::min(std::max(val, -lim), lim);
-}
-
-template<typename T, std::size_t lim>
-T saturate(T val) {
-    return std::min(std::max(val, -lim), lim);
-}
-#endif
-
-
 // one pole filter F parameter
 constexpr inline double f2FilterOnePole_F( const double f, uint8_t oversampling=1 )
 {
@@ -247,13 +213,13 @@ constexpr inline double fc_sinPi2_F( const double fc )
 // if T signed      : result 0,-1
 // valid for: 8,16,32,64 bit integer
 
-template< typename T >
-inline T isPeriodEnd( const T& lastPhase, const T& currPhase )
-{
-    constexpr size_t size = sizeof(T);
-    static_assert( size > 7 && size < 65, "illegal type" );
-    return ( lastPhase ^ currPhase ) >> ( size - 1 );
-}
+//template< typename T >
+//inline T isPeriodEnd( const T& lastPhase, const T& currPhase )
+//{
+//    constexpr size_t size = sizeof(T);
+//    static_assert( size > 7 && size < 65, "illegal type" );
+//    return ( lastPhase ^ currPhase ) >> ( size - 1 );
+//}
 
 
 } // end namespace yacynth
