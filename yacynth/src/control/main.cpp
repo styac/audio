@@ -59,7 +59,7 @@ using namespace noiser;
 
 namespace {
 constexpr auto LogCategoryMask              = LOGCAT_main;
-constexpr auto LogCategoryMaskAlways        = LogCategoryMask | nanolog::category_mask_t::log_always;
+constexpr auto LogCategoryMaskAlways        = LogCategoryMask | nanolog::LogControl::log_always;
 constexpr const char * const LogCategory    = "MAIN";
 }
 
@@ -143,27 +143,36 @@ static void teststuff()
 
 int main( int argc, char** argv )
 {
-    nanolog::initialize(nanolog::NonGuaranteedLogger(10), "/tmp/", "", 1);
-    nanolog::set_log_format(nanolog::LogFormat::LF_NONE);
+    try {        
+        nanolog::initialize(nanolog::NonGuaranteedLogger(10), "/tmp/", "", 1);
+        nanolog::set_logFormat(nanolog::LogFormat::LF_NONE);
+        nanolog::set_logLevel(nanolog::LogLevel::TRACE);
+    } catch (...) {
+        std::cerr << "init error: FATALs" << std::endl;
+        exit(-1);
+    }
+    
+    try {
+        GaloisShifterSingle<seedThreadEffect_noise>::getInstance();
+        GaloisShifterSingle<seedThreadOscillator_noise>::getInstance();
+        GaloisShifterSingle<seedThreadEffect_random>::getInstance();
+        GaloisShifterSingle<seedThreadOscillator_random>::getInstance();
 
-    // init thread id
-    // nanolog::this_thread_id_str();
+        ExpTable::getInstance();
+        FilterTableExp2Pi::getInstance();
+        FilterTableSinCosPi2::getInstance();
+        FilterTable2SinPi::getInstance();
+        FilterTableCos2Pi::getInstance();
+        SinTable::table();
+        VelocityBoostTable::getInstance();
+        YaIoJack::getInstance();
+        TuningManager::getInstance();        
+    } catch (...) {        
+        std::cerr << "init error: FATALs" << std::endl;
+        exit(-1);
+    }
     
     // init singletons
-    GaloisShifterSingle<seedThreadEffect_noise>::getInstance();
-    GaloisShifterSingle<seedThreadOscillator_noise>::getInstance();
-    GaloisShifterSingle<seedThreadEffect_random>::getInstance();
-    GaloisShifterSingle<seedThreadOscillator_random>::getInstance();
-
-    ExpTable::getInstance();
-    FilterTableExp2Pi::getInstance();
-    FilterTableSinCosPi2::getInstance();
-    FilterTable2SinPi::getInstance();
-    FilterTableCos2Pi::getInstance();
-    SinTable::table();
-    VelocityBoostTable::getInstance();
-    YaIoJack::getInstance();
-    TuningManager::getInstance();
 
     ControlQueueVector&     queuein     = ControlQueueVector::getInstance();
     OscillatorOutVector&    oscOutVec   = OscillatorOutVector::getInstance();
@@ -193,15 +202,19 @@ int main( int argc, char** argv )
     // teststuff();
 
     // inter thread communication
+    // TODO check nullptr
+    
     OscillatorArray * oscArray   = new OscillatorArray();
     // router - can be singleton
     Router          * midiRouter = new Router(queuein);
 
     // threads
     // TODO IOThread: separate audio and midi
+
     IOThread        * iOThread   = new IOThread( oscOutVec );
     SynthFrontend   * synthFe    = new SynthFrontend( queuein, oscOutVec, oscArray );
     Sysman          * sysman     = new Sysman( *midiRouter, *oscArray, *iOThread ); // + oscOutVec to control
+
     // auto& fxRunner  = iOThread->getFxRunner();
 
     createStaticEfects(); // default sound

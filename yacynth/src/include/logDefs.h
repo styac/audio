@@ -28,7 +28,7 @@
 
 namespace yacynth {
 
-enum LOG_CATEGORY_ID : nanolog::category_mask_t::value_type {
+enum LOG_CATEGORY_ID : nanolog::LogControl::value_type {
     LOGCAT_main         = 1LL << 0,
     LOGCAT_net          = 1LL << 1,
     LOGCAT_synthfe      = 1LL << 2,

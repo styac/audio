@@ -44,7 +44,7 @@ namespace net {
 
 namespace {
 constexpr auto LogCategoryMask              = LOGCAT_net;
-constexpr auto LogCategoryMaskAlways        = LogCategoryMask | nanolog::category_mask_t::log_always;
+constexpr auto LogCategoryMaskAlways        = LogCategoryMask | nanolog::LogControl::log_always;
 constexpr const char * const LogCategory    = "NETS";
 }
 
